@@ -100,16 +100,46 @@ function ensurePreview() {
   });
 }
 
+function fail(stage, out) {
+  log(`✖ 失败于 ${stage}：`);
+  console.log(String(out || '').trim());
+  return { ok: false, stage };
+}
+
+function doPush() {
+  let push = git(['push', 'origin', 'main']);
+  if (!push.ok && /non-fast-forward|rejected/i.test(push.out)) {
+    log('远端有新提交 → pull --rebase 后重推');
+    const re = git(['pull', '--rebase', '--autostash', 'origin', 'main']);
+    if (!re.ok) { git(['rebase', '--abort']); return fail('pull', re.out); }
+    push = git(['push', 'origin', 'main']);
+  }
+  if (!push.ok) return fail('push', push.out);
+  log('已推送 → GitHub Pages 约 10 秒后上线');
+  return { ok: true };
+}
+
 /* ── 提交 + 推送 ────────────────────────────── */
 function commitAndPush() {
   /* 只暂存内容源 pages/；构建产物（输出目录、mounted.js、sitemap、
      index.html 指纹）由 pre-commit 钩子按规则暂存 */
   const add = git(['add', 'pages']);
-  if (!add.ok) return { ok: false, stage: 'add', msg: add.out };
+  if (!add.ok) return fail('add', add.out);
 
   const staged = git(['diff', '--cached', '--name-status'])
     .out.split('\n').filter(Boolean);
-  if (!staged.length) { log('无内容变化，跳过提交'); return { ok: true, skipped: true }; }
+  if (!staged.length) {
+    log('无内容变化，跳过提交');
+    /* 补推：本地有未推送提交时（例如上次 push 网络失败），
+       npm run sync 就是重试入口 */
+    const ahead = git(['rev-list', '--count', '@{u}..HEAD']);
+    const n = parseInt(ahead.out.trim(), 10);
+    if (ahead.ok && n > 0) {
+      if (OPT.noPush || OPT.dry) log(`本地领先 ${n} 个提交，未推送`);
+      else { log(`本地领先 ${n} 个提交 → 补推`); return doPush(); }
+    }
+    return { ok: true, skipped: true };
+  }
 
   /* 提交信息：优先取 pages/ 源路径 */
   const paths = staged.map(l => l.split('\t').pop() || '');
@@ -129,22 +159,13 @@ function commitAndPush() {
   }
 
   const commit = git(['commit', '-m', subject]);
-  if (!commit.ok) return { ok: false, stage: 'commit', msg: commit.out };
+  if (!commit.ok) return fail('commit', commit.out);
   const sha = git(['rev-parse', '--short', 'HEAD']).out.trim();
   log(`已提交 ${sha} ${subject}`);
 
   if (OPT.noPush) { log('--no-push：跳过推送'); return { ok: true, sha }; }
-
-  let push = git(['push', 'origin', 'main']);
-  if (!push.ok && /non-fast-forward|rejected/i.test(push.out)) {
-    log('远端有新提交 → pull --rebase 后重推');
-    const re = git(['pull', '--rebase', '--autostash', 'origin', 'main']);
-    if (!re.ok) { git(['rebase', '--abort']); return { ok: false, stage: 'pull', msg: re.out }; }
-    push = git(['push', 'origin', 'main']);
-  }
-  if (!push.ok) return { ok: false, stage: 'push', msg: push.out };
-  log('已推送 → GitHub Pages 约 10 秒后上线');
-  return { ok: true, sha };
+  const r = doPush();
+  return r.ok ? { ok: true, sha } : r;
 }
 
 /* ── 一次完整周期 ───────────────────────────── */

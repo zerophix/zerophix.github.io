@@ -75,6 +75,16 @@ window.ZP_MOUNT = {
       "id": "physics",
       "pages": [
         {
+          "t": "核钟跃迁 · 光的频率与波长",
+          "u": "/physics/2026-01/",
+          "d": "2026.11.09"
+        },
+        {
+          "t": "静电卡盘 · 电场力与电势能",
+          "u": "/physics/2026-02/",
+          "d": "2026.11.09"
+        },
+        {
           "t": "卫星引力差值 · 比值链",
           "u": "/physics/2026-06/",
           "d": "2026.11.08"
@@ -103,16 +113,6 @@ window.ZP_MOUNT = {
           "t": "电子磁谱仪 · 落点几何与能量判定",
           "u": "/physics/2026-10/",
           "d": "2026.11.08"
-        },
-        {
-          "t": "核钟跃迁 · 光的频率与波长",
-          "u": "/physics/2026-01/",
-          "d": "2026.11.04"
-        },
-        {
-          "t": "静电卡盘 · 电场力与电势能",
-          "u": "/physics/2026-02/",
-          "d": "2026.11.04"
         }
       ]
     },
@@ -120,14 +120,14 @@ window.ZP_MOUNT = {
       "id": "projects",
       "pages": [
         {
-          "t": "Web AI Bridge · 项目全景 — 架构 / 设计 / 技术 / 算法",
-          "u": "/projects/web-ai-bridge/",
+          "t": "CodeGuardian AI · 项目全景 — 架构 / 设计 / 技术 / 算法",
+          "u": "/projects/glossary-java-source-analyzer/",
           "d": "2026.11.09"
         },
         {
-          "t": "CodeGuardian AI · 项目全景 — 架构 / 设计 / 技术 / 算法",
-          "u": "/projects/glossary-java-source-analyzer/",
-          "d": "2026.11.08"
+          "t": "Web AI Bridge · 项目全景 — 架构 / 设计 / 技术 / 算法",
+          "u": "/projects/web-ai-bridge/",
+          "d": "2026.11.09"
         }
       ]
     }
