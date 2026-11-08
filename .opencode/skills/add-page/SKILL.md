@@ -1,6 +1,6 @@
 ---
 name: 挂载新页面
-description: 把一个完整独立 HTML 放进 pages/<领域>/ 自动挂载到首页（领域墙 / 页面列表 / sitemap）。触发：/挂载、新增页面、加一页、写个新页面、add page、pages 目录、挂载页。
+description: 新页面先分类进 pages/<领域>/ 再提交挂载（首页领域墙/页面列表/sitemap 自动更新）。触发：/挂载、新增页面、加一页、写个新页面、add page、pages 目录、挂载页、新页面进来、页面分类。
 ---
 
 # 挂载新页面（Eleventy 挂载框架）
@@ -12,6 +12,14 @@ description: 把一个完整独立 HTML 放进 pages/<领域>/ 自动挂载到�
 
 ## 流程
 
+0. **新页面常直接落在 `pages/` 根目录（未分类）——先分类，再提交**（标准工作流）：
+   - 读 `<title>` 和 `meta description` 判断领域，`mv` 进对应目录；
+   - 归类原则：**优先复用已有领域**、同模式归同领域——「XX · 项目全景」→ `projects/`、
+     漫画制作 → `manga/`、物理笔记 → `physics/`、动画 → `animation/`…；
+     确是全新主题才建 ASCII 新目录；
+   - **拿不准就问站长，别猜着放**；
+   - 未分类的散装文件会被门禁拦（构建失败），`npm run auto` 在分类完成前不会提交——这是设计行为；
+   - `mv` 本身就是 pages/ 变更：开着 auto 时 mv 即触发 构建→提交→推送，没开则手动 `npm run sync`。
 1. 起步（可选）：复制模板后改成完整文档，或直接手写完整 HTML。
    ```sh
    cp pages/_template.njk pages/<领域>/<页面名>.html
@@ -38,7 +46,7 @@ description: 把一个完整独立 HTML 放进 pages/<领域>/ 自动挂载到�
 ## 提交被拦截时
 
 读钩子报错，常见四类：散装在 pages/ 根、缺 `<html>`、缺 `<title>`、领域目录里没有页面。
-修文件后重试；**不要 `--no-verify`**。
+散装文件 → 走第0 步先分类；其余修文件后重试；**不要 `--no-verify`**。
 
 ## 验证
 

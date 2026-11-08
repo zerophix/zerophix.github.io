@@ -56,7 +56,8 @@ BASE_URL=https://zerophix.github.io/ node tests/web-smoke-test.js   # 线上模�
 3. 元数据自动提取：首页标题 = 页面 `<title>`；日期 = 该文件最后一次 git 提交日
    （未跟踪文件回退文件修改时间 → `YYYY.MM.DD`）。
 4. 校验（不过就拦提交，报错点名文件）：散装在 `pages/` 根、缺 `<html>`、缺 `<title>`、
-   领域目录里没有任何页面。
+   领域目录里没有任何页面。**散装文件的标准处理：读标题分类进对应领域目录再提交**
+   （优先复用已有领域、拿不准问站长，详见 `@add-page` 第0 步）。
 5. 提交即挂载：pre-commit 跑构建 → 校验 → 暂存 `mounted.js`/`sitemap.xml` 与各领域输出目录
    → 源目录删除时自动下架孤儿输出。**不要用 `--no-verify` 绕过**；新环境先 `npm install`。
 6. 全自动（推荐）：`npm run auto` 常驻监听 `pages/` —— 丢文件 → 构建 → 自动提交 →
