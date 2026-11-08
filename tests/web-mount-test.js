@@ -35,6 +35,7 @@ const COMPLETE = title => `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <title>${title}</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23f0ede6'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='21' font-weight='700' fill='%2327457e' text-anchor='middle'%3EZ%3C/text%3E%3C/svg%3E">
 <style>.probe{color:#27457e}</style>
 </head>
 <body>
@@ -54,6 +55,8 @@ const openHome = async page => {
   }, { timeout: 15000 });
 };
 const isFont = e => /fonts\.(gstatic|googleapis)\.com/.test(e);
+/* 控制台错误消息文本不含域名，用 location().url 判定字体 CDN 环境因素 */
+const isFontMsg = m => /fonts\.(gstatic|googleapis)\.com/.test(((m.location() || {}).url) || '');
 
 (async () => {
   cleanup();
@@ -78,7 +81,7 @@ const isFont = e => /fonts\.(gstatic|googleapis)\.com/.test(e);
   const home0 = await b.newPage();
   const baseErr = [];
   home0.on('pageerror', e => baseErr.push(e.message));
-  home0.on('console', m => { if (m.type() === 'error') baseErr.push(m.text()); });
+  home0.on('console', m => { if (m.type() === 'error' && !isFontMsg(m)) baseErr.push(m.text()); });
   await openHome(home0);
   const base = await home0.evaluate(() => {
     const m = window.ZP_MOUNT || { fields: [] };
@@ -118,7 +121,7 @@ const isFont = e => /fonts\.(gstatic|googleapis)\.com/.test(e);
   const home = await b.newPage();
   const herr = [];
   home.on('pageerror', e => herr.push(e.message));
-  home.on('console', m => { if (m.type() === 'error') herr.push(m.text()); });
+  home.on('console', m => { if (m.type() === 'error' && !isFontMsg(m)) herr.push(m.text()); });
   await openHome(home);
   const h = await home.evaluate(() => ({
     cards: document.querySelectorAll('#fields-wall .field').length,

@@ -124,7 +124,7 @@ const BASE = process.env.BASE_URL || 'https://zerophix.github.io/';
   // ── axe-core 自动可访问性审计 ──
   let axeViolations = 'axe-core 注入失败';
   try {
-    await p.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js' });
+    await p.addScriptTag({ path: require.resolve('axe-core/axe.min.js') });  /* 本地注入，不依赖 cdnjs */
     await p.waitForFunction(() => !!window.axe);
     axeViolations = await p.evaluate(async () => {
       const r = await window.axe.run(document, { resultTypes: ['violations'] });

@@ -29,17 +29,14 @@ function fillSite(){
   var id = [SITE.brand, SITE.tagline].filter(Boolean).join(' · ');
   var txt = {
     brand:     SITE.brand || null,
-    aria:      SITE.brand ? SITE.brand + '，回到顶部' : null,
     eyebrow:   id ? id + (SITE.since ? ' · ' + SITE.since + ' —' : '') : null,
     brandline: id || null,
     since:     SITE.since ? SITE.since + '—' : null
   };
   Array.prototype.forEach.call(document.querySelectorAll('[data-site]'), function(el){
-    var k = el.getAttribute('data-site');
-    var v = (k in txt) ? txt[k] : null;
+    var v = txt[el.getAttribute('data-site')];
     if (v == null || v === '') return;
-    if (k === 'aria') el.setAttribute('aria-label', v);
-    else el.textContent = v;
+    el.textContent = v;
   });
 
   var href = {

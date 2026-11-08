@@ -13,7 +13,13 @@ function expectCheck(list, name, actual, expected) {
   const httpFails = [];
   const browser = await chromium.launch({ channel: 'chrome' });
   const page = await browser.newPage();
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('console', m => {
+    if (m.type() !== 'error') return;
+    /* 字体 CDN（gstatic 中文分片）连接失败是环境因素，不算站点缺陷 */
+    const u = ((m.location() || {}).url) || '';
+    if (/fonts\.(gstatic|googleapis)\.com/.test(u)) return;
+    errors.push('console: ' + m.text());
+  });
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('response', r => { if (r.status() >= 400) httpFails.push(r.status() + ' ' + r.url()); });
 
@@ -42,7 +48,7 @@ function expectCheck(list, name, actual, expected) {
   r.colophonSince = await page.locator('.colophon [data-site="since"]').textContent();
   r.githubHref = await page.locator('.foot [data-site-href="github"]').getAttribute('href');
   r.emailHref = await page.locator('.foot [data-site-href="email"]').getAttribute('href');
-  r.ariaLabel = await page.locator('header .brand').getAttribute('aria-label');
+  r.brandAria = await page.locator('header .brand').getAttribute('aria-label');
   r.h1 = (await page.locator('h1').textContent()).trim();
   r.navLinks = await page.locator('.nav a').count();
   r.title = await page.title();
@@ -118,7 +124,8 @@ function expectCheck(list, name, actual, expected) {
     colophonSince: '2023—',
     githubHref: 'https://github.com/zerophix',
     emailHref: 'mailto:zerophix@users.noreply.github.com',
-    ariaLabel: 'ZeroPhix，回到顶部',
+    /* 品牌链接不带 aria-label：可访问名 = 可见文本，避免 label-content-name-mismatch */
+    brandAria: null,
     h1: 'ZeroPhix',
     navLinks: 3,
     title: 'ZeroPhix',
