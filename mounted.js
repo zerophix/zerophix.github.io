@@ -5,6 +5,11 @@ window.ZP_MOUNT = {
       "id": "animation",
       "pages": [
         {
+          "t": "Hydrodynamic & Tracer Transport — Estuary Sector 07",
+          "u": "/animation/estuary-tracer-transport/",
+          "d": "2026.11.08"
+        },
+        {
           "t": "动起来之前 · 动画入门全指南",
           "u": "/animation/动画入门全流程指南/",
           "d": "2026.11.08"

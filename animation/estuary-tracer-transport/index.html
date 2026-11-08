@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hydrodynamic & Tracer Transport — Estuary Sector 07</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#04080e;
+  --deep:#071019;
+  --panel:rgba(8,22,32,0.78);
+  --line:rgba(45,212,191,0.16);
+  --line-strong:rgba(45,212,191,0.42);
+  --accent:#2dd4bf;
+  --amber:#f0b429;
+  --alert:#ff6b57;
+  --text:#d7ece9;
+  --dim:#5f8a87;
+  --mono:"IBM Plex Mono",monospace;
+  --disp:"Chakra Petch",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(ellipse at 12% -10%,rgba(20,70,80,0.35),transparent 55%),
+    radial-gradient(ellipse at 95% 110%,rgba(30,40,90,0.30),transparent 55%),
+    var(--abyss);
+  color:var(--text);font-family:var(--disp);overflow:hidden;
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:200;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ===== layout ===== */
+.app{display:grid;grid-template-columns:306px 1fr;grid-template-rows:1fr 36px;height:100vh}
+.rail{
+  grid-column:1;grid-row:1;overflow-y:auto;overflow-x:hidden;
+  border-right:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(8,20,30,0.92),rgba(5,12,20,0.92));
+  padding:18px 16px 26px;display:flex;flex-direction:column;gap:14px;
+}
+.stage{grid-column:2;grid-row:1;position:relative;overflow:hidden;background:#04121c}
+.statusbar{
+  grid-column:1/3;grid-row:2;display:flex;align-items:center;gap:0;
+  background:rgba(4,10,16,0.95);border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--dim);overflow-x:auto;white-space:nowrap;
+}
+.statusbar .si{padding:0 16px;border-right:1px solid rgba(45,212,191,0.10);height:100%;display:flex;align-items:center;gap:8px}
+.statusbar .si b{color:var(--text);font-weight:500}
+.statusbar .si b.hot{color:var(--accent)}
+.statusbar .si b.warn{color:var(--amber)}
+
+/* ===== rail blocks ===== */
+.blk{position:relative;border:1px solid var(--line);background:var(--panel);padding:13px 13px 14px;
+  opacity:0;animation:riseIn .55s cubic-bezier(.2,.8,.25,1) forwards}
+.blk::before,.blk::after{content:"";position:absolute;width:10px;height:10px;border:1px solid var(--accent);opacity:.5}
+.blk::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.blk::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+.blk:nth-child(1){animation-delay:.05s}.blk:nth-child(2){animation-delay:.13s}
+.blk:nth-child(3){animation-delay:.21s}.blk:nth-child(4){animation-delay:.29s}
+.blk:nth-child(5){animation-delay:.37s}.blk:nth-child(6){animation-delay:.45s}
+.blk:nth-child(7){animation-delay:.53s}
+@keyframes riseIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+.blk-head{display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:var(--dim);margin-bottom:11px}
+.blk-head .tag{color:var(--accent);border:1px solid var(--line-strong);padding:1px 7px;letter-spacing:.16em}
+.blk-head .tag.manual{color:var(--amber);border-color:rgba(240,180,41,0.45)}
+
+.brand h1{font-size:15.5px;font-weight:700;line-height:1.32;letter-spacing:.13em}
+.brand h1 em{font-style:normal;color:var(--accent)}
+.brand .sub{margin-top:8px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim);line-height:1.8}
+
+button{font-family:var(--mono);cursor:pointer;border:1px solid var(--line-strong);background:transparent;
+  color:var(--accent);padding:8px 0;font-size:10.5px;letter-spacing:.18em;
+  transition:background .22s ease,color .22s ease,letter-spacing .3s ease}
+button:hover{background:var(--accent);color:#04121c;letter-spacing:.26em}
+.btn-primary{flex:1.4}
+.btn-ghost{flex:1;color:var(--dim);border-color:rgba(255,255,255,0.14)}
+.btn-ghost:hover{background:rgba(255,255,255,0.9);color:#04121c}
+.ctrl-row{display:flex;gap:8px}
+.speed-row{display:flex;align-items:center;gap:6px;margin-top:10px}
+.speed-row .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);margin-right:2px}
+.speed-row button{flex:1;padding:5px 0;font-size:9.5px;letter-spacing:.1em;border-color:rgba(255,255,255,0.12);color:var(--dim)}
+.speed-row button.on{background:var(--accent);color:#04121c;border-color:var(--accent)}
+.speed-row button:hover{letter-spacing:.1em}
+
+.switch{display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:14px}
+.switch input{display:none}
+.switch .track{width:38px;height:18px;border:1px solid var(--line-strong);position:relative;flex:0 0 auto;transition:background .25s}
+.switch .knob{position:absolute;top:2px;left:2px;width:12px;height:12px;background:var(--dim);transition:all .25s cubic-bezier(.2,.8,.25,1)}
+.switch input:checked + .track{background:rgba(45,212,191,0.18)}
+.switch input:checked + .track .knob{left:22px;background:var(--accent);box-shadow:0 0 10px rgba(45,212,191,0.8)}
+.switch-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--text);line-height:1.5}
+
+.param{margin-bottom:12px}
+.param:last-child{margin-bottom:0}
+.param-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.param-top span{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--dim)}
+.param-top b{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--accent)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:rgba(45,212,191,0.22);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;background:var(--accent);
+  transform:rotate(45deg);cursor:pointer;box-shadow:0 0 9px rgba(45,212,191,0.85)}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--accent);border:0;border-radius:0;transform:rotate(45deg)}
+input[type=range]:disabled{opacity:.32;cursor:not-allowed}
+input[type=range]:disabled::-webkit-slider-thumb{box-shadow:none}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 9px;font-size:8.8px;letter-spacing:.13em;color:var(--dim);border-color:rgba(255,255,255,0.12)}
+.chip:hover{background:transparent;color:var(--text);letter-spacing:.13em;border-color:var(--line-strong)}
+.chip.on{color:#04121c;background:var(--accent);border-color:var(--accent)}
+
+canvas.chart{width:100%;height:58px;display:block;border:1px solid rgba(45,212,191,0.12);background:rgba(2,10,16,0.5)}
+
+.stat{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px dashed rgba(45,212,191,0.12)}
+.stat:last-child{border-bottom:0}
+.stat span{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim)}
+.stat b{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--text)}
+.stat b.ok{color:var(--accent)}
+.stat b.bad{color:var(--alert)}
+
+.foot{font-family:var(--mono);font-size:8.6px;letter-spacing:.13em;color:var(--dim);line-height:2;background:transparent;border-style:dashed}
+.foot::before,.foot::after{display:none}
+
+/* ===== stage overlay ===== */
+#mainCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.stage-frame{position:absolute;inset:12px;pointer-events:none;border:1px solid rgba(45,212,191,0.10)}
+.stage-frame::before,.stage-frame::after{content:"";position:absolute;width:20px;height:20px;border:1.5px solid var(--accent);opacity:.6}
+.stage-frame::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.stage-frame::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 150px rgba(2,8,14,0.8)}
+.sweep{position:absolute;left:0;right:0;height:34%;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(45,212,191,0.14),transparent);
+  transform:translateY(-130%);animation:sweep 1.7s cubic-bezier(.3,.6,.3,1) .35s 1 both}
+@keyframes sweep{to{transform:translateY(430%);opacity:0}}
+
+.stage-tag{position:absolute;top:22px;left:28px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.26em;color:rgba(45,212,191,0.75);pointer-events:none}
+
+.clock{position:absolute;top:22px;right:262px;text-align:right;pointer-events:none;
+  opacity:0;animation:riseIn .7s ease .5s forwards}
+.clock-date{font-family:var(--mono);font-size:10px;letter-spacing:.34em;color:var(--dim)}
+.clock-time{font-family:var(--mono);font-size:40px;font-weight:600;line-height:1.05;color:#eafffb;
+  text-shadow:0 0 26px rgba(45,212,191,0.45);letter-spacing:.04em}
+.clock-time .cln{animation:blink 1.2s steps(1) infinite;color:var(--accent)}
+@keyframes blink{50%{opacity:.15}}
+.clock-sub{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--dim);margin-top:3px}
+.clock-sub span{color:var(--accent)}
+
+.right-stack{position:absolute;top:22px;right:22px;width:218px;display:flex;flex-direction:column;gap:11px}
+.card{position:relative;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(12px);
+  padding:11px 12px;opacity:0;animation:slideIn .6s cubic-bezier(.2,.8,.25,1) forwards}
+.card:nth-child(1){animation-delay:.45s}.card:nth-child(2){animation-delay:.55s}.card:nth-child(3){animation-delay:.65s}
+@keyframes slideIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+.card-title{font-family:var(--mono);font-size:8.8px;letter-spacing:.22em;color:var(--dim);margin-bottom:9px}
+.card-title em{font-style:normal;color:var(--accent);float:right;letter-spacing:.1em}
+.ramp{height:116px;border:1px solid rgba(0,0,0,0.5)}
+.ticks{display:flex;flex-direction:column;justify-content:space-between;height:116px;
+  position:absolute;top:31px;right:14px;font-family:var(--mono);font-size:8.5px;color:rgba(255,255,255,0.65);
+  text-shadow:0 1px 3px #000;pointer-events:none}
+.legend .ramp{width:calc(100% - 34px)}
+
+.gauge-body{display:flex;gap:12px;align-items:stretch}
+.gauge-track{width:16px;height:116px;border:1px solid rgba(45,212,191,0.3);position:relative;
+  background:linear-gradient(180deg,rgba(45,212,191,0.16),rgba(10,30,50,0.3))}
+.gauge-mid{position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,0.28)}
+.gauge-mark{position:absolute;left:-4px;width:22px;height:2px;background:var(--accent);
+  box-shadow:0 0 10px rgba(45,212,191,0.9);top:50%}
+.gauge-side{display:flex;flex-direction:column;justify-content:space-between}
+.g-val{font-family:var(--mono);font-size:17px;color:#eafffb}
+.g-state{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--accent)}
+.g-state.ebb{color:var(--amber)}
+.g-hint{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--dim)}
+
+.probe-tag{position:absolute;pointer-events:none;opacity:0;transition:opacity .18s;
+  background:rgba(6,18,26,0.92);border:1px solid var(--line-strong);padding:8px 11px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;line-height:1.85;color:var(--text);
+  white-space:nowrap;z-index:20}
+.probe-tag b{color:var(--accent);font-weight:500}
+.probe-tag .k{color:var(--dim)}
+
+@media (max-width:1020px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 52vh 36px}
+  .rail{grid-column:1;grid-row:1;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:12px}
+  .blk{min-width:236px;flex:0 0 auto}
+  .foot{display:none}
+  .stage{grid-column:1;grid-row:2}
+  .statusbar{grid-row:3}
+  .clock{right:236px}
+  .clock-time{font-size:30px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .blk,.card,.clock{opacity:1!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= LEFT RAIL ================= -->
+  <aside class="rail">
+
+    <header class="blk brand">
+      <h1>HYDRODYNAMIC<br>&amp; <em>TRACER</em> TRANSPORT</h1>
+      <p class="sub">ESTUARY SECTOR 07 · M2 TIDAL FORCING<br>FVM UPWIND + SHEAR DISPERSION<br>REALTIME LAGRANGIAN OVERLAY</p>
+    </header>
+
+    <section class="blk">
+      <div class="blk-head"><span>CONTROL / 控制</span><span class="tag" id="runTag">RUNNING</span></div>
+      <div class="ctrl-row">
+        <button id="play" class="btn-primary">PAUSE ‖</button>
+        <button id="reset" class="btn-ghost">RESET</button>
+      </div>
+      <div class="speed-row" id="speedRow">
+        <span class="lbl">RATE</span>
+        <button data-sp="0.5">×0.5</button>
+        <button data-sp="1" class="on">×1</button>
+        <button data-sp="2">×2</button>
+        <button data-sp="4">×4</button>
+      </div>
+    </section>
+
+    <section class="blk">
+      <div class="blk-head"><span>PHYSICS / 物理参数</span><span class="tag" id="modeTag">AUTO</span></div>
+      <label class="switch">
+        <input type="checkbox" id="autoMode" checked>
+        <span class="track"><span class="knob"></span></span>
+        <span class="switch-label">自动水动力演化<br>AUTO TIDAL EVOLUTION</span>
+      </label>
+      <div class="param">
+        <div class="param-top"><span>流速 U</span><b id="uVal">1.50 m/s</b></div>
+        <input type="range" id="u" min="0.3" max="2.6" step="0.05" value="1.5" disabled>
+      </div>
+      <div class="param">
+        <div class="param-top"><span>扩散 D</span><b id="dVal">0.90 m²/s</b></div>
+        <input type="range" id="d" min="0.1" max="3" step="0.05" value="0.9" disabled>
+      </div>
+      <div class="param">
+        <div class="param-top"><span>衰减 K</span><b id="kVal">4.0 ×10⁻⁴/s</b></div>
+        <input type="range" id="k" min="0" max="10" step="0.1" value="4" disabled>
+      </div>
+    </section>
+
+    <section class="blk">
+      <div class="blk-head"><span>DISPLAY LAYERS / 图层</span></div>
+      <div class="chips" id="chips">
+        <button class="chip on" data-layer="vel">速度场 VELOCITY</button>
+        <button class="chip on" data-layer="par">流场粒子 PARTICLES</button>
+        <button class="chip on" data-layer="iso">等值线 ISOLINES</button>
+        <button class="chip on" data-layer="probe">探针 PROBE</button>
+      </div>
+    </section>
+
+    <section class="blk">
+      <div class="blk-head"><span>M2 TIDAL ELEVATION</span><span class="tag" id="tideTagMini">FLOOD</span></div>
+      <canvas class="chart" id="tideChart" width="272" height="58"></canvas>
+      <div class="blk-head" style="margin-top:12px"><span>PEAK CONCENTRATION</span></div>
+      <canvas class="chart" id="peakChart" width="272" height="58"></canvas>
+    </section>
+
+    <section class="blk">
+      <div class="blk-head"><span>TRACER BUDGET / 质量台账</span></div>
+      <div class="stat"><span>TOTAL MASS</span><b id="mTotal">0 t</b></div>
+      <div class="stat"><span>INJECTED</span><b id="mIn">0 t</b></div>
+      <div class="stat"><span>DEGRADED</span><b id="mDec">0 t</b></div>
+      <div class="stat"><span>EXPORTED</span><b id="mOut">0 t</b></div>
+      <div class="stat"><span>PLUME AREA</span><b id="mArea">0 km²</b></div>
+      <!-- [FIX 3] 守恒残差 = mIn − mTotal − mDec − mOut，应始终为浮点尾差量级 -->
+      <div class="stat"><span>LEDGER RESIDUAL</span><b id="mRes" class="ok">+0.000 t</b></div>
+    </section>
+
+    <footer class="blk foot">
+      GRID 200×120 · CELL 40 m · NOMINAL DEPTH 4 m<br>
+      OPEN EAST/WEST BOUNDARY · CLOSED LATERAL<br>
+      ▸ 单击水面注入示踪剂团 / CLICK WATER TO RELEASE A PULSE<br>
+      ▸ SPACE = RUN/PAUSE · R = RESET
+    </footer>
+  </aside>
+
+  <!-- ================= STAGE ================= -->
+  <main class="stage" id="stage">
+    <canvas id="mainCanvas"></canvas>
+    <div class="stage-frame"></div>
+    <div class="sweep"></div>
+    <div class="stage-tag">LIVE VIEW // BATHYMETRY · VELOCITY · TRACER PLUME</div>
+
+    <div class="clock">
+      <div class="clock-date" id="dateStamp">2017 / 01 / 29</div>
+      <div class="clock-time"><span id="hh">00</span><span class="cln">:</span><span id="mm">00</span></div>
+      <div class="clock-sub">T+<span id="tPlus">00:00:00</span> · RATE <span id="rateTag">×3000</span></div>
+    </div>
+
+    <div class="right-stack">
+      <div class="card legend">
+        <div class="card-title">TRACER CONCENTRATION <em>g/L</em></div>
+        <div class="ramp" id="tracerRamp"></div>
+        <div class="ticks"><span>20</span><span>15</span><span>10</span><span>5</span><span>0</span></div>
+      </div>
+      <div class="card legend">
+        <div class="card-title">VELOCITY MAGNITUDE <em>m/s</em></div>
+        <div class="ramp" id="velRamp"></div>
+        <div class="ticks"><span>2.6</span><span>1.8</span><span>1.0</span><span>0</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">M2 TIDE GAUGE</div>
+        <div class="gauge-body">
+          <div class="gauge-track"><div class="gauge-mid"></div><div class="gauge-mark" id="gaugeMark"></div></div>
+          <div class="gauge-side">
+            <div class="g-val" id="tideElev">+0.00 m</div>
+            <div class="g-state" id="tideState">SLACK 平潮</div>
+            <div class="g-hint">FLOOD ▲ / EBB ▼ · PERIOD 12.42 h</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="probe-tag" id="probeTag">
+      <div><span class="k">GRID</span> <b id="pGrid">—</b></div>
+      <div><span class="k">|U|</span> <b id="pU">—</b></div>
+      <div><span class="k">TRACER</span> <b id="pC">—</b></div>
+      <div><span class="k">DEPTH</span> <b id="pH">—</b></div>
+    </div>
+  </main>
+
+  <!-- ================= STATUS ================= -->
+  <footer class="statusbar">
+    <div class="si">SIM TIME <b id="sbSim" class="hot">0.0 h</b></div>
+    <div class="si">HYDRO <b id="sbTide">FLOOD TIDE</b></div>
+    <div class="si">PEAK C <b id="sbPeak">0.00 g/L</b></div>
+    <div class="si">LOCAL |U| <b id="sbU">—</b></div>
+    <div class="si">LOCAL C <b id="sbC">—</b></div>
+    <div class="si">PHOTOLYSIS <b id="sbLight" class="warn">DAY</b></div>
+    <div class="si">COURANT <b id="sbCFL">0.00</b></div>
+    <div class="si">STEPS/F <b id="sbSteps">0</b></div>
+    <div class="si">FPS <b id="sbFps">60</b></div>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   0. UTILITIES
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => v < a ? a : (v > b ? b : v);
+const pad = (n,l=2) => String(Math.floor(n)).padStart(l,"0");
+
+function hash2(x,y){ const n = Math.sin(x*127.1 + y*311.7) * 43758.5453123; return n - Math.floor(n); }
+function vnoise(x,y){
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x-xi, yf = y-yi;
+  const u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf);
+  const a = hash2(xi,yi), b = hash2(xi+1,yi), c = hash2(xi,yi+1), d = hash2(xi+1,yi+1);
+  return a + (b-a)*u + (c-a)*v + (a-b-c+d)*u*v;
+}
+
+/* marching squares case table — edges: T R B L */
+const CASES = [
+  [], [["T","L"]], [["T","R"]], [["L","R"]],
+  [["R","B"]], [["T","L"],["R","B"]], [["T","B"]], [["L","B"]],
+  [["L","B"]], [["T","B"]], [["T","R"],["L","B"]], [["R","B"]],
+  [["L","R"]], [["T","R"]], [["T","L"]], []
+];
+function edgePoint(e,i,j,v0,v1,v2,v3,th){
+  switch(e){
+    case "T": { const t=(th-v0)/((v1-v0)||1e-9); return [i+t, j]; }
+    case "R": { const t=(th-v1)/((v2-v1)||1e-9); return [i+1, j+t]; }
+    case "B": { const t=(th-v3)/((v2-v3)||1e-9); return [i+t, j+1]; }
+    default : { const t=(th-v0)/((v3-v0)||1e-9); return [i, j+t]; }
+  }
+}
+function strokeContour(g, field, nx, ny, th, sx, sy, ox, oy){
+  g.beginPath();
+  for(let j=0;j<ny-1;j++){
+    for(let i=0;i<nx-1;i++){
+      const v0=field[j*nx+i], v1=field[j*nx+i+1], v2=field[(j+1)*nx+i+1], v3=field[(j+1)*nx+i];
+      let idx=0;
+      if(v0>th) idx|=1; if(v1>th) idx|=2; if(v2>th) idx|=4; if(v3>th) idx|=8;
+      const cs = CASES[idx];
+      if(!cs.length) continue;
+      for(let n=0;n<cs.length;n++){
+        const pa = edgePoint(cs[n][0],i,j,v0,v1,v2,v3,th);
+        const pb = edgePoint(cs[n][1],i,j,v0,v1,v2,v3,th);
+        g.moveTo(ox+pa[0]*sx, oy+pa[1]*sy);
+        g.lineTo(ox+pb[0]*sx, oy+pb[1]*sy);
+      }
+    }
+  }
+  g.stroke();
+}
+
+/* ============================================================
+   1. PHYSICS GRID & STATE
+   ============================================================ */
+const NX=200, NY=120, DX=40, DY=40, DEPTH=4;
+const CELL_VOL = DX*DY*DEPTH, NC = NX*NY;
+const M2 = 12.42*3600, DAYSEC = 86400, TIME_SCALE = 3000;
+const SRC_I = 56, SRC_C = 18;
+
+let  C = new Float64Array(NC), CT = new Float64Array(NC);
+const BD = new Float64Array(NC);
+const BU = new Float64Array(NC), BV = new Float64Array(NC);
+const U  = new Float64Array(NC), V  = new Float64Array(NC);
+const FX = new Float64Array((NX+1)*NY), FY = new Float64Array(NX*(NY+1));
+
+let time = 0, running = true, speedMul = 1, lastT = 0, fps = 60;
+const params = { u:1.5, D:0.9, k:4.0 };
+const stats  = { steps:0, courant:0, maxSp:0.1 };
+let mIn=0, mOut=0, mDec=0, mTotal=0, peakC=0, plumeArea=0;
+const pulses = [];
+const probe  = { x:0, y:0, gx:0, gy:0, active:false };
+let showVel=true, showPar=true, showIso=true, showProbe=true;
+
+function centerY(i){ return NY*0.5 + Math.sin((i/NX)*Math.PI*2) * NY*0.22; }
+function centerSlope(i){ return Math.cos((i/NX)*Math.PI*2) * (Math.PI*2*NY*0.22) / NX; }
+function chanHalf(i){ return NY*0.125 + (vnoise((i/NX)*4.2+11.3, 2.1)-0.5)*NY*0.07; }
+
+function initFields(){
+  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){
+    const id = j*NX+i;
+    const d  = Math.abs(j-centerY(i))/chanHalf(i);
+    let h = 11.5*Math.exp(-d*d*1.15) + 1.4;
+    h += (vnoise(i*0.052, j*0.052)-0.5)*2.6 + (vnoise(i*0.17, j*0.17)-0.5)*0.8;
+    BD[id] = Math.max(0.35, h);
+  }
+  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){
+    const id = j*NX+i;
+    const d  = Math.abs(j-centerY(i))/chanHalf(i);
+    const ang = Math.atan(centerSlope(i));
+    const spd = (0.10 + Math.sqrt(BD[id]/11.5)*1.85) * Math.exp(-d*d*0.62);
+    BU[id] = Math.cos(ang)*spd;
+    BV[id] = Math.sin(ang)*spd;
+  }
+}
+
+/* ---- tidal / diel forcing ---- */
+function tidePhase(){ return 2*Math.PI*time/M2; }
+function tideFactor(){ const s = Math.sin(tidePhase()); return s>=0 ? s : s*0.58; }   // flood asymmetry
+function photoFactor(){ const s = Math.sin(2*Math.PI*time/DAYSEC); return 0.10 + 0.90*Math.max(0,s); }
+function isAuto(){ return $("autoMode").checked; }
+function uAmp(){ return isAuto() ? 1 : params.u/1.5; }
+function effTide(){ return isAuto() ? tideFactor() : 1; }
+
+function updateAuto(){
+  const tf = Math.abs(tideFactor()), pf = photoFactor();
+  if(isAuto()){
+    params.u = 0.42 + tf*1.78;
+    params.D = 0.42 + tf*1.32 + (pf>0.5 ? 0.12 : 0);
+    params.k = (2.1 + tf*2.2) * (0.35 + 0.65*pf) * 1.55;
+    slU.value = params.u.toFixed(2);
+    slD.value = params.D.toFixed(2);
+    slK.value = params.k.toFixed(1);
+  } else {
+    params.u = +slU.value;
+    params.D = +slD.value;
+    params.k = +slK.value;
+  }
+  uVal.textContent = params.u.toFixed(2) + " m/s";
+  dVal.textContent = params.D.toFixed(2) + " m²/s";
+  kVal.textContent = params.k.toFixed(1) + " ×10⁻⁴/s";
+  modeTag.textContent = isAuto() ? "AUTO" : "MANUAL";
+  modeTag.classList.toggle("manual", !isAuto());
+}
+
+/* ---- dynamic flow field ---- */
+function buildFlow(){
+  const tf = effTide()*uAmp();
+  const ex = 0.66*NX, ey = centerY(0.66*NX), R = 27;
+  const rot = time*0.00042;
+  const eStr = (0.35 + 0.65*Math.abs(tf))*1.30;
+  let mx = 0.05;
+  for(let j=0;j<NY;j++){
+    for(let i=0;i<NX;i++){
+      const id = j*NX+i;
+      let u = BU[id]*tf, v = BV[id]*tf;
+      const dx = i-ex, dy = j-ey, r2 = dx*dx+dy*dy;
+      if(r2 < R*R){
+        const r = Math.sqrt(r2), w = Math.sin(Math.PI*r/R), a = Math.atan2(dy,dx)+rot;
+        u += Math.cos(a+1.5707963)*w*eStr;
+        v += Math.sin(a+1.5707963)*w*eStr;
+      }
+      U[id] = u; V[id] = v;
+      const s = Math.abs(u)+Math.abs(v);
+      if(s > mx) mx = s;
+    }
+  }
+  stats.maxSp = mx;
+}
+
+/* ============================================================
+   2. FVM SOLVER  (upwind advection + shear dispersion)
+   ============================================================ */
+function step(dt){
+  buildFlow();
+  const D = params.D;
+  const kEff = params.k * 1e-4 * photoFactor();
+
+  /* [FIX 1] x faces — upwind + 开边界入流按干净水处理（两端对称） */
+  for(let j=0;j<NY;j++){
+    const row = j*NX, frow = j*(NX+1);
+    for(let i=0;i<=NX;i++){
+      const li = i>0   ? row+i-1 : row;
+      const ri = i<NX  ? row+i   : row+NX-1;
+      const l = C[li], r = C[ri];
+      let uF;
+      if(i===0)       uF = U[row];
+      else if(i===NX) uF = U[row+NX-1];
+      else            uF = 0.5*(U[row+i-1]+U[row+i]);
+
+      let adv;
+      if(i===0  && uF>0)      adv = 0;               // 西端入流 → 干净海水，不携入示踪剂
+      else if(i===NX && uF<0) adv = 0;               // 东端入流 → 干净海水
+      else adv = uF>=0 ? uF*l : uF*r;                // 正常迎风
+
+      const dFace = D*(1.0 + 1.1*Math.abs(uF));      // 边界面 l==r，扩散项自然为 0
+      FX[frow+i] = adv - dFace*(r-l)/DX;
+    }
+  }
+
+  /* y faces — 侧向封闭，正常迎风 */
+  for(let j=0;j<=NY;j++){
+    const frow = j*NX;
+    for(let i=0;i<NX;i++){
+      if(j===0 || j===NY){ FY[frow+i] = 0; continue; }
+      const ti = j*NX+i, bi = (j-1)*NX+i;
+      const t = C[ti], b = C[bi];
+      const vF = 0.5*(V[ti]+V[bi]);
+      const adv = vF>=0 ? vF*b : vF*t;
+      const dFace = D*(1.0 + 1.1*Math.abs(vF));
+      FY[frow+i] = adv - dFace*(t-b)/DY;
+    }
+  }
+
+  /* conservative update + decay */
+  const decayMassFactor = (1-Math.exp(-kEff*dt))*CELL_VOL;
+  for(let j=0;j<NY;j++){
+    const row = j*NX, frow = j*(NX+1);
+    for(let i=0;i<NX;i++){
+      const id = row+i;
+      const divX = (FX[frow+i+1]-FX[frow+i])/DX;
+      const divY = (FY[(j+1)*NX+i]-FY[j*NX+i])/DY;
+      let val = C[id] - dt*(divX+divY);
+      if(val > 0){
+        mDec += val*decayMassFactor;
+        val *= Math.exp(-kEff*dt);
+      }
+      CT[id] = val > 0 ? val : 0;
+    }
+  }
+
+  /* [FIX 1] 开边界台账：两端都记出流（退潮时质量从 i=0 离域！） */
+  const faceArea = DY*DEPTH;
+  for(let j=0;j<NY;j++){
+    const frow = j*(NX+1);
+    const fw = FX[frow], fe = FX[frow+NX];
+    if(fw < 0) mOut += -fw*faceArea*dt;   // 经西边界流出
+    if(fe > 0) mOut +=  fe*faceArea*dt;   // 经东边界流出
+  }
+
+  /* swap buffers */
+  const tmp = C; C = CT; CT = tmp;
+
+  inject(dt);
+  /* [FIX 2] 粒子与示踪剂共用同一子步、同一流场（U/V 为本子步 buildFlow 结果） */
+  advectParticles(dt);
+}
+
+/* [FIX 1] dsum 带符号累计：relax 双向，记净值台账才严格闭合 */
+function inject(dt){
+  const sj = Math.round(centerY(SRC_I));
+  const relax = Math.min(0.6, dt*0.55);
+  let dsum = 0;
+  for(let dj=-4;dj<=4;dj++){
+    for(let di=-4;di<=4;di++){
+      const i = SRC_I+di, j = sj+dj;
+      if(i<0||i>=NX||j<0||j>=NY) continue;
+      const w = Math.exp(-(di*di+dj*dj)/9);
+      const id = j*NX+i;
+      const d = (SRC_C - C[id])*relax*w;
+      C[id] += d;
+      dsum += d;
+    }
+  }
+  for(let n=pulses.length-1;n>=0;n--){
+    const p = pulses[n];
+    const age = time - p.t0;
+    if(age > p.life){ pulses.splice(n,1); continue; }
+    const r = 2.4 + age*0.30;
+    const r2 = r*r;
+    const relaxP = Math.min(0.6, dt*0.5);
+    for(let dj=-Math.ceil(r);dj<=Math.ceil(r);dj++){
+      for(let di=-Math.ceil(r);di<=Math.ceil(r);di++){
+        const d2 = di*di+dj*dj;
+        if(d2 > r2) continue;
+        const i = p.i+di, j = p.j+dj;
+        if(i<0||i>=NX||j<0||j>=NY) continue;
+        const w = Math.exp(-d2/(r2*0.42));
+        const id = j*NX+i;
+        const d = (p.c - C[id])*relaxP*w;
+        C[id] += d;
+        dsum += d;
+      }
+    }
+  }
+  mIn += dsum*CELL_VOL;
+}
+
+function simulate(rdt){
+  updateAuto();
+  const simDt = rdt*TIME_SCALE*speedMul;
+  buildFlow();
+  const maxSp = stats.maxSp;
+  const dtAdv = 0.38*DX/maxSp;
+  const dtDiff = 0.20*DX*DX/(params.D*2.2 + 0.5);
+  const maxDt = Math.min(dtAdv, dtDiff);
+  let rem = simDt, steps = 0, lastDt = maxDt;
+  while(rem > 1e-6 && steps < 64){
+    const dt = Math.min(rem, maxDt);
+    step(dt);              // 内部含 advectParticles(dt)，粒子时钟与 time 严格同步
+    rem -= dt; time += dt; steps++; lastDt = dt;
+  }
+  stats.steps = steps;
+  stats.courant = maxSp*lastDt/DX;
+}
+
+/* ============================================================
+   3. PARTICLES  [FIX 2] 子步级推进 + 双线性采样
+   ============================================================ */
+const P = [];
+function newParticle(anywhere){
+  const i = anywhere ? Math.random()*NX : Math.random()*26;
+  const j = clamp(centerY(i) + (Math.random()*2-1)*chanHalf(i)*1.35, 1, NY-2);
+  return { x:i, y:j, x0:i, y0:j, x1:i, y1:j };
+}
+function initParticles(){
+  P.length = 0;
+  for(let n=0;n<820;n++) P.push(newParticle(true));
+}
+
+const _f = {u:0, v:0};
+function sampleFlow(x, y){
+  const i0 = clamp(Math.floor(x), 0, NX-2), j0 = clamp(Math.floor(y), 0, NY-2);
+  const sx = x-i0, sy = y-j0;
+  const a = j0*NX+i0, b = a+1, c = a+NX, d = c+1;
+  const u0 = U[a]+(U[b]-U[a])*sx, u1 = U[c]+(U[d]-U[c])*sx;
+  const v0 = V[a]+(V[b]-V[a])*sx, v1 = V[c]+(V[d]-V[c])*sx;
+  _f.u = u0+(u1-u0)*sy;
+  _f.v = v0+(v1-v0)*sy;
+  return _f;
+}
+
+/* 每个 CFL 子步调用一次 —— 与 FVM 求解器共享 dt 与流场 */
+function advectParticles(dt){
+  const kx = dt/DX, ky = dt/DY;
+  for(const p of P){
+    const f = sampleFlow(p.x, p.y);
+    p.x += f.u*kx;
+    p.y += f.v*ky;
+    if(p.x >= NX-1 || p.x < 0 || p.y < 1 || p.y > NY-2){
+      Object.assign(p, newParticle(false));   // 重生后拖尾自然归零
+    }
+  }
+}
+
+/* 每渲染帧一次：两帧运动模糊拖尾的快照 */
+function trailShift(){
+  for(const p of P){ p.x0 = p.x1; p.y0 = p.y1; p.x1 = p.x; p.y1 = p.y; }
+}
+
+/* ============================================================
+   4. COLOUR RAMPS
+   ============================================================ */
+const TRACER_RAMP = [
+  [0.00,[10,14,36]], [0.12,[26,32,84]], [0.30,[74,36,118]], [0.48,[142,48,104]],
+  [0.64,[206,74,72]], [0.80,[246,138,52]], [0.92,[255,204,92]], [1.00,[255,242,196]]
+];
+const VEL_RAMP = [
+  [0.00,[6,22,42]], [0.35,[14,66,104]], [0.62,[28,148,158]], [0.85,[96,222,208]], [1.00,[200,255,246]]
+];
+function rampColor(ramp,t){
+  t = clamp(t,0,1);
+  for(let k=0;k<ramp.length-1;k++){
+    if(t <= ramp[k+1][0]){
+      const a = ramp[k], b = ramp[k+1];
+      const f = (t-a[0])/((b[0]-a[0])||1);
+      return [a[1][0]+(b[1][0]-a[1][0])*f, a[1][1]+(b[1][1]-a[1][1])*f, a[1][2]+(b[1][2]-a[1][2])*f];
+    }
+  }
+  return ramp[ramp.length-1][1].slice();
+}
+function rampCss(ramp){
+  return "linear-gradient(to top," + ramp.map(([t,c])=>`rgb(${c[0]|0},${c[1]|0},${c[2]|0}) ${(t*100).toFixed(0)}%`).join(",") + ")";
+}
+const BATHY = [
+  [0.3,[30,70,66]], [2.0,[22,56,64]], [4.0,[14,40,58]], [7.0,[9,27,46]], [12.5,[5,15,30]]
+];
+
+/* ============================================================
+   5. BACKGROUND (bathymetric chart, baked once per resize)
+   ============================================================ */
+const bg = document.createElement("canvas");
+const bgCtx = bg.getContext("2d");
+const bathC = document.createElement("canvas");
+bathC.width = NX; bathC.height = NY;
+const bathCtx = bathC.getContext("2d");
+const bathImg = bathCtx.createImageData(NX,NY);
+
+function buildBackground(){
+  const w = CW, h = CH;
+  bg.width = w*dpr; bg.height = h*dpr;
+  bgCtx.setTransform(dpr,0,0,dpr,0,0);
+
+  const d = bathImg.data;
+  for(let j=0;j<NY;j++){
+    for(let i=0;i<NX;i++){
+      const id = j*NX+i, idx = id*4;
+      const col = rampColor(BATHY, 1 - clamp((BD[id]-0.3)/12.2,0,1));
+      const gx = (BD[id+1<NX?id+1:id] - BD[id-1>=0?id-1:id]);
+      const gy = (BD[id+NX<NC?id+NX:id] - BD[id-NX>=0?id-NX:id]);
+      const shade = clamp(1 + (gx+gy)*0.055, 0.68, 1.3);
+      d[idx]   = col[0]*shade;
+      d[idx+1] = col[1]*shade;
+      d[idx+2] = col[2]*shade;
+      d[idx+3] = 255;
+    }
+  }
+  bathCtx.putImageData(bathImg,0,0);
+  bgCtx.imageSmoothingEnabled = true;
+  bgCtx.imageSmoothingQuality = "high";
+  bgCtx.drawImage(bathC,0,0,w,h);
+
+  const sx = w/NX, sy = h/NY;
+  const iso = [1.5,3,5,7,9,11];
+  bgCtx.lineWidth = 1;
+  for(const th of iso){
+    bgCtx.strokeStyle = th===5 ? "rgba(120,220,215,0.20)" : "rgba(120,220,215,0.10)";
+    strokeContour(bgCtx, BD, NX, NY, th, sx, sy, 0, 0);
+  }
+
+  const tile = document.createElement("canvas");
+  tile.width = tile.height = 96;
+  const tc = tile.getContext("2d");
+  const ti = tc.createImageData(96,96);
+  for(let i=0;i<ti.data.length;i+=4){
+    const v = 110 + Math.random()*90;
+    ti.data[i]=ti.data[i+1]=ti.data[i+2]=v; ti.data[i+3]=255;
+  }
+  tc.putImageData(ti,0,0);
+  bgCtx.globalAlpha = 0.05;
+  bgCtx.fillStyle = bgCtx.createPattern(tile,"repeat");
+  bgCtx.fillRect(0,0,w,h);
+  bgCtx.globalAlpha = 1;
+
+  bgCtx.strokeStyle = "rgba(150,230,225,0.05)";
+  bgCtx.lineWidth = 1;
+  bgCtx.beginPath();
+  for(let i=1;i<10;i++){ bgCtx.moveTo(w*i/10,0); bgCtx.lineTo(w*i/10,h); }
+  for(let i=1;i<8;i++){  bgCtx.moveTo(0,h*i/8);  bgCtx.lineTo(w,h*i/8); }
+  bgCtx.stroke();
+
+  const g = bgCtx.createRadialGradient(w*0.5,h*0.5,Math.min(w,h)*0.25,w*0.5,h*0.5,Math.max(w,h)*0.78);
+  g.addColorStop(0,"rgba(0,0,0,0)");
+  g.addColorStop(1,"rgba(2,7,12,0.55)");
+  bgCtx.fillStyle = g;
+  bgCtx.fillRect(0,0,w,h);
+}
+
+/* ============================================================
+   6. CANVAS / RENDER
+   ============================================================ */
+const canvas = $("mainCanvas"), ctx = canvas.getContext("2d");
+let CW=0, CH=0, dpr=1;
+function resize(){
+  const r = canvas.getBoundingClientRect();
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  CW = Math.max(2, Math.round(r.width));
+  CH = Math.max(2, Math.round(r.height));
+  canvas.width = CW*dpr; canvas.height = CH*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  buildBackground();
+}
+
+const offC = document.createElement("canvas");
+offC.width = NX; offC.height = NY;
+const offCtx = offC.getContext("2d");
+const tracerImg = offCtx.createImageData(NX,NY);
+
+function render(){
+  const w = CW, h = CH, cellW = w/NX, cellH = h/NY;
+  ctx.drawImage(bg, 0, 0, w, h);
+
+  if(showVel){
+    const stepC = 3;
+    ctx.globalAlpha = 0.20;
+    for(let j=0;j<NY;j+=stepC){
+      for(let i=0;i<NX;i+=stepC){
+        const id = j*NX+i;
+        const sp = Math.sqrt(U[id]*U[id]+V[id]*V[id]);
+        const c = rampColor(VEL_RAMP, sp/2.6);
+        ctx.fillStyle = `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;
+        ctx.fillRect(i*cellW-0.5, j*cellH-0.5, cellW*stepC+1, cellH*stepC+1);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  if(showPar){
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(185,246,240,0.14)";
+    ctx.beginPath();
+    for(const p of P){ ctx.moveTo(p.x0*cellW,p.y0*cellH); ctx.lineTo(p.x1*cellW,p.y1*cellH); }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(212,255,250,0.40)";
+    ctx.beginPath();
+    for(const p of P){ ctx.moveTo(p.x1*cellW,p.y1*cellH); ctx.lineTo(p.x*cellW,p.y*cellH); }
+    ctx.stroke();
+  }
+
+  const d = tracerImg.data;
+  for(let i=0;i<NC;i++){
+    const val = C[i];
+    const c = rampColor(TRACER_RAMP, val/20);
+    const idx = i*4;
+    d[idx] = c[0]; d[idx+1] = c[1]; d[idx+2] = c[2];
+    d[idx+3] = clamp(val/1.5,0,1)*252;
+  }
+  offCtx.putImageData(tracerImg,0,0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(offC, 0, 0, w, h);
+
+  if(showIso){
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.32)";
+    for(const th of [0.5,1.5,4,8,12,16]){
+      strokeContour(ctx, C, NX, NY, th, cellW, cellH, 0, 0);
+    }
+    ctx.restore();
+  }
+
+  const sX = (SRC_I+0.5)*cellW, sY = (centerY(SRC_I)+0.5)*cellH;
+  const pulse = 0.5 + 0.5*Math.sin(performance.now()*0.004);
+  ctx.strokeStyle = "rgba(255,107,87,0.95)";
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(sX, sY, 9, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = `rgba(255,107,87,${0.35*(1-pulse)})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(sX, sY, 9 + pulse*13, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = "rgba(255,107,87,0.95)";
+  ctx.fillRect(sX-1.5, sY-1.5, 3, 3);
+  ctx.font = "500 10px 'IBM Plex Mono',monospace";
+  ctx.fillStyle = "rgba(255,160,140,0.92)";
+  ctx.fillText("OUTLET · LEAK", sX+16, sY+3.5);
+
+  for(const p of pulses){
+    const age = time - p.t0;
+    const px = (p.i+0.5)*cellW, py = (p.j+0.5)*cellH;
+    const rr = (2.4 + age*0.30)*cellW*1.05;
+    ctx.strokeStyle = `rgba(45,212,191,${0.55*(1-age/p.life)})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(px,py,rr,0,Math.PI*2); ctx.stroke();
+  }
+
+  if(showProbe && probe.active){
+    ctx.save();
+    ctx.strokeStyle = "rgba(45,212,191,0.55)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,5]);
+    ctx.beginPath();
+    ctx.moveTo(0, probe.y); ctx.lineTo(w, probe.y);
+    ctx.moveTo(probe.x, 0); ctx.lineTo(probe.x, h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = "rgba(45,212,191,0.95)";
+    ctx.beginPath(); ctx.arc(probe.x, probe.y, 7, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* ============================================================
+   7. UI WIRING
+   ============================================================ */
+const slU=$("u"), slD=$("d"), slK=$("k");
+const uVal=$("uVal"), dVal=$("dVal"), kVal=$("kVal"), modeTag=$("modeTag");
+const hh=$("hh"), mm=$("mm"), tPlus=$("tPlus"), dateStamp=$("dateStamp"), rateTag=$("rateTag");
+const sbSim=$("sbSim"), sbTide=$("sbTide"), sbPeak=$("sbPeak"), sbU=$("sbU"), sbC=$("sbC");
+const sbLight=$("sbLight"), sbCFL=$("sbCFL"), sbSteps=$("sbSteps"), sbFps=$("sbFps");
+const gaugeMark=$("gaugeMark"), tideElev=$("tideElev"), tideState=$("tideState");
+const tideTagMini=$("tideTagMini"), runTag=$("runTag"), probeTag=$("probeTag");
+const pGrid=$("pGrid"), pU=$("pU"), pC=$("pC"), pH=$("pH");
+const mTotalEl=$("mTotal"), mInEl=$("mIn"), mDecEl=$("mDec"), mOutEl=$("mOut"),
+      mAreaEl=$("mArea"), mResEl=$("mRes");   /* [FIX 3] */
+
+$("tracerRamp").style.background = rampCss(TRACER_RAMP);
+$("velRamp").style.background    = rampCss(VEL_RAMP);
+
+$("play").onclick = e => {
+  running = !running;
+  e.target.textContent = running ? "PAUSE ‖" : "RUN ▶";
+  runTag.textContent = running ? "RUNNING" : "PAUSED";
+  runTag.classList.toggle("manual", !running);
+};
+$("reset").onclick = resetAll;
+$("autoMode").onchange = () => {
+  const auto = isAuto();
+  slU.disabled = slD.disabled = slK.disabled = auto;
+  if(!auto){ slU.value=params.u.toFixed(2); slD.value=params.D.toFixed(2); slK.value=params.k.toFixed(1); }
+  updateAuto();
+};
+$("speedRow").onclick = e => {
+  const b = e.target.closest("button[data-sp]");
+  if(!b) return;
+  speedMul = +b.dataset.sp;
+  [...$("speedRow").querySelectorAll("button[data-sp]")].forEach(x=>x.classList.toggle("on", x===b));
+  rateTag.textContent = "×" + (TIME_SCALE*speedMul|0);
+};
+$("chips").onclick = e => {
+  const b = e.target.closest(".chip");
+  if(!b) return;
+  b.classList.toggle("on");
+  const on = b.classList.contains("on");
+  if(b.dataset.layer==="vel")   showVel   = on;
+  if(b.dataset.layer==="par")   showPar   = on;
+  if(b.dataset.layer==="iso")   showIso   = on;
+  if(b.dataset.layer==="probe") showProbe = on;
+};
+
+/* probe */
+canvas.addEventListener("pointermove", e => {
+  const r = canvas.getBoundingClientRect();
+  probe.x = e.clientX - r.left;
+  probe.y = e.clientY - r.top;
+  probe.gx = clamp(Math.floor(probe.x/r.width*NX), 0, NX-1);
+  probe.gy = clamp(Math.floor(probe.y/r.height*NY), 0, NY-1);
+  probe.active = true;
+  probeTag.style.opacity = 1;
+  probeTag.style.left = Math.min(probe.x+16, r.width-190) + "px";
+  probeTag.style.top  = Math.min(probe.y+16, r.height-110) + "px";
+});
+canvas.addEventListener("pointerleave", () => {
+  probe.active = false;
+  probeTag.style.opacity = 0;
+});
+canvas.addEventListener("pointerdown", e => {
+  const r = canvas.getBoundingClientRect();
+  const gi = clamp(Math.floor((e.clientX-r.left)/r.width*NX), 1, NX-2);
+  const gj = clamp(Math.floor((e.clientY-r.top)/r.height*NY), 1, NY-2);
+  pulses.push({ i:gi, j:gj, t0:time, life:34, c:15 });
+  if(pulses.length > 24) pulses.shift();
+});
+
+/* keyboard */
+window.addEventListener("keydown", e => {
+  if(e.code === "Space"){ e.preventDefault(); $("play").click(); }
+  if(e.key === "r" || e.key === "R") resetAll();
+});
+
+function resetAll(){
+  C.fill(0); CT.fill(0);
+  time = 0; mIn = 0; mOut = 0; mDec = 0; peakC = 0;
+  pulses.length = 0;
+  histT.length = 0; histE.length = 0; histP.length = 0;
+  lastSample = -1;
+  initParticles();
+  seedSource();
+  computeBudget();   /* [FIX 3] 避免重置后台账滞留 5 帧旧值 */
+}
+function seedSource(){
+  const sj = Math.round(centerY(SRC_I));
+  for(let dj=-5;dj<=5;dj++){
+    for(let di=-5;di<=5;di++){
+      const i = SRC_I+di, j = sj+dj;
+      if(i<0||i>=NX||j<0||j>=NY) continue;
+      const id = j*NX+i;
+      C[id] = Math.max(C[id], SRC_C*Math.exp(-(di*di+dj*dj)/12));
+    }
+  }
+}
+
+/* ============================================================
+   8. HISTORY CHARTS
+   ============================================================ */
+const histT=[], histE=[], histP=[];
+let lastSample = -1;
+function sampleHist(){
+  if(lastSample >= 0 && time - lastSample < 90) return;
+  lastSample = time;
+  histT.push(time);
+  histE.push(Math.sin(tidePhase()));
+  histP.push(peakC);
+  if(histT.length > 220){ histT.shift(); histE.shift(); histP.shift(); }
+}
+function drawChart(cv, data, color, fill, fixed){
+  const c = cv.getContext("2d"), w = cv.width, h = cv.height;
+  c.clearRect(0,0,w,h);
+  c.strokeStyle = "rgba(120,200,195,0.12)";
+  c.lineWidth = 1;
+  c.beginPath();
+  for(let i=1;i<4;i++){ c.moveTo(0,h*i/4); c.lineTo(w,h*i/4); }
+  c.stroke();
+  if(data.length < 2) return;
+  let min = Infinity, max = -Infinity;
+  for(const v of data){ if(v<min) min=v; if(v>max) max=v; }
+  if(fixed){ min = fixed[0]; max = fixed[1]; }
+  if(max - min < 1e-6) max = min + 1;
+  c.beginPath();
+  for(let i=0;i<data.length;i++){
+    const x = i/(data.length-1)*w;
+    const y = h-3-((data[i]-min)/(max-min))*(h-8);
+    if(i) c.lineTo(x,y); else c.moveTo(x,y);
+  }
+  c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
+  if(fill){
+    c.lineTo(w,h); c.lineTo(0,h); c.closePath();
+    const g = c.createLinearGradient(0,0,0,h);
+    g.addColorStop(0, fill); g.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = g; c.fill();
+  }
+  if(fixed && min < 0 && max > 0){
+    const zy = h-3-((0-min)/(max-min))*(h-8);
+    c.strokeStyle = "rgba(255,255,255,0.22)";
+    c.beginPath(); c.moveTo(0,zy); c.lineTo(w,zy); c.stroke();
+  }
+}
+
+/* ============================================================
+   9. PER-FRAME UI  [FIX 3] 预算全量扫描节流至每 5 帧
+   ============================================================ */
+let frameCount = 0;
+const BUDGET_EVERY = 5;
+
+function computeBudget(){
+  let m = 0, pk = 0, area = 0;
+  for(let i=0;i<NC;i++){
+    const v = C[i];
+    m += v;
+    if(v > pk) pk = v;
+    if(v > 0.5) area++;
+  }
+  mTotal = m*CELL_VOL;
+  peakC = pk;
+  plumeArea = area;
+}
+
+function fmtT(sec){
+  const s = Math.max(0, Math.floor(sec));
+  return pad(s/3600) + ":" + pad((s/60)%60) + ":" + pad(s%60);
+}
+function updateUI(){
+  /* clock */
+  const dd = new Date(2017,0,29);
+  dd.setSeconds(dd.getSeconds() + Math.floor(time));
+  dateStamp.textContent = `${dd.getFullYear()} / ${pad(dd.getMonth()+1)} / ${pad(dd.getDate())}`;
+  hh.textContent = pad(dd.getHours());
+  mm.textContent = pad(dd.getMinutes());
+  tPlus.textContent = fmtT(time);
+
+  /* tide */
+  const tf = tideFactor();
+  const elev = tf*2.4;
+  const s = Math.sin(tidePhase());
+  let label, cls;
+  if(!isAuto()){ label = "MANUAL STEADY"; cls = ""; }
+  else if(s > 0.07){ label = "FLOOD 涨潮"; cls = ""; }
+  else if(s < -0.07){ label = "EBB 退潮"; cls = "ebb"; }
+  else { label = "SLACK 平潮"; cls = ""; }
+  tideState.textContent = label;
+  tideState.className = "g-state " + cls;
+  tideElev.textContent = (elev>=0?"+":"") + elev.toFixed(2) + " m";
+  gaugeMark.style.top = clamp((1-(tf+0.6)/1.6)*100, 2, 98) + "%";
+  tideTagMini.textContent = isAuto() ? (s>=0 ? "FLOOD" : "EBB") : "MANUAL";
+  sbTide.textContent = label;
+  sbTide.className = s>=0 ? "hot" : "warn";
+
+  /* [FIX 3] budget — 全量扫描每 5 帧一次，其余逐帧刷新 */
+  if(frameCount % BUDGET_EVERY === 0) computeBudget();
+
+  const t = v => v > 1e6 ? (v/1e6).toFixed(2)+" kt" : (v/1e3).toFixed(1)+" t";
+  mTotalEl.textContent = t(mTotal);
+  mInEl.textContent    = t(mIn);
+  mDecEl.textContent   = t(mDec);
+  mOutEl.textContent   = t(mOut);
+  mAreaEl.textContent  = (plumeArea*DX*DY/1e6).toFixed(2)+" km²";
+
+  /* [FIX 1+3] 守恒残差：修复后应始终为 ±0.00x t 的浮点尾差 */
+  const res = mIn - mTotal - mDec - mOut;
+  mResEl.textContent = (res>=0?"+":"") + (res/1e3).toFixed(3) + " t";
+  mResEl.className = Math.abs(res) < 1 + mIn*1e-9 ? "ok" : "bad";
+
+  /* status bar */
+  sbSim.textContent   = (time/3600).toFixed(1)+" h";
+  sbPeak.textContent  = peakC.toFixed(2)+" g/L";
+  const pf = photoFactor();
+  sbLight.textContent = pf > 0.5 ? "DAY · 强光降解" : (pf > 0.18 ? "TWILIGHT" : "NIGHT · 弱光降解");
+  sbLight.className   = pf > 0.5 ? "warn" : "";
+  sbCFL.textContent   = stats.courant.toFixed(2);
+  sbSteps.textContent = stats.steps;
+  sbFps.textContent   = Math.round(fps);
+
+  /* probe readouts */
+  if(probe.active){
+    const id = probe.gy*NX + probe.gx;
+    const sp = Math.sqrt(U[id]*U[id]+V[id]*V[id]);
+    pGrid.textContent = `${probe.gx} , ${probe.gy}`;
+    pU.textContent = sp.toFixed(2)+" m/s";
+    pC.textContent = C[id].toFixed(2)+" g/L";
+    pH.textContent = BD[id].toFixed(1)+" m";
+    sbU.textContent = sp.toFixed(2)+" m/s";
+    sbC.textContent = C[id].toFixed(2)+" g/L";
+    sbU.className = "hot"; sbC.className = "hot";
+  } else {
+    sbU.textContent = "—"; sbC.textContent = "—";
+    sbU.className = ""; sbC.className = "";
+  }
+
+  /* charts */
+  sampleHist();
+  drawChart($("tideChart"), histE, "#2dd4bf", "rgba(45,212,191,0.28)", [-1.05,1.05]);
+  drawChart($("peakChart"), histP, "#f0b429", "rgba(240,180,41,0.24)", null);
+}
+
+/* ============================================================
+   10. MAIN LOOP
+   ============================================================ */
+function loop(now){
+  const rdt = lastT ? Math.min(0.1, (now-lastT)/1000) : 0;
+  lastT = now;
+  if(rdt > 0) fps = fps*0.92 + (1/rdt)*0.08;
+
+  if(running && rdt > 0){
+    trailShift();      /* [FIX 2] 帧边界做拖尾快照，子步里不碰 x0/x1 */
+    simulate(rdt);     /* [FIX 2] 内部子步循环，advectParticles(dt) 在 step() 内同步推进 */
+  }
+  render();
+  updateUI();
+  frameCount++;        /* [FIX 3] */
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   11. BOOT
+   ============================================================ */
+initFields();
+initParticles();
+seedSource();
+resize();
+updateAuto();
+computeBudget();       /* [FIX 3] 首帧即有正确台账 */
+window.addEventListener("resize", () => { clearTimeout(window.__rz); window.__rz = setTimeout(resize, 120); });
+rateTag.textContent = "×" + TIME_SCALE;
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
