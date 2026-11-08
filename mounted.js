@@ -120,6 +120,11 @@ window.ZP_MOUNT = {
       "id": "projects",
       "pages": [
         {
+          "t": "Alpha Studio · 项目全景 — 架构 / 设计 / 技术 / 算法",
+          "u": "/projects/alpha-studio/",
+          "d": "2026.11.09"
+        },
+        {
           "t": "CodeGuardian AI · 项目全景 — 架构 / 设计 / 技术 / 算法",
           "u": "/projects/glossary-java-source-analyzer/",
           "d": "2026.11.09"

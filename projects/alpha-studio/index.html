@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpha Studio · 项目全景 — 架构 / 设计 / 技术 / 算法</title>
+<meta name="description" content="Alpha Studio（WQ BRAIN 量化因子研究平台）单文件项目展示：DDD 分层架构、15 Worker 管线、因子生成与质检算法、反馈闭环、技术栈与工程质量。">
+<script>document.documentElement.classList.add('js');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   设计令牌 — 金融终端 / 暖黑 + 琥珀（dark-first）
+   ============================================================ */
+:root, :root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0b0907;
+  --surface:#15110a;
+  --surface-2:#1e1810;
+  --surface-3:#292113;
+  --sunken:#070503;
+  --overlay:rgba(11,9,7,.92);
+  --line:#2c2317;
+  --line-2:#3a2f1e;
+  --line-strong:#584627;
+
+  --t1:#f7f0e2;
+  --t2:#c4b598;
+  --t3:#8c7d61;
+
+  --amber:#ffb224;
+  --amber-hi:#ffcd66;
+  --amber-soft:rgba(255,178,36,.12);
+  --amber-line:rgba(255,178,36,.38);
+  --ember:#ff7847;
+  --ember-soft:rgba(255,120,71,.13);
+
+  --ok:#a9d18e;      --ok-soft:rgba(169,209,142,.12);
+  --warn:#e8b04b;    --warn-soft:rgba(232,176,75,.12);
+  --bad:#f0796b;     --bad-soft:rgba(240,121,107,.12);
+  --info:#7ab6d6;    --info-soft:rgba(122,182,214,.12);
+  --violet:#c49bd6;  --violet-soft:rgba(196,155,214,.12);
+
+  --grid-line:rgba(255,178,36,.05);
+  --watermark:rgba(255,178,36,.13);
+  --shadow:0 18px 50px rgba(0,0,0,.5);
+
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:"IBM Plex Sans","Noto Sans SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --display:"Bebas Neue","IBM Plex Sans","Noto Sans SC",sans-serif;
+
+  --radius-sm:3px; --radius:5px; --radius-lg:8px;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f2ece0;
+  --surface:#faf6ec;
+  --surface-2:#efe7d5;
+  --surface-3:#e7dcc3;
+  --sunken:#ece4d1;
+  --overlay:rgba(242,236,224,.93);
+  --line:#dccfb2;
+  --line-2:#e8ddc5;
+  --line-strong:#bfae8b;
+
+  --t1:#221a0d;
+  --t2:#5b4e37;
+  --t3:#8b7c60;
+
+  --amber:#b45309;
+  --amber-hi:#92400e;
+  --amber-soft:rgba(180,83,9,.10);
+  --amber-line:rgba(180,83,9,.38);
+  --ember:#c2410c;
+  --ember-soft:rgba(194,65,12,.10);
+
+  --ok:#4d7c2f;     --ok-soft:rgba(77,124,47,.10);
+  --warn:#a16207;   --warn-soft:rgba(161,98,7,.10);
+  --bad:#b91c1c;    --bad-soft:rgba(185,28,28,.10);
+  --info:#0e7490;   --info-soft:rgba(14,116,144,.10);
+  --violet:#7e22ce; --violet-soft:rgba(126,34,206,.10);
+
+  --grid-line:rgba(120,90,40,.08);
+  --watermark:rgba(180,83,9,.11);
+  --shadow:0 18px 50px rgba(80,60,20,.15);
+}
+
+/* ============================================================
+   基础
+   ============================================================ */
+*{box-sizing:border-box}
+html{
+  scroll-behavior:smooth;scroll-padding-top:92px;background:var(--bg);
+  scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent;
+}
+body{
+  margin:0;background:transparent;color:var(--t2);
+  font-family:var(--sans);font-size:14px;line-height:1.78;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+::selection{background:var(--amber);color:#140d02}
+a{color:var(--amber);text-decoration:none;border-bottom:1px solid transparent;transition:color .18s,border-color .18s}
+a:hover{color:var(--amber-hi);border-bottom-color:currentColor}
+h1,h2,h3,h4{color:var(--t1);line-height:1.3;margin:0;font-weight:600}
+p{margin:0 0 12px}
+code,kbd{font-family:var(--mono);font-size:.86em}
+ul,ol{margin:0 0 12px;padding-left:20px}
+li{margin:5px 0}
+strong,b{color:var(--t1);font-weight:600}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px;border:3px solid transparent;background-clip:content-box}
+
+/* ---------- 背景氛围：工程网格 + 颗粒 ---------- */
+.bg-grid{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);
+  background-size:56px 56px;
+}
+.bg-grain{
+  position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+}
+.shell{position:relative;z-index:1;display:grid;grid-template-columns:262px minmax(0,1fr);align-items:start}
+
+/* ============================================================
+   侧栏 — 终端机架
+   ============================================================ */
+.side{
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  border-right:1px solid var(--line);
+  background:linear-gradient(180deg,var(--surface) 0%,rgba(11,9,7,.72) 100%);
+  padding:26px 16px 34px;display:flex;flex-direction:column;
+}
+:root[data-theme="light"] .side{background:linear-gradient(180deg,var(--surface) 0%,rgba(242,236,224,.8) 100%)}
+.brand{display:flex;flex-direction:column;gap:2px;padding:0 6px 18px;border-bottom:1px dashed var(--line-2)}
+.brand .mark{
+  width:38px;height:38px;border:1px solid var(--amber-line);border-radius:2px;
+  display:grid;place-items:center;color:var(--amber);font-family:var(--mono);
+  font-weight:600;font-size:15px;letter-spacing:.02em;margin-bottom:12px;
+  background:var(--amber-soft);
+}
+.brand strong{font-family:var(--display);font-size:22px;letter-spacing:.06em;font-weight:400;color:var(--t1);line-height:1.1}
+.brand span{font-family:var(--mono);font-size:9.5px;color:var(--t3);letter-spacing:.18em;text-transform:uppercase}
+
+.nav{display:flex;flex-direction:column;gap:0;margin-top:14px}
+.nav a{
+  display:grid;grid-template-columns:30px 1fr;gap:8px;align-items:baseline;
+  padding:7px 8px;color:var(--t2);font-size:12.5px;font-family:var(--mono);
+  border:0;border-left:2px solid transparent;border-radius:0;
+  transition:background .16s,color .16s,border-color .16s,padding-left .16s;
+}
+.nav a i{font-style:normal;font-size:10px;color:var(--t3);letter-spacing:.06em}
+.nav a:hover{background:var(--surface-2);color:var(--t1);padding-left:12px}
+.nav a.active{color:var(--amber);background:var(--amber-soft);border-left-color:var(--amber)}
+.nav a.active i{color:var(--amber)}
+
+.theme-btn{
+  margin-top:18px;width:100%;padding:9px 12px;border-radius:var(--radius-sm);
+  background:var(--surface-2);border:1px solid var(--line-2);color:var(--t2);
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;cursor:pointer;
+  transition:.18s;text-align:left;
+}
+.theme-btn:hover{border-color:var(--amber-line);color:var(--amber);background:var(--amber-soft)}
+.side-foot{
+  margin-top:auto;padding:14px 8px 0;border-top:1px dashed var(--line-2);
+  font-family:var(--mono);font-size:10px;color:var(--t3);line-height:2;letter-spacing:.05em;
+}
+.side-foot b{color:var(--t2);font-weight:500}
+
+/* ============================================================
+   移动端顶栏
+   ============================================================ */
+.mobile-bar{display:none}
+
+/* ============================================================
+   主区 / 顶栏
+   ============================================================ */
+.main{min-width:0;padding:0 48px 130px;max-width:1220px}
+.topbar{
+  position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:13px 0;background:var(--overlay);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.topbar .crumb{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.08em}
+.topbar .crumb b{color:var(--amber);font-weight:500}
+.topbar .spacer{flex:1}
+.scroll-progress{
+  position:absolute;left:0;bottom:-1px;height:2px;width:0;
+  background:linear-gradient(90deg,var(--amber),var(--ember));transition:width .12s linear;
+}
+
+/* ============================================================
+   Hero
+   ============================================================ */
+.hero{position:relative;padding:58px 0 0}
+.hero-watermark{
+  position:absolute;right:-1%;top:24px;z-index:0;pointer-events:none;user-select:none;
+  font-family:var(--mono);font-weight:600;font-size:clamp(220px,30vw,460px);line-height:.82;
+  color:transparent;-webkit-text-stroke:1.5px var(--watermark);
+}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,.85fr);gap:44px;align-items:start}
+.kicker{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--amber);margin-bottom:16px;display:flex;align-items:center;gap:10px;
+}
+.kicker::before{content:"";width:26px;height:1px;background:var(--amber)}
+.hero h1{
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(38px,5.4vw,62px);letter-spacing:.015em;line-height:1.06;margin-bottom:18px;
+}
+.hero h1 em{
+  font-style:normal;background:linear-gradient(115deg,var(--amber) 0%,var(--ember) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.lead{font-size:15.5px;color:var(--t2);max-width:760px;line-height:1.9}
+.lead b{color:var(--amber)}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 28px}
+.badge{
+  font-family:var(--mono);font-size:10.5px;padding:5px 11px;border-radius:2px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--t2);letter-spacing:.05em;
+}
+.badge.acc{border-color:var(--amber-line);background:var(--amber-soft);color:var(--amber)}
+.badge.vio{border-color:var(--violet-soft);background:var(--violet-soft);color:var(--violet)}
+
+/* ---------- 终端面板（Hero 右栏） ---------- */
+.hero-panel{
+  border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden;
+  background:var(--sunken);box-shadow:var(--shadow);position:relative;
+}
+.hero-panel::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(160deg,var(--amber-soft) 0%,transparent 42%);
+}
+.panel-bar{
+  display:flex;align-items:center;gap:6px;padding:9px 12px;
+  border-bottom:1px solid var(--line);background:var(--surface-2);
+}
+.panel-bar .dot{width:8px;height:8px;border-radius:50%;background:var(--line-strong)}
+.panel-bar .dot:first-child{background:var(--bad)}
+.panel-bar .dot:nth-child(2){background:var(--warn)}
+.panel-bar .dot:nth-child(3){background:var(--ok)}
+.panel-bar b{margin-left:8px;font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400;letter-spacing:.08em}
+.panel-rows{margin:0;padding:14px 16px 4px;position:relative}
+.panel-rows .row{display:grid;grid-template-columns:104px 1fr;gap:10px;padding:4.5px 0;font-family:var(--mono);font-size:11px}
+.panel-rows dt{color:var(--t3);letter-spacing:.1em}
+.panel-rows dd{margin:0;color:var(--t1)}
+.panel-rows dd.ok{color:var(--ok)}
+.panel-rows dd.am{color:var(--amber)}
+.panel-prompt{
+  padding:10px 16px 16px;font-family:var(--mono);font-size:11px;color:var(--amber);position:relative;
+}
+.cursor{
+  display:inline-block;width:.55em;height:1.05em;background:var(--amber);
+  vertical-align:-2px;margin-left:2px;animation:blink 1.05s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- 行情条（记忆点） ---------- */
+.ticker{
+  position:relative;z-index:1;margin:36px -48px 0;padding:11px 0;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  background:var(--sunken);overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+}
+.ticker-track{display:flex;width:max-content;animation:tick 46s linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.ticker-track span{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--t3);white-space:nowrap;padding:0 18px;display:flex;align-items:center;gap:18px;
+}
+.ticker-track span b{color:var(--amber);font-weight:500}
+.ticker-track span::after{content:"◆";color:var(--line-strong);font-size:8px}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ---------- 指标计分板 ---------- */
+.metrics{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));
+  margin:34px 0 0;border-left:1px solid var(--line);border-top:1px solid var(--line);
+  position:relative;z-index:1;
+}
+.metric{
+  padding:20px 18px 18px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  position:relative;background:var(--surface);transition:background .2s ease;
+}
+.metric::before{content:"";position:absolute;left:18px;top:0;width:22px;height:2px;background:var(--amber)}
+.metric:hover{background:var(--surface-2)}
+.metric:hover .v{color:var(--amber)}
+.metric .v{
+  font-family:var(--display);font-weight:400;font-size:clamp(34px,3.2vw,46px);
+  color:var(--t1);letter-spacing:.02em;line-height:1;transition:color .2s ease;
+}
+.metric .l{font-family:var(--sans);font-size:12px;color:var(--t2);margin-top:8px}
+.metric .s{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:5px;letter-spacing:.04em}
+
+/* ============================================================
+   章节
+   ============================================================ */
+section{padding-top:72px;position:relative;z-index:1}
+.sec-head{
+  display:grid;grid-template-columns:104px minmax(0,1fr);gap:26px;align-items:start;
+  border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:26px;
+}
+.sec-idx{
+  font-family:var(--display);font-weight:400;font-size:86px;line-height:.78;letter-spacing:.02em;
+  color:var(--amber-soft);-webkit-text-stroke:1.3px var(--amber);opacity:.95;
+}
+.sec-head .eyebrow{font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:.26em;text-transform:uppercase;margin-bottom:8px}
+.sec-head h2{font-family:var(--display);font-weight:400;font-size:32px;letter-spacing:.03em}
+.sec-head p{margin:10px 0 0;color:var(--t3);font-size:13px;max-width:880px}
+
+/* ============================================================
+   卡片（图纸角标）
+   ============================================================ */
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px 24px;margin-bottom:18px;position:relative;
+}
+.card::before,.card::after{
+  content:"";position:absolute;width:11px;height:11px;border:1px solid var(--amber);opacity:.7;pointer-events:none;
+}
+.card::before{left:-1px;top:-1px;border-right:0;border-bottom:0}
+.card::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
+.card h3{font-family:var(--sans);font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card h4{font-size:12px;margin:18px 0 9px;color:var(--amber);font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:18px}
+
+.tag{
+  font-family:var(--mono);font-size:9.5px;padding:2.5px 8px;border-radius:2px;
+  background:var(--surface-2);border:1px solid var(--line-2);color:var(--t3);
+  letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
+}
+.tag.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.tag.warn{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.tag.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.tag.acc{background:var(--amber-soft);border-color:var(--amber-line);color:var(--amber)}
+.tag.vio{background:var(--violet-soft);border-color:var(--violet);color:var(--violet)}
+
+/* ============================================================
+   表格
+   ============================================================ */
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0 4px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-2);vertical-align:top}
+th{
+  color:var(--t1);font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;background:var(--surface-2);border-bottom:1px solid var(--line-strong);
+}
+tbody tr{transition:background .14s}
+tbody tr:hover{background:var(--amber-soft)}
+td code{color:var(--amber);background:var(--amber-soft);padding:1.5px 6px;border-radius:2px;border:1px solid var(--amber-soft)}
+.tw{overflow-x:auto}
+
+/* ============================================================
+   代码块
+   ============================================================ */
+pre{
+  margin:10px 0 0;padding:16px 18px;border-radius:var(--radius);overflow-x:auto;
+  background:var(--sunken);border:1px solid var(--line-2);
+  font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--t2);
+}
+pre .c{color:var(--t3)}
+pre .k{color:var(--violet)}
+pre .s{color:var(--ok)}
+.code-wrap{position:relative}
+.copy{
+  position:absolute;right:10px;top:10px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:2px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--t3);cursor:pointer;transition:.16s;
+}
+.copy:hover{color:var(--amber);border-color:var(--amber-line);background:var(--amber-soft)}
+
+/* ============================================================
+   架构分层
+   ============================================================ */
+.arch{display:grid;gap:0;margin-top:10px}
+.layer{
+  border:1px solid var(--line-2);border-radius:var(--radius);
+  background:var(--surface-2);padding:15px 18px;display:grid;
+  grid-template-columns:206px minmax(0,1fr);gap:16px;align-items:center;
+  transition:border-color .18s,transform .18s;
+}
+.layer:hover{border-color:var(--amber-line);transform:translateX(4px)}
+.layer .lname{font-family:var(--mono);font-size:13px;color:var(--t1);font-weight:600;letter-spacing:.02em}
+.layer .lname i{display:block;font-style:normal;font-size:9.5px;color:var(--t3);letter-spacing:.16em;text-transform:uppercase;margin-top:3px}
+.layer .ldesc{font-size:12.5px;color:var(--t2)}
+.layer .ldesc code{color:var(--amber);background:var(--amber-soft);padding:0 5px;border-radius:2px}
+.l1{border-left:3px solid var(--info)}
+.l2{border-left:3px solid var(--amber)}
+.l3{border-left:3px solid var(--ok)}
+.l4{border-left:3px solid var(--warn)}
+.l5{border-left:3px solid var(--violet)}
+.arrow-down{
+  text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--t3);
+  padding:7px 0;letter-spacing:.12em;
+}
+.arrow-down b{color:var(--amber);font-weight:500}
+
+/* ============================================================
+   管线步骤
+   ============================================================ */
+.pipe{display:grid;gap:3px;margin-top:10px}
+.step{
+  display:grid;grid-template-columns:46px minmax(0,1fr);gap:16px;
+  padding:13px 16px;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--surface);transition:.18s;
+}
+.step:hover{border-color:var(--amber-line);transform:translateX(4px);background:var(--surface-2)}
+.step .sn{
+  width:32px;height:32px;border-radius:2px;background:var(--amber-soft);border:1px solid var(--amber-line);
+  color:var(--amber);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;
+}
+.step h4{margin:0 0 3px;font-family:var(--sans);font-size:13.5px;color:var(--t1);text-transform:none;letter-spacing:0}
+.step p{margin:0;font-size:12.5px;color:var(--t3)}
+.step .cls{font-family:var(--mono);font-size:10.5px;color:var(--violet)}
+
+/* ============================================================
+   算法卡
+   ============================================================ */
+.algo{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:22px 24px;position:relative;overflow:hidden;
+}
+.algo::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg,var(--amber),var(--ember));opacity:.85;
+}
+.algo h3{font-family:var(--sans);font-size:15.5px;margin-bottom:5px}
+.algo .sub{font-family:var(--mono);font-size:10.5px;color:var(--violet);margin-bottom:14px;word-break:break-all;letter-spacing:.04em}
+.algo dl{margin:0;display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 14px;font-size:12.5px}
+.algo dt{color:var(--amber);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding-top:3px}
+.algo dd{margin:0;color:var(--t2)}
+.algo dd code{color:var(--amber);background:var(--amber-soft);padding:0 5px;border-radius:2px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.span2{grid-column:span 2}
+
+/* ============================================================
+   条形图
+   ============================================================ */
+.bars{display:grid;gap:6px;margin-top:12px}
+.bar-row{display:grid;grid-template-columns:236px minmax(0,1fr) 72px;gap:12px;align-items:center;font-size:12px}
+.bar-row .bn{font-family:var(--mono);color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.bar-track{height:15px;background:var(--sunken);border:1px solid var(--line-2);overflow:hidden;border-radius:2px}
+.bar-fill{
+  height:100%;background:linear-gradient(90deg,var(--ember),var(--amber));
+  width:0;transition:width 1s cubic-bezier(.22,1,.36,1);
+}
+.bar-row.alt .bar-fill{background:linear-gradient(90deg,var(--ok),var(--amber))}
+.bar-row .bv{font-family:var(--mono);color:var(--t1);text-align:right;font-size:11px}
+
+/* ============================================================
+   工具卡 / 提示 / 引用
+   ============================================================ */
+.tool{
+  border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;
+  background:var(--surface);transition:.18s;position:relative;
+}
+.tool:hover{border-color:var(--amber-line);transform:translateY(-3px);box-shadow:var(--shadow)}
+.tool .tn{font-family:var(--mono);font-size:11.5px;color:var(--amber);margin-bottom:6px;letter-spacing:.12em;text-transform:uppercase}
+.tool p{font-size:12px;color:var(--t3);margin:0}
+
+.note{
+  border:1px solid var(--line-2);border-left:3px solid var(--warn);
+  background:var(--warn-soft);border-radius:var(--radius);
+  padding:13px 17px;font-size:12.5px;color:var(--t2);margin:15px 0;
+}
+.note.info{border-left-color:var(--amber);background:var(--amber-soft)}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.note b{color:var(--t1)}
+.note.pull{
+  margin:26px 0 8px;padding:22px 26px;font-size:15px;line-height:2;
+  border-left-width:5px;background:var(--surface);
+}
+.note.pull b{color:var(--amber);font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:8px;font-weight:500}
+
+footer{
+  margin-top:72px;padding-top:24px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;color:var(--t3);line-height:2.1;letter-spacing:.05em;
+}
+footer .fbrand{font-family:var(--display);font-size:20px;letter-spacing:.14em;color:var(--t2);display:block;margin-bottom:6px}
+
+/* ============================================================
+   入场编排
+   ============================================================ */
+.js .reveal{opacity:0;transform:translateY(22px)}
+.js .reveal.in{
+  opacity:1;transform:none;
+  transition:opacity .7s ease,transform .7s cubic-bezier(.22,1,.36,1);
+  transition-delay:var(--d,0ms);
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .js .reveal{opacity:1;transform:none;transition:none}
+  .ticker-track{animation:none}
+  .cursor{animation:none}
+  .bar-fill{transition:none}
+  .layer:hover,.step:hover,.tool:hover{transform:none}
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width:1120px){
+  .hero-grid{grid-template-columns:1fr;gap:32px}
+  .hero-watermark{opacity:.55}
+}
+@media (max-width:960px){
+  html{scroll-padding-top:76px}
+  .shell{grid-template-columns:1fr}
+  .mobile-bar{
+    display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:60;height:52px;
+    padding:0 18px;background:var(--overlay);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .mobile-bar .mmark{
+    width:26px;height:26px;border:1px solid var(--amber-line);color:var(--amber);
+    display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:600;border-radius:2px;
+  }
+  .mobile-bar strong{font-family:var(--display);font-size:17px;letter-spacing:.08em;color:var(--t1);font-weight:400}
+  .menu-btn{
+    margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;
+    padding:7px 13px;border-radius:2px;border:1px solid var(--line-2);
+    background:var(--surface-2);color:var(--t2);cursor:pointer;
+  }
+  .side{
+    position:fixed;left:0;right:0;top:52px;bottom:0;height:auto;z-index:55;
+    background:var(--surface);border-right:0;border-bottom:1px solid var(--line);
+    transform:translateY(-10px);opacity:0;pointer-events:none;transition:.25s ease;
+  }
+  .side.open{transform:none;opacity:1;pointer-events:auto}
+  body.nav-open{overflow:hidden}
+  .main{padding:0 20px 90px}
+  .topbar{top:52px}
+  .ticker{margin:30px -20px 0}
+  .sec-head{grid-template-columns:1fr;gap:6px}
+  .sec-idx{font-size:58px}
+  .layer{grid-template-columns:1fr;gap:8px}
+  .algo dl{grid-template-columns:1fr;gap:2px 0}
+  .algo dt{padding-top:10px}
+  .span2{grid-column:span 1}
+  .bar-row{grid-template-columns:150px minmax(0,1fr) 62px;gap:8px}
+}
+@media (max-width:560px){
+  .hero h1{font-size:34px}
+  .lead{font-size:14px}
+  .metric .v{font-size:32px}
+  .bar-row{grid-template-columns:110px minmax(0,1fr) 56px}
+  .bar-row .bn{font-size:10px}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-grain"></div>
+
+<!-- 移动端顶栏 -->
+<div class="mobile-bar">
+  <div class="mmark">αS</div>
+  <strong>ALPHA STUDIO</strong>
+  <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="side">☰ 目录</button>
+</div>
+
+<div class="shell">
+
+  <!-- ======================= 侧栏 ======================= -->
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="mark">αS</div>
+      <strong>ALPHA STUDIO</strong>
+      <span>wq brain quant platform</span>
+    </div>
+    <nav class="nav" id="nav" aria-label="章节导航">
+      <a href="#overview"><i>01</i><span>总览与定位</span></a>
+      <a href="#architecture"><i>02</i><span>架构设计</span></a>
+      <a href="#pipeline"><i>03</i><span>Worker 管线</span></a>
+      <a href="#stack"><i>04</i><span>技术栈</span></a>
+      <a href="#algorithms"><i>05</i><span>核心算法</span></a>
+      <a href="#interfaces"><i>06</i><span>对外接口</span></a>
+      <a href="#engineering"><i>07</i><span>工程与质量</span></a>
+      <a href="#caveats"><i>08</i><span>口径与边界</span></a>
+    </nav>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="切换浅色或深色主题">◐ 主题 · 深色</button>
+    <div class="side-foot">
+      <b>v1.0.0</b> · branch main<br>
+      bff92742 · 2026-09-17<br>
+      Python ≥3.12 · conda quant
+    </div>
+  </aside>
+
+  <!-- ======================= 主区 ======================= -->
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb"><b>~</b>/alpha-studio/project-showcase</span>
+      <span class="spacer"></span>
+      <span class="badge acc">API :18080 · PG :15433 · Redis :16379</span>
+      <span class="badge">单文件 HTML · 字体经 Google Fonts</span>
+      <div class="scroll-progress" id="scrollProgress"></div>
+    </div>
+
+    <!-- ---------- Hero ---------- -->
+    <header class="hero">
+      <div class="hero-watermark" aria-hidden="true">α</div>
+      <div class="hero-grid">
+        <div>
+          <div class="kicker reveal">WorldQuant BRAIN · FastAPI + DDD · 15 In-Process Workers</div>
+          <h1 class="reveal">Alpha Studio ——<br><em>量化因子研究与提交平台</em></h1>
+          <p class="lead reveal">
+            WorldQuant BRAIN 平台的 Alpha 策略<b>生成 → 质检 → 回测 → 评估 → 提交</b>全流程工程化平台。
+            FastAPI + DDD 分层，<strong>15 个后台 Worker 由 API 进程内的 WorkerManager 托管</strong>（DEC-240，无外部进程管理器），
+            心跳 / 状态 / 告警走 Redis，<strong>PG 为事实源、Redis 仅作临时协调</strong>；
+            另含 <strong>76 个 MCP 工具</strong>与支持多用户的 <strong>Agent Platform</strong>（OpenCode Server 进程池）。
+          </p>
+          <div class="badges reveal">
+            <span class="badge vio">FastAPI 0.109 · SQLAlchemy 2.0 · Alembic 96 迁移</span>
+            <span class="badge">PostgreSQL + pgvector</span>
+            <span class="badge">Redis 7（Stream / ZSet / 租约）</span>
+            <span class="badge">React 19 + Vite 8 + antd 6</span>
+            <span class="badge acc">MCP stdio · 76 tools</span>
+            <span class="badge">pytest 4,492 tests</span>
+          </div>
+
+          <div class="code-wrap reveal">
+            <button class="copy" type="button" data-copy="cmd">复制</button>
+<pre id="cmd"><span class="c"># 一键起栈（PG / Redis / mock-WQ / backend+mcp）</span>
+docker compose up -d
+
+<span class="c"># API 内自动拉起 15 个 worker（DEC-240 in-process）</span>
+alembic upgrade head &amp;&amp; uvicorn app.main:app --host 0.0.0.0 --port 18080
+
+<span class="c"># 前端（dev :15173，/api 代理到 18080）</span>
+cd frontend &amp;&amp; npm install &amp;&amp; npm run dev
+
+<span class="c"># 管线总览 / 单 worker 启停</span>
+curl http://localhost:18080/api/v1/workers/status
+curl -X POST http://localhost:18080/api/v1/workers/launch -d '{"name":"simulate"}'</pre>
+          </div>
+        </div>
+
+        <!-- 终端面板 -->
+        <aside class="hero-panel reveal" aria-label="运行时读数">
+          <div class="panel-bar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <b>alpha-studio@wq-brain — runtime readout</b>
+          </div>
+          <dl class="panel-rows">
+            <div class="row"><dt>VERSION</dt><dd>v1.0.0 · main</dd></div>
+            <div class="row"><dt>COMMIT</dt><dd>bff92742 · 2026-09-17</dd></div>
+            <div class="row"><dt>ENV</dt><dd>conda quant · py ≥ 3.12</dd></div>
+            <div class="row"><dt>API</dt><dd class="am">:18080 · fastapi + 15 worker</dd></div>
+            <div class="row"><dt>POSTGRES</dt><dd>:15433 · pgvector · 事实源</dd></div>
+            <div class="row"><dt>REDIS</dt><dd>:16379 · 256MB lru · 协调</dd></div>
+            <div class="row"><dt>MOCK-WQ</dt><dd>:18081 · 5% 故障注入</dd></div>
+            <div class="row"><dt>FRONTEND</dt><dd>:15173 · react 19 + vite 8</dd></div>
+            <div class="row"><dt>TESTS</dt><dd class="ok">4,492 · fail_under 40</dd></div>
+            <div class="row"><dt>GATE</dt><dd class="am">7PASS · manual submit</dd></div>
+          </dl>
+          <div class="panel-prompt">$ pipeline status --ready<span class="cursor" aria-hidden="true"></span></div>
+        </aside>
+      </div>
+
+      <!-- 行情条 -->
+      <div class="ticker reveal" aria-hidden="true">
+        <div class="ticker-track" id="tickerTrack">
+          <span><b>15</b> in-process workers</span>
+          <span><b>14</b> 道质检链</span>
+          <span><b>3</b> sim slots · submissiongate</span>
+          <span><b>76</b> mcp tools</span>
+          <span><b>4,492</b> pytest functions</span>
+          <span><b>96</b> alembic migrations</span>
+          <span><b>170,944</b> loc · 1,111 files</span>
+          <span><b>294</b> rest decorators</span>
+          <span>pg = source of truth</span>
+          <span>minhash lsh <b>128 / 0.85</b></span>
+          <span>beta-binomial feedback</span>
+          <span>bh-fdr control</span>
+          <span>tpe · sa+ga · thompson</span>
+          <span><b>251</b> decisions dec-001…276</span>
+        </div>
+      </div>
+
+      <!-- 指标计分板 -->
+      <div class="metrics">
+        <div class="metric reveal"><div class="v" data-count="170944">0</div><div class="l">后端 Python 行数</div><div class="s">1,111 个 .py 文件</div></div>
+        <div class="metric reveal"><div class="v" data-count="15">0</div><div class="l">进程内 Worker</div><div class="s">6 层管线 · WorkerManager</div></div>
+        <div class="metric reveal"><div class="v" data-count="294">0</div><div class="l">REST 端点装饰器</div><div class="s">39 个路由模块</div></div>
+        <div class="metric reveal"><div class="v" data-count="4492">0</div><div class="l">pytest 测试函数</div><div class="s">339 个测试文件</div></div>
+        <div class="metric reveal"><div class="v" data-count="76">0</div><div class="l">MCP 工具</div><div class="s">78 声明 / 76 handler</div></div>
+        <div class="metric reveal"><div class="v" data-count="251">0</div><div class="l">架构决策 DEC</div><div class="s">DEC-001 … DEC-276</div></div>
+      </div>
+    </header>
+
+    <!-- ======================= 01 总览 ======================= -->
+    <section id="overview">
+      <div class="sec-head reveal">
+        <div class="sec-idx">01</div>
+        <div>
+          <div class="eyebrow">Overview</div>
+          <h2>总览与产品定位</h2>
+          <p>一条自动化漏斗：把表达式生成、质检门禁、WQ 回测、评估晋级与反馈权重串成闭环，研究者只做决策。</p>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>核心漏斗 <span class="tag">README · AGENTS.md</span></h3>
+        <div class="arch">
+          <div class="layer l1">
+            <div class="lname">生产层<i>template / agent / feedback</i></div>
+            <div class="ldesc">模板 + 字段概率化（YAML 规则引擎）、Agent 探索式生成、基于反馈权重的生成 → 写入 <b>PG alpha_pool</b> + <b>Redis per-strategy RAW 池</b>（8 策略，DEC-278）。</div>
+          </div>
+          <div class="arrow-down">↓</div>
+          <div class="layer l2">
+            <div class="lname">质检层<i>quality</i></div>
+            <div class="ldesc">14 道质检链（语法 → 字段 → 算子元数 → 结构 → 去重 → 质量分 → 反模式…）→ <code>Redis SET(QUALIFIED)</code> + <code>stream:qualified</code>。</div>
+          </div>
+          <div class="arrow-down">↓</div>
+          <div class="layer l3">
+            <div class="lname">模拟层<i>simulate → WQ 回测</i></div>
+            <div class="ldesc">提交表达式到 WorldQuant 回测，<b>硬上限 3 个在飞 POST</b>（SubmissionGate），带优先级出队、限流冷却与熔断。</div>
+          </div>
+          <div class="arrow-down">↓</div>
+          <div class="layer l4">
+            <div class="lname">结果处理<i>pipeline</i></div>
+            <div class="ldesc">轮询 WQ 完成事件 → 写 PG → <b>立刻还槽</b>（槽位释放走 outbox 事务补投，DEC-266）。</div>
+          </div>
+          <div class="arrow-down">↓</div>
+          <div class="layer l5">
+            <div class="lname">评估晋级 / 反馈<i>evaluation · submit · feedback</i></div>
+            <div class="ldesc">7PASS 评估、候选排序与配额提交（<code>WQ_SUBMIT_MODE=manual</code>，DEC-217 人工提交）；结果写回 <code>feedback_weights</code> 与通道权重，供下一轮生产。</div>
+          </div>
+        </div>
+        <div class="note info">
+          <b>硬规则</b>：所有 WQ 操作必须经过 Backend API，绝不直接调 WQ；WQ 侧只有 <code>UNSUBMITTED</code> / <code>ACTIVE</code> 两态，7PASS 因子必须人工提交；<b>PG 是事实源，Redis 只是临时协调设施</b>。
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card reveal">
+          <h3>能力清单 <span class="tag">README 核心功能</span></h3>
+          <ul>
+            <li><b>数据目录</b>：算子 / 分类 / 数据集 / 字段（7,958+ 字段）同步与缓存</li>
+            <li><b>Alpha 提交</b>：回测 → 轮询 → 拉取 PnL / Sharpe / Turnover / 自相关</li>
+            <li><b>模式发现</b>：643+ 条历史 Alpha 表达式解析、深度聚类、算子覆盖率</li>
+            <li><b>表达式生成</b>：模板 + 字段概率化（YAML 规则引擎）+ 语法 / AST 引擎</li>
+            <li><b>质量分析</b>：分布 / 排行 / 相关性风险 / 多层门禁</li>
+            <li><b>反馈闭环</b>：FeedbackWorker + ResultAnalyzer 写回权重</li>
+            <li><b>管线编排</b>：PipelineWorker 状态漏斗 + 对账 / 修复 / outbox</li>
+            <li><b>Agent Platform</b>：多用户会话、RBAC+ABAC、SSE/WS、OpenCode 进程池</li>
+          </ul>
+        </div>
+        <div class="card reveal">
+          <h3>规模分布（实测） <span class="tag">find + wc -l</span></h3>
+          <div class="bars" id="locBars"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 02 架构 ======================= -->
+    <section id="architecture">
+      <div class="sec-head reveal">
+        <div class="sec-idx">02</div>
+        <div>
+          <div class="eyebrow">Architecture</div>
+          <h2>架构设计</h2>
+          <p>DDD 四层 + CQRS + 组合根（Composition Root），分层规则写进 AGENTS.md 并由治理脚本强制执行。</p>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>分层结构 <span class="tag">backend/app/</span></h3>
+        <div class="arch">
+          <div class="layer l1">
+            <div class="lname">api<i>接口层 · 7,620 行</i></div>
+            <div class="ldesc"><code>api/v1/routes/</code> 39 个路由模块（294 个装饰器）+ <code>schemas.py</code>；统一网关、鉴权中间件。<b>只向下依赖 application</b>。</div>
+          </div>
+          <div class="arrow-down">↓ 允许依赖 <b>application</b>　·　✗ 禁止直连 domain / infrastructure</div>
+
+          <div class="layer l2">
+            <div class="lname">application<i>用例编排 · 19,615 行</i></div>
+            <div class="ldesc">CQRS：115 个 query + 25 个 command 文件（<code>submit_alpha_handler</code> / <code>activate_alpha_handler</code>）、71 个 <code>*service*.py</code>（AlphaGeneration / BatchSimulation / SubmitQuota / AgentRuntime / Checkpoint…）。<b>只依赖 domain</b>。</div>
+          </div>
+          <div class="arrow-down">↓ 允许依赖 <b>domain</b>　·　✗ 禁止依赖 infrastructure / api</div>
+
+          <div class="layer l3">
+            <div class="lname">domain<i>核心 · 72,401 行</i></div>
+            <div class="ldesc">471 个文件：<code>model/</code> 57 个模型文件（~200 类：Alpha、AlphaStateMachine、AlphaGenome、Batch、SubmissionLifecycle、Field、Operator…）、<code>service/</code> 包 284 个文件、<code>repository/</code> 包 116 个仓储<b>端口</b>（interface），另有事件与统计工具。<b>零外部依赖，禁止依赖其他三层</b>。</div>
+          </div>
+          <div class="arrow-down">↑ 实现 domain 端口（依赖倒置）　·　✗ 禁止依赖 application / api</div>
+
+          <div class="layer l4">
+            <div class="lname">infrastructure<i>技术实现 · 42,786 行</i></div>
+            <div class="ldesc">262 个文件：SQLAlchemy 2.0 仓储实现（119 个持久化）、WQ 客户端与 SubmissionGate、Redis 适配器、outbox、同步服务、DI 组合根（<code>di/service_registry.py · service_factory.py</code>）、视图加载器。</div>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:18px">
+          <div>
+            <h4>跨层硬约束（AGENTS.md + gov_validate.sh）</h4>
+            <div class="tw">
+            <table>
+              <tbody>
+                <tr><td>Domain 纯净</td><td><span class="tag bad">禁止</span> import 任何外层 / SQL / HTTP</td></tr>
+                <tr><td>Application</td><td><span class="tag ok">仅</span>依赖 domain</td></tr>
+                <tr><td>SQL 归属</td><td><span class="tag bad">仅</span> infrastructure 可写 SQL</td></tr>
+                <tr><td>MCP 调用</td><td><span class="tag acc">只能走 HTTP</span>，禁止 import 业务代码 / 直连 SQL</td></tr>
+                <tr><td>WQ 操作</td><td><span class="tag bad">必须</span>经 Backend API</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <div>
+            <h4>运行时端口与服务</h4>
+            <div class="tw">
+            <table>
+              <thead><tr><th>端口</th><th>服务</th></tr></thead>
+              <tbody>
+                <tr><td><code>18080</code></td><td>FastAPI backend（含 15 worker）</td></tr>
+                <tr><td><code>15433</code></td><td>PostgreSQL + pgvector（事实源）</td></tr>
+                <tr><td><code>16379</code></td><td>Redis 7（256MB allkeys-lru，临时协调）</td></tr>
+                <tr><td><code>18081</code></td><td>mock-wq（5% 随机失败 + 100ms 延迟，演练故障）</td></tr>
+                <tr><td><code>15173</code></td><td>前端 dev（/api → 18080 代理）</td></tr>
+                <tr><td><code>9877</code></td><td>外部 Web AI Bridge（LLM 桥，见 §08 边界）</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 03 Worker 管线 ======================= -->
+    <section id="pipeline">
+      <div class="sec-head reveal">
+        <div class="sec-idx">03</div>
+        <div>
+          <div class="eyebrow">Workers</div>
+          <h2>Worker 管线</h2>
+          <p>supervisord 已移除（1c2dcc78）：15 个 worker 全部由 API 进程内 WorkerManager 单例托管，启动 API 即自动拉起。</p>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>15 个 Worker <span class="tag">main.py worker_registrations 实测</span></h3>
+        <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>短名</th><th>层</th><th>类 / 文件</th><th>职责</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>template</code></td><td><span class="tag acc">生产</span></td><td><code>AlphaWorker</code> · production/alpha_worker.py (990 L)</td><td>模板通道生成（grammar/hybrid/random/ast_engine 由 ChannelRouter 分配）</td></tr>
+            <tr><td>2</td><td><code>feedback</code></td><td><span class="tag acc">生产/反馈</span></td><td><code>FeedbackWorker</code> · 379 L</td><td>聚合回测结果写 <code>feedback_weights</code>，供下一轮生产与通道权重</td></tr>
+            <tr><td>3</td><td><code>agent</code></td><td><span class="tag acc">生产</span></td><td><code>AgentProducerWorker</code> · 391 L</td><td>Agent 驱动的探索式生成（每轮 1 个假设）</td></tr>
+            <tr><td>4</td><td><code>quality</code></td><td><span class="tag">质检</span></td><td><code>QualityWorker</code> · 1,350 L</td><td>14 道质检链、租约去重、准入上限、结构去重、死形状拒绝</td></tr>
+            <tr><td>5</td><td><code>simulate</code></td><td><span class="tag">模拟</span></td><td><code>SimulateWorker</code> · main_worker.py 840 L</td><td>提交 WQ 回测，<b>3 槽硬上限</b>，优先级出队 + 熔断 + 限流</td></tr>
+            <tr><td>6</td><td><code>pipeline</code></td><td><span class="tag">结果</span></td><td><code>PipelineWorker</code> · 1,961 L</td><td>轮询 WQ 完成 → 写 PG → outbox 还槽；停滞双向同步</td></tr>
+            <tr><td>7</td><td><code>evaluation</code></td><td><span class="tag">评估</span></td><td><code>EvaluationWorker</code> · 690 L</td><td>指标深度分析与评估</td></tr>
+            <tr><td>8</td><td><code>outbox</code></td><td><span class="tag">评估</span></td><td><code>OutboxWorker</code> · 68 L</td><td>事务性补投：<code>FOR UPDATE SKIP LOCKED</code> 执行 PG→Redis ops</td></tr>
+            <tr><td>9</td><td><code>pool_recon</code></td><td><span class="tag">评估</span></td><td><code>PoolReconciliationWorker</code> · 328 L</td><td>池对账（300s 周期）</td></tr>
+            <tr><td>10</td><td><code>reconcile</code></td><td><span class="tag">评估</span></td><td><code>ReconciliationWorker</code> · 667 L</td><td>状态对账（WQ ↔ PG）</td></tr>
+            <tr><td>11</td><td><code>recordset</code></td><td><span class="tag">评估</span></td><td><code>RecordsetWorker</code> · 364 L</td><td>记录集同步（并发 2，重试 10/60/300s）</td></tr>
+            <tr><td>12</td><td><code>repair</code></td><td><span class="tag">评估</span></td><td><code>RepairWorker</code> · 292 L</td><td>失败任务修复</td></tr>
+            <tr><td>13</td><td><code>submit_scheduler</code></td><td><span class="tag">评估</span></td><td><code>SubmitScheduler</code> · 121 L</td><td>提交调度（3600s 周期）</td></tr>
+            <tr><td>14</td><td><code>submit_candidate_worker</code></td><td><span class="tag">评估</span></td><td><code>SubmitCandidateWorker</code> · 712 L</td><td>消费 <code>SimulationCompletedEvent</code>（consumer group），先落库再 POST</td></tr>
+            <tr><td>15</td><td><code>sync</code></td><td><span class="tag">支撑</span></td><td><code>SyncWorker</code> · 267 L</td><td>字段/算子/分类/数据集/用户 Alpha 增量同步（Stream + 6h 定时）</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="chips">
+          <span class="tag ok">CORE_WORKERS_ONLY 可裁剪为核心 7 个</span>
+          <span class="tag">未注册：gatekeeper(orphan) / flow_slo / optimization / mutation_production(experimental)</span>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>Worker 运行时机制 <span class="tag">BaseWorker 731 L · WorkerManager 596 L</span></h3>
+        <div class="grid2">
+          <div>
+            <h4>循环与退避</h4>
+            <ul>
+              <li><code>setup() → cycle() → teardown()</code>；连续失败 <b>10 次</b>停止，错误睡眠 <code>2×cycle_interval</code>。</li>
+              <li><b>空转指数退避（DEC-169）</b>：<code>min(15s × 2ⁿ, 300s)</code>，任何工作恢复基准间隔。</li>
+              <li><b>心跳/看门狗</b>：每 cycle 写 <code>worker:heartbeat:{name}</code>；看门狗 30s 一跳，陈旧阈值 <code>max(600s, 2×cycle, 观测最大 cycle×1.5)</code>；进程内模式<b>绝不 os._exit</b>，只停循环交给 WorkerManager 重启。</li>
+              <li>每 cycle 结束 <code>_release_db_transaction()</code>，避免 idle-in-transaction 与 Docker NAT 掉连。</li>
+            </ul>
+          </div>
+          <div>
+            <h4>WorkerManager 托管</h4>
+            <ul>
+              <li>单例 + 每 worker 一个 asyncio task；同步 <code>cycle()</code> 经 <code>asyncio.to_thread</code> 执行（sim worker 内部可再 <code>asyncio.run</code>）。</li>
+              <li><b>自动重启</b>：最多 <b>3 次</b>，延迟 <code>5s × 2ⁿ</code>，运行满 600s 重置计数；显式 stop 打 <code>_stopping</code> 防僵尸重启。</li>
+              <li><b>优雅停机</b>：cancel task → 等 CancelledError → 线程里跑 teardown → 写 status=stopped → 注销（保证 /status 不撒谎）。</li>
+              <li>配置来自 Redis hash <code>production:worker:{name}:config</code>，覆盖 <code>config/alpha_config.yaml</code> 默认值；启动顺序保证 <b>迁移先于 worker</b>（避免 AccessShareLock 卡死 ALTER）。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 04 技术栈 ======================= -->
+    <section id="stack">
+      <div class="sec-head reveal">
+        <div class="sec-idx">04</div>
+        <div>
+          <div class="eyebrow">Technology</div>
+          <h2>所用技术</h2>
+          <p>Python ≥3.12（conda quant 环境，禁止 venv/poetry/uv），后端钉版本、前端全新生代栈。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card reveal">
+          <h3>后端 <span class="tag">backend/requirements.txt</span></h3>
+          <div class="tw">
+          <table>
+            <thead><tr><th>组件</th><th>版本</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td><code>fastapi</code> / <code>uvicorn</code></td><td>0.109.0 / 0.27.0</td><td>REST 网关 + ASGI</td></tr>
+              <tr><td><code>pydantic</code></td><td>2.5.3</td><td>请求/响应 schema 与配置校验</td></tr>
+              <tr><td><code>sqlalchemy</code> / <code>psycopg2</code></td><td>2.0.25 / 2.9.9</td><td>仓储实现（119 个持久化文件）</td></tr>
+              <tr><td><code>alembic</code></td><td>1.13.1</td><td><b>96</b> 个迁移版本（head: t319_ai_articles）</td></tr>
+              <tr><td><code>pgvector</code></td><td>0.5.0</td><td>向量扩展（pgvector/pg16 镜像）</td></tr>
+              <tr><td><code>redis</code></td><td>5.2.1</td><td>协调设施：Stream / ZSet / 租约 / 心跳（646 行 redis_keys SSOT）</td></tr>
+              <tr><td><code>pandas</code> / <code>numpy</code> / <code>scipy</code></td><td>2.3.3 / 2.0.2 / 1.13.1</td><td>指标计算与序列分析</td></tr>
+              <tr><td><code>scikit-learn</code></td><td>1.6.1</td><td>聚类 / 归一化 / 相似度</td></tr>
+              <tr><td><code>datasketch</code></td><td>1.6.5</td><td><b>MinHash LSH</b> 表达式近重复去重</td></tr>
+              <tr><td><code>mcp</code>（stdio）</td><td>—</td><td>MCP Server 76 工具</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <h4>质量工具</h4>
+          <div class="chips">
+            <span class="tag acc">ruff（E,F,I,N,W · 行宽 100）</span>
+            <span class="tag acc">mypy py312</span>
+            <span class="tag">black / isort / pylint</span>
+            <span class="tag">pytest + cov（fail_under 40）</span>
+            <span class="tag">pre-commit</span>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <h3>前端 <span class="tag">frontend/ · 29 页</span></h3>
+          <div class="tw">
+          <table>
+            <thead><tr><th>层</th><th>选型</th></tr></thead>
+            <tbody>
+              <tr><td>框架</td><td><b>React 19.2</b> + TypeScript 6.0 + Vite 8.3</td></tr>
+              <tr><td>状态</td><td><b>Zustand 5</b>（store + 路由表）+ <b>TanStack React Query 5.102</b></td></tr>
+              <tr><td>UI / 图表</td><td>antd 6.6 + @ant-design/icons · <b>ECharts 6</b>（echarts-for-react）</td></tr>
+              <tr><td>路由 / HTTP</td><td>react-router-dom 7（13,350 行页面代码）· axios 1.20 · dayjs</td></tr>
+              <tr><td>构建 / 检查</td><td><code>tsc -b &amp;&amp; vite build</code> · <b>oxlint</b> + 视觉契约 <code>lint-visual-contract.mjs --strict</code> + 对比度审计</td></tr>
+              <tr><td>dev</td><td>端口 15173，<code>/api → http://localhost:18080</code> 代理</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <h4>部署 / 运维</h4>
+          <div class="chips">
+            <span class="tag acc">docker-compose 5 服务</span>
+            <span class="tag">pgvector/pg16</span>
+            <span class="tag">mock-wq 故障注入</span>
+            <span class="tag">Alembic 启动时 upgrade</span>
+            <span class="tag">监控 monitoring/ · deploy/</span>
+          </div>
+          <div class="note" style="margin-bottom:0">
+            <b>前端无测试</b>（0 个 test/spec 文件）——检查靠 oxlint + 视觉契约 + 对比度审计脚本；覆盖率门禁只约束后端（fail_under 40）。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 05 算法 ======================= -->
+    <section id="algorithms">
+      <div class="sec-head reveal">
+        <div class="sec-idx">05</div>
+        <div>
+          <div class="eyebrow">Algorithms</div>
+          <h2>核心算法</h2>
+          <p>从「怎么生成一条表达式」到「怎么判定它值不值得回测、能不能提交」的完整算法链。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+
+        <!-- 五通道 -->
+        <div class="algo span2 reveal">
+          <h3>1. 表达式生成：五通道分配 <span class="tag acc">DEC-231-F / 269</span></h3>
+          <div class="sub">generation/service/orchestration/channel_router.py · ChannelRouter</div>
+          <dl>
+            <dt>默认配比</dt>
+            <dd><code>DEFAULT_WEIGHTS = {template .20, grammar .20, hybrid .20, random .20, ast_engine .20}</code>——五路均分，<code>allocate(target_batch)</code> 整数切分，余数给最高权重通道。</dd>
+            <dt>预算纪律</dt>
+            <dd><code>empty_budget / leftover_sinks / split_budget</code> 保证「<b>未用预算只流向已满通道，绝不倒给 random</b>」；random 只是最后兜底地板 <code>EXPLORE_FLOOR = 0.05</code>，且需要 <code>PASS_RATE_MIN_N = 5</code> 样本才参与自适应。</dd>
+            <dt>自适应混合</dt>
+            <dd><code>with_pass_rates()</code>：先验 × <code>(floor + (1−floor)·clip(pass_rate,0,1))</code> 再归一化；<code>with_outcome_weights()</code>：先验 × <code>clip(w, 0.3, 1.8)</code>（跨 key 取最小），random 恒有下限。</dd>
+            <dt>家族先验</dt>
+            <dd>momentum .2 / value .2 / quality .15 / volatility .15 / growth .15 / liquidity .1 / reversal .05；20% 流量跑 <code>family_weight_experiments</code> 与 <code>winner_bias_experiments</code>（group_rank 0.85、vwap×3.0、adv20×2.5）A/B。</dd>
+            <dt>种子来源</dt>
+            <dd>Redis ZSet <code>alpha:feedback:by_sharpe</code>（<code>_sample_feedback_seeds(min_sharpe=1.0)</code>）+ PG <code>find_qualified_expressions(min_sharpe=1.25)</code>。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">整数预算分配</span><span class="tag acc">通过率自适应</span><span class="tag">探索地板 5%</span><span class="tag">A/B 家族权重</span></div>
+        </div>
+
+        <!-- grammar -->
+        <div class="algo reveal">
+          <h3>2. 语法通道：FASTEXPR 推导树</h3>
+          <div class="sub">strategies/search/grammar_engine.py</div>
+          <dl>
+            <dt>文法</dt>
+            <dd>从 wq-alpha-research 移植的 <b>FASTEXPR BNF 推导树</b>（CC BY-NC 4.0 注明）；生成 / 变异 / 交叉全部在文法约束内进行。</dd>
+            <dt>合法性</dt>
+            <dd><b>语法合法是构造保证的</b>（推导即合法），类型合法靠 <code>TYPE_RULES</code> 类型规则匹配。</dd>
+            <dt>动态终结符</dt>
+            <dd>字段从 PG 的 <b>4300+ 可用字段</b>动态取（原版硬编码 30 个）；窗口默认 <code>[5,10,20,60,120,252,400]</code>。</dd>
+            <dt>定位</dt>
+            <dd>文档中作为 AlphaCFG / GSGP / MCTS 搜索的基础表示。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">语法即合法</span><span class="tag">类型规则</span></div>
+        </div>
+
+        <!-- AST engine -->
+        <div class="algo reveal">
+          <h3>3. AST 引擎与生成策略</h3>
+          <div class="sub">strategies/ast_engine/ast_generator.py · ASTGenerator (1,610 L)</div>
+          <dl>
+            <dt>结构</dt>
+            <dd>递归 <code>ASTNode</code> 树：<code>to_expr()</code> / <code>depth()</code> / <code>total_cost()</code>；<code>generate(seed=…)</code> 给定 seed 时调用 <code>random.seed(seed)</code>（可复现），未给则用全局 random。</dd>
+            <dt>采样</dt>
+            <dd><code>_select_operator → _weighted_sample → _filter_by_scale_compatibility → _is_domain_valid</code>；再走 <code>_generate_operator / _generate_leaf / _generate_force_depth_node / _generate_boolean_subtree</code>；全程 <code>audit.py</code> 记录拒绝/生成原因可出审计摘要。</dd>
+            <dt>策略预设</dt>
+            <dd><code>policy.py</code>：<b>explore / balanced / exploit</b> 三档 × 6 个子策略（Scale、Depth、Field、Window、AntiPattern、Stationarity）。</dd>
+            <dt>量纲分析</dt>
+            <dd><code>operator_scales.py</code>（888 行）做算子量纲/尺度兼容性检查，防止 <code>rank(成交量)</code> 这类量纲错配；另有 <code>anti_pattern_detector.py</code> 反模式检测。</dd>
+            <dt>回退</dt>
+            <dd>无 seed 时审计记录走全局随机——<b>没有确定性默认种子</b>，复现依赖显式传 seed。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">可复现 seed</span><span class="tag">量纲兼容</span><span class="tag">三档策略 ×6 子策略</span></div>
+        </div>
+
+        <!-- 搜索与变异 -->
+        <div class="algo reveal">
+          <h3>4. 搜索、变异与参数优化</h3>
+          <div class="sub">strategies/{search,mutation,field_selector_engine,setting_engine,optimization}</div>
+          <dl>
+            <dt>SA + GA 混合</dt>
+            <dd><code>mutator_sa_ga.py</code>（DEC-204-E）：SA 温度接受准则跳出局部最优 + GA 选择/交叉/变异；多目标 fitness = <code>Sharpe + Turnover + Fitness + Novelty</code>（简化 NSGA-II）；5 种变异算子，谱系写 <code>alpha_genome.parent_hash</code>。</dd>
+            <dt>变异算子</dt>
+            <dd><code>MutationEngine</code>：<code>group_swap</code> / <code>weight_flip</code> / <code>window_nudge</code>；<code>expression_mutator</code> 读 <code>feedback_weights</code> 的高低权重算子/字段定向变异。</dd>
+            <dt>字段选择算法</dt>
+            <dd><code>selection_algorithms.py</code>：<b>Thompson Sampling、Lévy Flight、Simulated Annealing、Metropolis-Hastings、UCB、Core-Set</b>（docstring 附文献引用），作用在字段特征向量（覆盖率 / alpha 数 / 类别）上，含欧氏与余弦距离。</dd>
+            <dt>参数搜索</dt>
+            <dd><code>setting_engine</code>：RandomSearch / GridSearch / <b>BayesianSearch</b>，试验史 + Redis 缓存 <code>alpha:settings:*</code>。</dd>
+            <dt>TPE 优化</dt>
+            <dd><code>optimization/optimizer/tpe.py</code>：<code>TPEOptimizer(seed=42, gamma=0.25, n_candidates=24)</code>——好坏分位（top 25%）分别建 KDE，按密度比采样；<code>HybridTPEOptimizer</code> 阶段化：1–3 先验、4–15 TPE 开发、16–20 探索（预算 20 次评估）。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">SA+GA 多目标</span><span class="tag">Thompson/UCB/SA</span><span class="tag">TPE KDE 采样</span></div>
+        </div>
+
+        <!-- 质检 -->
+        <div class="algo reveal">
+          <h3>5. 质量门禁与评分</h3>
+          <div class="sub">quality_worker · post_simulation_gate.py · scoring_service.py · quality_grade.py</div>
+          <dl>
+            <dt>前置质检链</dt>
+            <dd><code>quality_pipeline.chain</code> 14 道：<code>syntax, field_existence, operator_arity, known_failure, unit_compatibility, operator_category_compatibility, bare_normalizer, structural_coherence, dedup, quality_score, template_auto_pause, gpt_precheck(off), zero_yield_ban, vacuous_signal</code>；检查实现 15 个文件。</dd>
+            <dt>回测后门禁</dt>
+            <dd><code>PostSimulationGate.check_metrics()</code>：<b>min_sharpe 1.25 · min_fitness 1.0 · min_sub_sharpe 0.28 · max_turnover 0.7 · min_turnover 0.01</b>；CRITICAL（低 Sharpe/Fitness/子宇宙）阻断，WARNING 只记日志；<code>is_seven_pass()</code> 要求 WQ 7 项全 PASS（含自相关、集中权重）。</dd>
+            <dt>综合评分</dt>
+            <dd><code>ScoringService</code>：<code>score = .30·norm(sharpe∈[−2,3]) + .25·norm(fitness∈[0,5]) + .15·norm(returns) + .10·(1−norm(turnover)) + .10·(1−norm(drawdown)) + .05·norm(sub_sharpe) + .05·年度一致性</code>，权重可在 <code>alpha_config.yaml</code> A/B。</dd>
+            <dt>评级</dt>
+            <dd><code>calculate_quality_grade()</code>：<code><b>A = sharpe≥1.25 ∧ fitness≥1.0 ∧ 0.01≤turnover≤0.70</b></code>；空头寸为 0 或 <code>authenticity_score&lt;0.5</code> 封顶 <b>B</b>（DEC-270）。</dd>
+            <dt>经济价值分</dt>
+            <dd><code>EconomicValueScorer</code>（独立于 WQ）：margin .35 / turnover .25 / capacity .20 / consistency .10 / sharpe .10；档位 S≥85 A≥70 B≥55 C≥40，输出缺陷标签 + 修复建议（有单测锁定：turnover 0.10 → 73.33，0.30 → 13.33）。</dd>
+            <dt>序列诊断</dt>
+            <dd><code>SharpeSequenceAnalyzer</code>（20 日动量、回撤 cummax、增长率）、<code>TurnoverSequenceAnalyzer</code>（MA20/60、Q95 极值、漂移率，&gt;70% 判「超高频重仓因子」）。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">14 道前置 + 门禁后置</span><span class="tag">7PASS 判定</span><span class="tag">权重可 A/B</span></div>
+        </div>
+
+        <!-- 相关性 & 去重 -->
+        <div class="algo reveal">
+          <h3>6. 相关性策略与四层去重</h3>
+          <div class="sub">self_correlation_policy.py · minhash_deduplicator.py · RedisKeys (646 L)</div>
+          <dl>
+            <dt>相关性口径</dt>
+            <dd>相关性在<b>日收益</b>上算（<code>pnl_to_daily_returns</code> 一阶差分——「累计 PnL 对任何盈利策略都高度共线」），Pearson + 退化保护。</dd>
+            <dt>三段式策略</dt>
+            <dd><code>|corr| &lt; 0.5</code> 接受 → <code>0.5–0.7</code> 谨慎 → <code>≥ 0.7</code> 拒绝，<b>除非新 Sharpe ≥ 旧 Sharpe × 1.1</b>（<code>SHARPE_EXEMPTION_FACTOR</code>）。</dd>
+            <dt>hybrid 配对</dt>
+            <dd><code>winner_hybridizer.hybridize()</code> 只配对<b>日收益相关 &lt; 0.3</b> 的赢家（min_sharpe 0.5、最多 12 个种子），产出 <code>0.5·rank(A) + 0.5·rank(B)</code>，并做复杂度过滤。</dd>
+            <dt>四层哈希去重</dt>
+            <dd><code>identity_hash = SHA256(expression)</code>（DEC-114）· <code>template_hash</code>（字段→FIELD、窗口→NUM）· <code>semantic_hash</code>（保留字段窗口、归一化局部变量，DEC-255）· <code>semantic_identity_hash</code>（归一化表达式+设置，DEC-242）；ZSET+SET、7 天 TTL、10 万上限。</dd>
+            <dt>近重复</dt>
+            <dd><code>MinHashDeduplicator(num_perm=128, threshold=0.85)</code> 用 <code>datasketch.MinHashLSH</code>：Redis 存 LSH、PG 存签名、影子索引原子重建。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">日收益口径</span><span class="tag">0.5/0.7/1.1 三段</span><span class="tag">MinHash LSH 128/0.85</span></div>
+        </div>
+
+        <!-- 反馈 -->
+        <div class="algo reveal">
+          <h3>7. 反馈闭环：经验贝叶斯权重</h3>
+          <div class="sub">workers/feedback/feedback_worker.py（DEC-226/273）· SSOT 表 feedback_weights</div>
+          <dl>
+            <dt>边① 算子 ← 质检失败</dt>
+            <dd>横截面做 <b>Beta-Binomial 经验贝叶斯先验</b>（矩估计），后验率 <code>(successes+α)/(n+α+β)</code>，然后
+              <code><b>weight = clamp(1.0 + 0.6 × (posterior_rate − prior_rate), 0.3, 1.8)</b></code>——高于先验给奖励（&gt;1），低于先验惩罚（&lt;1）。</dd>
+            <dt>边②③④ 模板 / 策略家族 / 字段</dt>
+            <dd>分层抽样 <b>core .20 / explore .40 / negative .25 / special .15</b>，然后
+              <code><b>weight = clamp(1.0 + 0.25 × (avg_sharpe − mean_sharpe) + 0.15 × (success_rate − 0.5), 0.3, 1.8)</b></code>，并写入经济价值档位/缺陷标签/修复建议列。</dd>
+            <dt>消费方</dt>
+            <dd><code>feedback_system.operator_weight()</code>、<code>operator_selector</code>、<code>probabilistic/generator</code>、<code>strategies/registry</code>、<code>generation_orchestrator</code>（字段维度走 Thompson 胜负统计）。</dd>
+            <dt>通道级反馈</dt>
+            <dd><code>cross_channel_feedback_aggregator</code>（DEC-273 Phase 4）把缺陷标签推回各生成通道，配合 §05-1 的通过率自适应。</dd>
+            <dt>其它闭环</dt>
+            <dd><code>alpha:qc:struct_fail_count / banned_structs</code>（结构失败 ≥5 即封禁，DEC-231-C/E）；<code>SettingsLearningService.record_outcome</code> → 建议参数。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">Beta-Binomial 经验贝叶斯</span><span class="tag">clamp 0.3–1.8</span><span class="tag">四维权重</span></div>
+        </div>
+
+        <!-- 统计 -->
+        <div class="algo reveal">
+          <h3>8. 统计工具：多重检验与 FDR</h3>
+          <div class="sub">domain/shared/model/statistical_tests.py</div>
+          <dl>
+            <dt>检验</dt>
+            <dd><code>z_to_two_sided_p()</code> 双侧 p 值、<code>sigmoid_quality(z, scale=4)</code> 把 z 映射为质量分。</dd>
+            <dt>FDR 控制</dt>
+            <dd><code>benjamini_hochberg()</code> BH-FDR step-up：<code>q_i = min_{j≥i} p_j·m/j</code>；docstring 明示「一旦进入高维 discovery，FDR 必须启用」。</dd>
+            <dt>保守系数</dt>
+            <dd><code>qc_conservative_factor ∈ [0.5, 1.0]</code> 调节质检严格度。</dd>
+            <dt>相关分析</dt>
+            <dd>自相关由 WQ 返回存 JSONB <code>alpha_results.self_correlation</code>，由 <code>sync_self_correlation()</code> 回填。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">BH-FDR</span><span class="tag">z→质量分</span></div>
+        </div>
+
+        <!-- 调度可靠性 -->
+        <div class="algo reveal">
+          <h3>9. 模拟调度与可靠性</h3>
+          <div class="sub">submission_gate.py · simulate/priority.py · main_worker.py · outbox_relay.py</div>
+          <dl>
+            <dt>3 槽硬上限</dt>
+            <dd><code>SubmissionGate.MAX_CONCURRENT = 3</code>：Redis 计数 <code>INCR/DECR</code>（60s 过期、1s 轮询、<code>ACQUIRE_TIMEOUT=600s</code>）+ 镜像集合 <code>SREM alpha:active_simulations</code>（DEC-258，修「WQ SLOTS 一直 0」的历史 bug）。</dd>
+            <dt>优先级出队</dt>
+            <dd><code>score_candidate() = 1.0×家族命中率 + 0.5×模板成功率 + 结构分{group_xsec .10, fundamental .09, ts_norm .07} − 0.11×归一化惩罚 − 0.8×后检失败</code>；中性先验 <code>NEUTRAL_HIT_RATE = 0.058</code>（IS |Sharpe|≥1.58 的历史占比）；先过采样 12 条再取 top-batch。</dd>
+            <dt>七阶段 cycle</dt>
+            <dd>① 对账活跃模拟 → ② 捞完成 → ③ <b>熔断</b>（5 分钟窗，错误率 ≥0.85 跳闸，冷却 600s）→ ④ <b>限流</b>（提交间隔 10s、429 退避、连续失败 5 次后 120s）→ ⑤ 预算（<code>HYPERPARAM_POSTS=1</code>，DEC-270，预算=空闲槽）→ ⑥ PG 事实源（清陈旧 SIMULATING）→ ⑦ <code>asyncio.gather + Semaphore(3)</code> 批量提交。</dd>
+            <dt>还槽与 outbox</dt>
+            <dd>PG 终态提交后<b>立刻还槽</b>：<code>SREM + DECR</code>；槽位释放写进 <code>outbox</code> 表由 OutboxWorker 以 <code>FOR UPDATE SKIP LOCKED</code> 补投——「不投递则 3 槽永占」（main.py 注释）。Redis ops 构造器支持 sadd/srem/incr/expire/delete/xadd。</dd>
+            <dt>停滞与陈旧回收</dt>
+            <dd>RUNNING &gt;6h 强清（<code>sim:age:{sim_id}</code>）、4 分钟未动自动释放、<code>plan_active_sim_sync</code> 做 Redis SET ↔ PG SIMULATING 双向同步（DEC-266）。</dd>
+          </dl>
+          <div class="chips"><span class="tag bad">3 槽硬上限</span><span class="tag acc">熔断 0.85/600s</span><span class="tag">SKIP LOCKED outbox</span></div>
+        </div>
+
+        <!-- Agent Platform -->
+        <div class="algo reveal">
+          <h3>10. Agent Platform</h3>
+          <div class="sub">backend/agent_platform/（20 文件 · 4,149 行）</div>
+          <dl>
+            <dt>会话隔离</dt>
+            <dd><code>User → AgentSession → RuntimeInstance → OpenCode Session</code>；<code>AgentSession{user_id, tenant_id, runtime_id, opencode_session_id}</code>，状态 <code>ACTIVE/IDLE/BUSY/CLOSED/ERROR</code>，消息代理到 <code>POST /session/{id}/message</code>。</dd>
+            <dt>进程池</dt>
+            <dd><code>RuntimeManager</code>：<code>Tenant → Runtime Pool → OpenCode 进程</code>；<code>RuntimeConfig{port_range (4096,4196), max_runtimes 10, health 30s, startup 30s, request 60s}</code>；<code>_start_opencode_server()</code> subprocess 起 <code>opencode serve</code> + 轮询端口 + 早退即抛。</dd>
+            <dt>推送</dt>
+            <dd><code>sse_manager.SSEConnection{queue maxsize=1000, 心跳 30s}</code>、<code>websocket_manager</code>、MCP <b>Streamable HTTP</b>（<code>MAX_CONCURRENT_REQUESTS=100</code>、<code>REQUEST_TIMEOUT=60</code>）。</dd>
+            <dt>授权</dt>
+            <dd><code>PolicyEngine</code>：Effect ALLOW/DENY、15 个 Action、内置角色 <code>admin/user/readonly/api_key</code>；角色匹配给出 <code>role:{name}</code> 理由，ABAC 走 <code>add_policy_rule</code>，<b>默认拒绝</b>（"No matching policy"）；JWT + API Key 中间件、审计中间件。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">四层会话映射</span><span class="tag">RBAC + ABAC 默认拒绝</span><span class="tag">端口池 4096–4196</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 06 接口 ======================= -->
+    <section id="interfaces">
+      <div class="sec-head reveal">
+        <div class="sec-idx">06</div>
+        <div>
+          <div class="eyebrow">Interfaces</div>
+          <h2>对外接口</h2>
+          <p>REST（~284 个在册端点）、MCP（76 工具）、前端 29 页，三条消费路径共用同一套应用服务。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card reveal">
+          <h3>REST API <span class="tag">39 路由模块 · 294 装饰器</span></h3>
+          <div class="tw">
+          <table>
+            <thead><tr><th>模块（按规模）</th><th>端点数</th></tr></thead>
+            <tbody>
+              <tr><td><code>analysis.py</code> 分析总览 / 漏斗 / 相关性 / 语法 / 统计 / 追踪</td><td>40</td></tr>
+              <tr><td><code>alphas.py</code> Alpha 列表 / 详情 / 状态</td><td>20</td></tr>
+              <tr><td><code>llm.py</code> LLM 辅助</td><td>18</td></tr>
+              <tr><td><code>workers.py</code> worker status / launch / stop / template-config</td><td>12</td></tr>
+              <tr><td><code>candidates.py</code> / <code>batches.py</code> 候选与批次</td><td>12 each</td></tr>
+              <tr><td>其余 33 个模块</td><td>…</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <ul style="margin-top:12px;font-size:12.5px">
+            <li>37 个模块在 <code>main.py</code> 注册（39 处 <code>include_router</code>），另有 6 个 <code>@app.*</code> 端点（根路径、OpenAPI、worker 控制）。</li>
+            <li><span class="tag warn">未接线</span> <code>agent_sessions.py</code>（13 端点，docstring 自注「未接线 deliberate」）与 <code>mcp.py</code>（4 端点，含过时硬编码路径）。</li>
+          </ul>
+        </div>
+
+        <div class="card reveal">
+          <h3>MCP 工具 <span class="tag vio">76 个 · stdio</span></h3>
+          <p style="font-size:12.5px;color:var(--t3)">
+            <code>tool_definitions.py</code> 声明 78 个 <code>types.Tool</code>（76 个唯一名），<code>server.py</code> 76 个 handler，分布在 15 个模块：
+          </p>
+          <div class="chips">
+            <span class="tag acc">alpha</span><span class="tag acc">analysis</span><span class="tag acc">candidate</span>
+            <span class="tag acc">extended_analysis</span><span class="tag acc">grammar</span><span class="tag acc">metadata</span>
+            <span class="tag acc">ops</span><span class="tag acc">portfolio</span><span class="tag acc">production</span>
+            <span class="tag acc">ranking</span><span class="tag acc">settings</span><span class="tag acc">simulation</span>
+            <span class="tag acc">sync</span><span class="tag">base_handler</span>
+          </div>
+          <div class="note info">
+            <b>调用纪律</b>：MCP 层<b>只能转发 HTTP</b>，禁止 import 业务代码或直连 SQL（AGENTS.md 硬约束，由 gov_validate 把关）。
+          </div>
+          <h4>另有</h4>
+          <ul style="font-size:12.5px">
+            <li>Agent Platform 的 <b>Streamable HTTP MCP</b>（<code>gateway/mcp_http_server.py</code>，并发 100）——路由未在 main.py 注册。</li>
+            <li>LLM 桥：<code>bridge_provider.py</code> 指向外部 Web AI Bridge <code>http://localhost:9877</code>。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>前端 29 页 <span class="tag">frontend/src/pages/*Page.tsx</span></h3>
+        <div class="grid3">
+          <div class="tool"><div class="tn">管线与状态</div><p>Worker 状态、批次、候选、漏斗视图（13,350 行页面代码）</p></div>
+          <div class="tool"><div class="tn">分析与排行</div><p>相关性风险、Alpha 排行、相似度图谱、统计分布</p></div>
+          <div class="tool"><div class="tn">数据目录</div><p>字段 / 算子 / 分类 / 数据集浏览</p></div>
+          <div class="tool"><div class="tn">生成与模板</div><p>模板管理、表达式预览与策略配置</p></div>
+          <div class="tool"><div class="tn">Agent 会话</div><p>多用户会话、SSE 实时流（对接 Agent Platform）</p></div>
+          <div class="tool"><div class="tn">用户社交</div><p>个人 / 消息 / 队伍 / 比赛</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 07 工程 ======================= -->
+    <section id="engineering">
+      <div class="sec-head reveal">
+        <div class="sec-idx">07</div>
+        <div>
+          <div class="eyebrow">Engineering</div>
+          <h2>工程与质量</h2>
+          <p>治理脚本、迁移纪律、测试矩阵与决策日志——这个项目的工程化密度和业务代码同样重要。</p>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="card reveal">
+          <h3>测试与门禁</h3>
+          <ul>
+            <li><b>4,492</b> 个 <code>def test_</code> / <b>339</b> 个测试文件</li>
+            <li>目录：unit / integration / experiments / archive / fixtures / mocks + 5 个平台级测试</li>
+            <li>标记：unit / integration / fast / slow / e2e；<code>asyncio_mode=auto</code></li>
+            <li>覆盖率 <b>fail_under = 40</b>（source=backend/app，数据文件 SSOT 在根 <code>.coverage</code>）</li>
+          </ul>
+          <div class="code-wrap">
+            <button class="copy" type="button" data-copy="qcmd">复制</button>
+<pre id="qcmd">pytest --tb=short -q
+ruff check backend
+mypy backend
+bash scripts/governance/gov_validate.sh</pre>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <h3>数据与迁移</h3>
+          <ul>
+            <li><b>96</b> 个 Alembic 迁移（head <code>t319_ai_articles</code>）</li>
+            <li>5 个 SQL 视图文件启动时加载（<code>views/loader.load_all_views()</code>）</li>
+            <li>关键表：<code>alpha_pool</code> · <code>alpha_results</code>(self_correlation JSONB) · <code>feedback_weights</code>(t312) · <code>template_stats</code>(t313) · <code>outbox</code> · <code>domain_events</code> · agent 三表</li>
+            <li>视图目录：<code>docs/database/alpha_views_catalog.md</code>（含 <code>gate_sharpe</code> / 复合分 SQL 定义）</li>
+            <li><b>迁移先于 worker</b>：worker 持 AccessShareLock 时 ALTER 会无限等待</li>
+          </ul>
+        </div>
+
+        <div class="card reveal">
+          <h3>治理与文档</h3>
+          <ul>
+            <li><b>251</b> 个决策文件 DEC-001…DEC-276（有缺口）</li>
+            <li><code>docs/</code> 共 <b>951</b> 篇 markdown（生命周期 01–06、质量报告、评审 20 个文件夹）</li>
+            <li><b>208</b> 个脚本（132 py / 50 sh）；<b>133</b> 个只读工具在 <code>tools/</code></li>
+            <li>AGENTS 治理模块 <b>10</b> 篇（01-commands … 10-commit-collab）</li>
+            <li>CI：<b>4</b> 个 workflow（docs 校验 / gov-validate / file-control / schema-consistency）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>质量评分权重（实测） <span class="tag">scoring_service.py · 可 A/B</span></h3>
+        <div class="bars" id="scoreBars"></div>
+      </div>
+    </section>
+
+    <!-- ======================= 08 口径 ======================= -->
+    <section id="caveats">
+      <div class="sec-head reveal">
+        <div class="sec-idx">08</div>
+        <div>
+          <div class="eyebrow">Caveats</div>
+          <h2>口径与已知边界</h2>
+          <p>README「当前状态」自动更新于 2026-07-25，已明显滞后；本页数字一律以代码实测为准，滞后项在此逐条列出。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card reveal">
+          <h3>实测 vs 文档口径 <span class="tag warn">README 工程规模表已过期</span></h3>
+          <div class="tw">
+          <table>
+            <thead><tr><th>指标</th><th>实测</th><th>README 声称</th></tr></thead>
+            <tbody>
+              <tr><td>后端 Python</td><td><b>1,111 文件 / 170,944 行</b></td><td>344 ❌</td></tr>
+              <tr><td>REST 端点</td><td><b>294 装饰器 / 39 模块</b></td><td>~85 端点 / 19 模块 ❌</td></tr>
+              <tr><td>应用服务</td><td><b>71 个 *service*.py</b></td><td>18 ❌</td></tr>
+              <tr><td>Worker</td><td><b>15</b>（进程内）</td><td>8 ❌（别处写 15 ✓）</td></tr>
+              <tr><td>MCP 工具</td><td><b>76</b></td><td>8 ❌</td></tr>
+              <tr><td>测试</td><td><b>4,492 / 339 文件</b></td><td>106 文件 ❌</td></tr>
+              <tr><td>迁移</td><td><b>96</b></td><td>18 ❌</td></tr>
+              <tr><td>决策</td><td><b>251 文件</b>（最高 DEC-276）</td><td>280+ ❌</td></tr>
+              <tr><td>CI workflow</td><td><b>4</b></td><td>5 ❌</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <h3>已知边界与死代码 <span class="tag bad">诚实标注</span></h3>
+          <ul>
+            <li><b>管线瓶颈</b>（README 自述）：SimulateWorker 限流是 664/751 UNSUBMITTED 的主因；下一步是提吞吐或推进 FeedbackWorker MutationPlan。</li>
+            <li><b>已知风险</b>（.ai/tasks.json）：submissions 执行 id 曾 100% NULL；ACTIVE 池 22 条旧因子退役待 WQ 侧决策。</li>
+            <li><b>PRD 已过期</b>：Out-of-Scope 写着「无 Web UI、单租户」，但 frontend/ 与多用户 Agent Platform 已存在；UC 引用的 5 个路径不存在。</li>
+            <li><b>AGENTS.md 自相矛盾</b>：Gotcha「Workers 必须与 API 分开启动」与 DEC-240 进程内托管冲突（同文件另一处已正确描述）。</li>
+            <li><b>死代码</b>：<code>agent_sessions.py</code>(13 端点) 与 <code>mcp.py</code>(4 端点) 未注册；<code>gatekeeper_worker</code>(orphan)、<code>flow_slo</code>、<code>optimization</code>、<code>mutation_production</code> 未进 15 人名单；<code>.supervisor/</code> 与 <code>Procfile</code> 是 supervisord 遗留；<code>schema-consistency-check</code> 触发路径已不存在（疑似永不触发）。</li>
+            <li><b>9877 口径</b>：README/docker 称 MCP 在 9877，实际 9877 是外部 Web AI Bridge 的 HTTP 端口；本项目 MCP 走 <b>stdio</b>。</li>
+            <li><b>ast_generate.md</b>（252 KB）是 OpenCode 会话导出记录，不是设计文档；权威图在 <code>docs/board/*.canvas</code>。</li>
+            <li><b>前端 0 测试</b>；覆盖率门禁只覆盖后端。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="note info pull reveal">
+        <b>一句话画像</b>
+        这是一个「研究者只做决策」的因子工厂——五通道生成表达式、14 道质检拦垃圾、3 个回测槽位对抗 WQ 限流、
+        经验贝叶斯把回测结果变成下一轮生成的先验；所有状态以 PG 为准，Redis 只负责协调，15 个 worker 随 API 一起活着。
+      </div>
+    </section>
+
+    <footer>
+      <span class="fbrand">ALPHA STUDIO</span>
+      v1.0.0 · branch main · bff92742 (2026-09-17)<br>
+      单文件展示页 · 数据来源：README / AGENTS.md / backend+frontend 代码实测 / docs 计数 · 生成于 2026-11-09 · 字体经 Google Fonts CDN 加载
+    </footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var root = document.documentElement;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- 主题（深色优先，尊重系统偏好与本地存储） ---------- */
+  var themeBtn = document.getElementById('themeBtn');
+  function themeLabel() {
+    var t = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    themeBtn.textContent = t === 'dark' ? '◐ 主题 · 深色' : '◐ 主题 · 浅色';
+    return t;
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('as-showcase-theme'); } catch (e) {}
+  if (!saved && window.matchMedia) {
+    saved = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  root.setAttribute('data-theme', saved || 'dark');
+  themeLabel();
+  themeBtn.addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    themeLabel();
+    try { localStorage.setItem('as-showcase-theme', next); } catch (e) {}
+  });
+
+  /* ---------- 移动端目录抽屉 ---------- */
+  var side = document.getElementById('side');
+  var menuBtn = document.getElementById('menuBtn');
+  function closeNav() {
+    side.classList.remove('open');
+    document.body.classList.remove('nav-open');
+    menuBtn.setAttribute('aria-expanded', 'false');
+  }
+  menuBtn.addEventListener('click', function () {
+    var open = side.classList.toggle('open');
+    document.body.classList.toggle('nav-open', open);
+    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  /* ---------- 行情条：无缝循环（内容复制一份） ---------- */
+  var track = document.getElementById('tickerTrack');
+  if (track) track.innerHTML += track.innerHTML;
+
+  /* ---------- 图表 1：各层代码量（实测 LOC） ---------- */
+  var LOC = [
+    ['domain 领域层', 72401, '72,401'],
+    ['infrastructure 基础设施', 42786, '42,786'],
+    ['frontend 前端 TS/TSX', 19641, '19,641'],
+    ['application 应用层', 19615, '19,615'],
+    ['workers 15 个 Worker', 13744, '13,744'],
+    ['api 接口层', 7620, '7,620'],
+    ['agent_platform', 4149, '4,149'],
+    ['mcp_server', 3990, '3,990']
+  ];
+  /* ---------- 图表 2：综合评分权重 ---------- */
+  var SCORE = [
+    ['Sharpe（归一到 [-2,3]）', 30, '0.30'],
+    ['Fitness（归一到 [0,5]）', 25, '0.25'],
+    ['累计收益', 15, '0.15'],
+    ['Turnover（反向）', 10, '0.10'],
+    ['最大回撤（反向）', 10, '0.10'],
+    ['子宇宙 Sharpe', 5, '0.05'],
+    ['年度一致性', 5, '0.05']
+  ];
+
+  function renderBars(host, rows, alt) {
+    if (!host) return;
+    var max = rows.reduce(function (m, r) { return Math.max(m, r[1]); }, 0);
+    rows.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'bar-row' + (alt ? ' alt' : '');
+      row.innerHTML =
+        '<span class="bn" title="' + r[0] + '">' + r[0] + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" data-w="' +
+        ((r[1] / max) * 100).toFixed(1) + '"></span></span>' +
+        '<span class="bv">' + r[2] + '</span>';
+      host.appendChild(row);
+    });
+  }
+  var locHost = document.getElementById('locBars');
+  var scoreHost = document.getElementById('scoreBars');
+  renderBars(locHost, LOC, false);
+  renderBars(scoreHost, SCORE, true);
+
+  function fillBars(host) {
+    if (!host) return;
+    Array.prototype.forEach.call(host.querySelectorAll('.bar-fill'), function (f, i) {
+      var apply = function () { f.style.width = f.getAttribute('data-w') + '%'; };
+      reduce ? apply() : setTimeout(apply, i * 55);
+    });
+  }
+
+  /* ---------- 指标数字滚动 ---------- */
+  function animateCount(el) {
+    var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+    if (reduce) { el.textContent = target.toLocaleString('en-US'); return; }
+    var start = performance.now(), dur = 1150;
+    function tick(now) {
+      var p = Math.min(1, (now - start) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ---------- 入场编排 + 数据触发 ---------- */
+  var revealEls = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var t = en.target;
+        t.classList.add('in');
+        var c = t.querySelector ? t.querySelector('[data-count]') : null;
+        if (c && !c.__done) { c.__done = true; animateCount(c); }
+        io.unobserve(t);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+
+    /* 同一父容器内元素按序延迟，形成编排感 */
+    var groups = {};
+    revealEls.forEach(function (el) {
+      var key = el.parentNode;
+      groups[key] = groups[key] || 0;
+      el.style.setProperty('--d', (Math.min(groups[key], 6) * 70) + 'ms');
+      groups[key]++;
+      io.observe(el);
+    });
+
+    var io2 = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        fillBars(en.target);
+        io2.unobserve(en.target);
+      });
+    }, { threshold: 0.2 });
+    if (locHost) io2.observe(locHost);
+    if (scoreHost) io2.observe(scoreHost);
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-count]'), animateCount);
+    fillBars(locHost); fillBars(scoreHost);
+  }
+
+  /* ---------- 滚动进度条 ---------- */
+  var progress = document.getElementById('scrollProgress');
+
+  /* ---------- 侧栏 scrollspy（rAF 节流） ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  var ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      ticking = false;
+      var y = window.scrollY + 140, idx = 0;
+      sections.forEach(function (s, i) { if (s && s.offsetTop <= y) idx = i; });
+      links.forEach(function (a, i) { a.classList.toggle('active', i === idx); });
+      if (progress) {
+        var h = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
+      }
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  links.forEach(function (a) { a.addEventListener('click', closeNav); });
+
+  /* ---------- 复制按钮 ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('.copy'), function (btn) {
+    btn.addEventListener('click', function () {
+      var pre = document.getElementById(btn.getAttribute('data-copy'));
+      var text = pre ? pre.innerText : '';
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(function () { btn.textContent = old; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
