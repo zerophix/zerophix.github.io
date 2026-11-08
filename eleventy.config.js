@@ -203,6 +203,9 @@ module.exports = function (eleventyConfig) {
    （幂等：内容不变则哈希不变、文件不动）
    ============================================================ */
 function stampAssets() {
+  /* 被安全阀拦下的构建（工作区有未完成改动）不重写指纹：
+     否则会用脏文件的哈希污染 index.html 的 ?v= 引用 */
+  if (process.env.MOUNT_NO_STAMP) return;
   const assets = ['style.css', 'app.js', 'data.js', 'mounted.js', 'theme.js'];
   const hashes = {};
   assets.forEach(a => {

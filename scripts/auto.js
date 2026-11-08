@@ -70,11 +70,13 @@ const DENY = [
 const isContentPath = p => !DENY.some(re => re.test(p));
 
 /* ── 构建 ───────────────────────────────────── */
-function build() {
+function build(noStamp) {
   if (!fs.existsSync(ELEVENTY)) {
     return { ok: false, out: '找不到 node_modules/.bin/eleventy —— 先运行 npm install' };
   }
-  const r = spawnSync(ELEVENTY, [], { cwd: ROOT, encoding: 'utf8' });
+  const env = { ...process.env };
+  if (noStamp) env.MOUNT_NO_STAMP = '1';   /* 拦截态构建：不重写资源指纹 */
+  const r = spawnSync(ELEVENTY, [], { cwd: ROOT, encoding: 'utf8', env });
   return { ok: r.status === 0, out: (r.stdout || '') + (r.stderr || '') };
 }
 
@@ -149,7 +151,7 @@ function cycle(reason) {
 
   const blocked = dirtyPaths().filter(p => !isContentPath(p));
   if (blocked.length) {
-    const b = build();
+    const b = build(true);            /* 拦截态：构建但不重写指纹，防止污染 index.html */
     log(b.ok ? '构建 ✓（本地预览已更新）' : '构建失败（详见上方11ty输出）');
     log(`⚠ 暂停自动提交——存在非内容改动：${blocked.join('、')}`);
     log('  处理掉这些改动后，再动一次 pages/ 或运行 npm run sync 即恢复');
