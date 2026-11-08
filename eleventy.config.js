@@ -102,10 +102,6 @@ module.exports = function (eleventyConfig) {
         });
       } catch (e) { /* 旧清单损坏则跳过 */ }
     }
-    if (removed.length) {
-      fs.mkdirSync(path.dirname(REMOVED_LOG), { recursive: true });
-      fs.appendFileSync(REMOVED_LOG, removed.join('\n') + '\n');
-    }
 
     /* 2) 扫描 pages/<领域>/*.html 并校验 */
     const dates = gitDates();
@@ -150,7 +146,42 @@ module.exports = function (eleventyConfig) {
     if (errors.length)
       throw new Error('挂载校验失败：\n  - ' + errors.join('\n  - '));
 
-    /* 4) 组装：领域按名字、页面按日期倒序 */
+    /* 4) 页面级孤儿 + 附属文件同步：
+          源已删除/改名的 <领域>/<页面>/ 输出下架（领域级只查整册，
+          改名页面会残留旧 URL）；领域输出根目录里源已不存在的
+          附属文件（css/js/图）一并下架。 */
+    Object.keys(byField).forEach(fid => {
+      const outDir = path.join(__dirname, fid);
+      if (!fs.existsSync(outDir)) return;
+      const srcDir = path.join(PAGES, fid);
+      const srcEntries = fs.existsSync(srcDir)
+        ? fs.readdirSync(srcDir, { withFileTypes: true }) : [];
+      const expectedDirs = new Set([
+        ...byField[fid].map(p => p.u.split('/')[2]),
+        ...srcEntries.filter(e => e.isDirectory() && !e.name.startsWith('_')).map(e => e.name),
+      ]);
+      const expectedFiles = new Set(srcEntries.filter(e =>
+        e.isFile() && !e.name.endsWith('.html') &&
+        !e.name.startsWith('_') && !e.name.startsWith('.')).map(e => e.name));
+      fs.readdirSync(outDir, { withFileTypes: true }).forEach(e => {
+        const full = path.join(outDir, e.name);
+        if (e.isDirectory()) {
+          if (!expectedDirs.has(e.name)) {
+            fs.rmSync(full, { recursive: true, force: true });
+            removed.push(`${fid}/${e.name}`);
+          }
+        } else if (!e.name.startsWith('.') && !expectedFiles.has(e.name)) {
+          fs.rmSync(full, { force: true });
+          removed.push(`${fid}/${e.name}`);
+        }
+      });
+    });
+    if (removed.length) {
+      fs.mkdirSync(path.dirname(REMOVED_LOG), { recursive: true });
+      fs.appendFileSync(REMOVED_LOG, removed.join('\n') + '\n');
+    }
+
+    /* 5) 组装：领域按名字、页面按日期倒序 */
     mountedFields = Object.keys(byField).sort().map(id => ({
       id,
       pages: byField[id].sort((a, b) => b.d.localeCompare(a.d) || a._sort.localeCompare(b._sort))
@@ -166,7 +197,7 @@ module.exports = function (eleventyConfig) {
       const dest = path.join(__dirname, f);
       const files = fs.readdirSync(src, { withFileTypes: true });
       files.forEach(e => {
-        if (e.name.startsWith('_') || e.name.endsWith('.html')) return;
+        if (e.name.startsWith('.') || e.name.startsWith('_') || e.name.endsWith('.html')) return;
         const from = path.join(src, e.name);
         const to = path.join(dest, e.name);
         if (e.isDirectory()) fs.cpSync(from, to, { recursive: true });
