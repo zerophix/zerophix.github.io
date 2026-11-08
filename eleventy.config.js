@@ -66,6 +66,16 @@ function fieldDirs() {
 
 module.exports = function (eleventyConfig) {
 
+  /* _ 前缀 = 草稿：清单扫描跳过，Eleventy 也不处理、不输出（否则草稿会被发布） */
+  if (fs.existsSync(PAGES)) {
+    fs.readdirSync(PAGES, { withFileTypes: true })
+      .filter(e => e.name.startsWith('_'))
+      .forEach(e => {
+        eleventyConfig.ignores.add(path.join('pages', e.name));
+        eleventyConfig.ignores.add(path.join('pages', e.name, '**'));
+      });
+  }
+
   /* ── 构建前：孤儿下架 + 扫描校验 + 收集清单 ── */
   eleventyConfig.on('eleventy.before', () => {
     mountedFields = [];

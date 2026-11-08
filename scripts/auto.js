@@ -116,7 +116,9 @@ function commitAndPush() {
   const src = paths.find(p => p.startsWith('pages/'));
   const hasAdd = staged.some(l => /^[AM]/.test(l));
   const hasDel = staged.some(l => /^D/.test(l));
-  const verb = hasAdd ? 'mount' : (hasDel ? 'unmount' : 'sync');
+  /* pages/ 下任何 _ 开头的路径段 = 草稿（与扫描器的跳过规则一致） */
+  const isDraft = !!src && /(^|\/)_/.test(src.slice('pages/'.length));
+  const verb = isDraft ? 'draft' : (hasAdd ? 'mount' : (hasDel ? 'unmount' : 'sync'));
   let subject;
   if (src) {
     subject = `chore(content): ${verb} ${src.slice('pages/'.length)}`;
