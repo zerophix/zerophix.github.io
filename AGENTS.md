@@ -61,7 +61,7 @@ BASE_URL=https://zerophix.github.io/ node tests/web-smoke-test.js   # 线上模�
    → 源目录删除时自动下架孤儿输出。**不要用 `--no-verify` 绕过**；新环境先 `npm install`。
 6. 全自动（推荐）：`npm run auto` 常驻监听 `pages/` —— 丢文件 → 构建 → 自动提交 →
    自动推送，约 10 秒后线上可见；本地预览也会自动起。
-   - 草稿丢 `pages/_drafts/`（`_` 前缀不挂载，只备份提交），改名/移出即上线。
+   - 草稿丢 `pages/_drafts/`（`_` 前缀不挂载、**不进 git**，只留本机），改名/移出即上线。
    - 安全阀：仓库有非内容改动（`style.css`/`tests/` 等开发文件）时暂停自动提交、
      构建照常（本地预览保持最新），处理完改动动一次 `pages/` 或跑 `npm run sync` 即恢复。
    - `--no-push` 只到本地提交；`--dry` 只报告将做什么。

@@ -4,3 +4,5 @@
 node_modules/
 # macOS
 .DS_Store
+# 草稿：pages/ 下 _ 前缀不挂载、也不进 git（只留本机，见 AGENTS.md）
+pages/_*
