@@ -22,10 +22,11 @@ description: 把一个完整独立 HTML 放进 pages/<领域>/ 自动挂载到�
    - 必须放在领域目录里：`pages/<领域>/…`（散装在 `pages/` 根会被拦）
    - 同目录可放 css/js/图片，相对路径引用即可，构建会一并复制发布
    - 领域目录名 = 首页卡片名（新建用 ASCII，如 `physics`、`leetcode`）
-3. 提交即挂载——pre-commit 自动：构建 → 校验（不过就中止提交）→ 生成并暂存
+3. 提交即挂载。**推荐直接开 `npm run auto`**：丢文件后构建/提交/推送全自动，
+   下面是手动方式——pre-commit 自动：构建 → 校验（不过就中止提交）→ 生成并暂存
    `mounted.js` + `sitemap.xml` + 输出目录。
    ```sh
-   git add pages/<领域>/ && git commit -m "feat(page): add <页面名>"
+   git add pages/<领域>/ && git commit -m "chore(content): mount <页面名>"
    ```
 4. 发布地址：`https://zerophix.github.io/<领域>/<页面名>/`
 

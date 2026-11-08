@@ -5,7 +5,7 @@
 #   2. 生成 mounted.js（首页领域墙/页面列表）与 sitemap.xml
 #   3. 暂存各领域输出目录（含附属 css/js/图片）
 #   4. 下架孤儿：源目录已删的输出，按构建记录移除并暂存删除
-#   5. 资源指纹变化时连同样式/脚本一并暂存（?v= 与内容原子一致）
+#   5. 资源指纹重写时暂存 index.html（只暂存指纹产物，不卷入其他未提交改动）
 # ═══════════════════════════════════════════
 set -e
 cd "$(git rev-parse --show-toplevel)"
@@ -43,9 +43,11 @@ if [ -f .cache/removed-outputs ]; then
   rm -f .cache/removed-outputs
 fi
 
-# 资源指纹：index.html 引用被重写时，连同样式/脚本一并暂存
+# 资源指纹：index.html 引用被重写时暂存它。
+# 只暂存 index.html —— 指纹只改写 index.html 的引用，其他文件若也有
+# 未提交改动属于进行中的开发工作，必须留在工作区（自动挂载的安全边界）。
 if ! git diff --quiet -- index.html 2>/dev/null; then
-  git add index.html style.css app.js data.js mounted.js theme.js
+  git add index.html
   echo "[pre-commit] 资源指纹已更新（?v= 内容哈希）"
 fi
 

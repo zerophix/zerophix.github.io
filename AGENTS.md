@@ -25,7 +25,7 @@ sitemap.xml                  站点地图
 
 .nojekyll                    关闭 Jekyll（不可删除，见「部署」）
 tests/                       三套 Playwright 测试（见「验证」）
-scripts/gen-og.js            OG 分享卡生成
+scripts/                   资产与自动化：gen-og.js（分享卡）、auto.js（全自动挂载守护）
 ```
 
 ## 常用命令
@@ -33,7 +33,9 @@ scripts/gen-og.js            OG 分享卡生成
 ```sh
 npm install                 # 首次：装依赖 + 自动接上提交钩子
 npm run build               # Eleventy 构建（= node_modules/.bin/eleventy）
-python3 -m http.server 8765 # 本地预览：在仓库根启动，http://127.0.0.1:8765/
+npm run auto                # 全自动：监听 pages/ → 构建+提交+推送，丢文件即上线
+npm run sync                # 单次执行同一条管线（auto 被安全阀暂停时的重试入口）
+python3 -m http.server 8765 # 本地预览（npm run auto 会自动把它起起来）
 node tests/web-smoke-test.js          # 三套测试之一，其余见下
 BASE_URL=https://zerophix.github.io/ node tests/web-smoke-test.js   # 线上模式
 ```
@@ -57,6 +59,12 @@ BASE_URL=https://zerophix.github.io/ node tests/web-smoke-test.js   # 线上模�
    领域目录里没有任何页面。
 5. 提交即挂载：pre-commit 跑构建 → 校验 → 暂存 `mounted.js`/`sitemap.xml` 与各领域输出目录
    → 源目录删除时自动下架孤儿输出。**不要用 `--no-verify` 绕过**；新环境先 `npm install`。
+6. 全自动（推荐）：`npm run auto` 常驻监听 `pages/` —— 丢文件 → 构建 → 自动提交 →
+   自动推送，约 10 秒后线上可见；本地预览也会自动起。
+   - 草稿丢 `pages/_drafts/`（`_` 前缀不挂载，只备份提交），改名/移出即上线。
+   - 安全阀：仓库有非内容改动（`style.css`/`tests/` 等开发文件）时暂停自动提交、
+     构建照常（本地预览保持最新），处理完改动动一次 `pages/` 或跑 `npm run sync` 即恢复。
+   - `--no-push` 只到本地提交；`--dry` 只报告将做什么。
 
 ## 内容与设计约定
 

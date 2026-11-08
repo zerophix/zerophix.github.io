@@ -5,6 +5,8 @@
   "description": "ZeroPhix static site with Eleventy mount framework (pages/ -> site)",
   "scripts": {
     "build": "eleventy",
+    "auto": "node scripts/auto.js",
+    "sync": "node scripts/auto.js --once",
     "postinstall": "git config core.hooksPath githooks"
   },
   "devDependencies": {
