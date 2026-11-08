@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-mode="positive">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodeGuardian AI · 项目全景 — 架构 / 设计 / 技术 / 算法</title>
+<meta name="description" content="CodeGuardian AI (glossary-java-source-analyzer) 单文件项目展示：架构分层、分析流水线、技术栈、核心算法、规则体系、质量门禁与产出物。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CodeGuardian AI — Project Dossier
+   美学方向：氮熏晒图 / 工程图纸（暖纸 · 墨线 · 红铅笔批注）
+   ============================================================ */
+
+/* ---------- 设计令牌：正片（默认） ---------- */
+:root{
+  color-scheme: light;
+  --paper:#f2eee4;
+  --paper-2:#eae5d7;
+  --paper-3:#ddd6c3;
+  --paper-a:rgba(242,238,228,.9);
+  --ink:#1b1e24;
+  --ink-2:#4b5058;
+  --ink-3:#8d8878;
+  --rule:#cfc8b5;
+  --rule-2:#b6ae98;
+  --accent:#c23c1c;
+  --accent-2:#1f5c8b;
+  --ok:#2f6b4b;
+  --warn:#a06714;
+  --bad:#b23519;
+  --invert-bg:#1b1e24;
+  --invert-fg:#f2eee4;
+  --panel:#18222d;
+  --panel-2:#212d3a;
+  --panel-text:#e9e2d1;
+  --panel-dim:#8b96a2;
+  --panel-line:rgba(233,226,209,.16);
+  --shadow:0 18px 40px rgba(27,30,36,.10);
+
+  --display:'Bebas Neue','Noto Serif SC',serif;
+  --serif:'Noto Serif SC',Georgia,serif;
+  --sans:'Noto Sans SC',-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r-sm:2px; --r:3px;
+}
+
+/* ---------- 设计令牌：蓝图负片 ---------- */
+:root[data-mode="negative"]{
+  color-scheme: dark;
+  --paper:#0d2742;
+  --paper-2:#123050;
+  --paper-3:#173a5e;
+  --paper-a:rgba(13,39,66,.9);
+  --ink:#e9eff6;
+  --ink-2:#bacbdb;
+  --ink-3:#7e97ad;
+  --rule:#2c4c6c;
+  --rule-2:#3d6288;
+  --accent:#f2b134;
+  --accent-2:#79c4ea;
+  --ok:#63c48f;
+  --warn:#e2a83e;
+  --bad:#f4805e;
+  --invert-bg:#e9eff6;
+  --invert-fg:#0d2742;
+  --panel:#071b2e;
+  --panel-2:#0d2842;
+  --panel-text:#dfe9f2;
+  --panel-dim:#6d869e;
+  --panel-line:rgba(223,233,242,.14);
+  --shadow:0 18px 40px rgba(0,10,22,.35);
+}
+
+/* ---------- 基础 ---------- */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{
+  margin:0;background:var(--paper);color:var(--ink-2);
+  font-family:var(--sans);font-size:15px;line-height:1.85;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent);color:#fff}
+
+/* 图纸底纹：网格 + 颗粒 */
+.bg-grid,.bg-grain{position:fixed;inset:0;pointer-events:none;z-index:0}
+.bg-grid{
+  background-image:
+    linear-gradient(var(--rule) 1px,transparent 1px),
+    linear-gradient(90deg,var(--rule) 1px,transparent 1px);
+  background-size:32px 32px;opacity:.22;
+}
+.bg-grain{
+  opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a{color:var(--accent-2);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .18s,color .18s}
+a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+h1,h2,h3,h4{color:var(--ink);line-height:1.3;margin:0;font-weight:700}
+p{margin:0 0 12px}
+code,kbd{font-family:var(--mono);font-size:.88em}
+ul,ol{margin:0 0 12px;padding-left:20px}
+li{margin:5px 0}
+strong{color:var(--ink);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* ---------- 图纸版面 ---------- */
+.sheet{display:grid;grid-template-columns:238px minmax(0,1fr);position:relative;z-index:1}
+
+/* ---------- 左侧索引栏 ---------- */
+.rail{
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  border-right:1px solid var(--rule);
+  padding:26px 18px 22px;display:flex;flex-direction:column;gap:18px;
+  background:var(--paper);
+}
+.rail-brand{display:flex;gap:11px;align-items:flex-start}
+.rail-mark{
+  width:38px;height:38px;flex:none;border:1.5px solid var(--ink);
+  display:grid;place-items:center;position:relative;
+  font-family:var(--display);font-size:19px;letter-spacing:.04em;color:var(--ink);
+}
+.rail-mark::after{content:"";position:absolute;right:-1.5px;top:-1.5px;width:9px;height:9px;background:var(--accent)}
+.rail-title{font-family:var(--display);font-size:17px;letter-spacing:.06em;color:var(--ink);line-height:1.15}
+.rail-title span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.22em;color:var(--ink-3);margin-top:3px}
+.rail-cap{font-family:var(--mono);font-size:8.5px;letter-spacing:.26em;color:var(--ink-3);text-transform:uppercase;
+  padding-bottom:8px;border-bottom:1px solid var(--rule)}
+.nav{display:flex;flex-direction:column;gap:1px}
+.nav a{
+  display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:baseline;
+  padding:7px 8px 7px 9px;border-left:2px solid transparent;
+  color:var(--ink-2);font-size:12.5px;border-bottom:0;
+  transition:background .16s,color .16s,border-color .16s;
+}
+.nav a i{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--ink-3);letter-spacing:.06em}
+.nav a:hover{background:var(--paper-2);color:var(--ink)}
+.nav a.active{color:var(--ink);background:var(--paper-2);border-left-color:var(--accent)}
+.nav a.active i{color:var(--accent)}
+.mode-btn{
+  width:100%;padding:9px 11px;border:1px solid var(--ink);background:transparent;
+  color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  cursor:pointer;text-align:left;transition:.18s;border-radius:var(--r-sm);
+}
+.mode-btn:hover{background:var(--invert-bg);color:var(--invert-fg)}
+.rail-foot{
+  margin-top:auto;padding-top:14px;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink-3);line-height:2;
+}
+.rail-foot b{color:var(--ink-2);font-weight:500}
+
+/* ---------- 主区 ---------- */
+.main{min-width:0;padding:0 clamp(18px,4vw,58px) 0;max-width:1280px}
+.topbar{
+  position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:13px 0;border-bottom:1px solid var(--ink);background:var(--paper-a);
+  backdrop-filter:blur(8px);
+}
+.crumb{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+.spacer{flex:1}
+.progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--accent);z-index:200}
+
+/* ---------- 封面 HERO ---------- */
+.hero{padding:54px 0 0;position:relative}
+.hero-kicker{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);
+}
+.hero-title{
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(58px,9.5vw,124px);line-height:.86;letter-spacing:.012em;
+  color:var(--ink);margin:16px 0 4px;
+}
+.hero-title .outline{color:transparent;-webkit-text-stroke:1.6px var(--accent)}
+.hero-sub{
+  font-family:var(--serif);font-weight:900;font-size:clamp(21px,3.1vw,34px);
+  letter-spacing:.14em;color:var(--ink);margin:10px 0 0;display:inline-block;position:relative;
+}
+.hero-sub::after{
+  content:"";position:absolute;left:0;right:0;bottom:-9px;height:2px;background:var(--accent);
+  transform-origin:left;animation:drawLine 1s .35s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes drawLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.sheet-rule{
+  display:flex;align-items:center;gap:14px;margin:34px 0 0;
+  border-top:2px solid var(--ink);padding-top:8px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);
+}
+.sheet-rule .l{flex:1;height:1px;background:var(--rule)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:42px;align-items:start;margin-top:26px}
+.lead{font-size:16px;color:var(--ink-2);max-width:640px}
+.badges{display:flex;flex-wrap:wrap;gap:7px;margin:18px 0 22px}
+
+/* 修订章 */
+.stamp{
+  position:absolute;right:4px;top:46px;transform:rotate(-7deg);
+  border:2px solid var(--accent);outline:1px solid var(--accent);outline-offset:3px;
+  padding:9px 14px;text-align:center;color:var(--accent);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;line-height:1.9;
+  opacity:.82;
+}
+.stamp b{display:block;font-family:var(--display);font-size:19px;letter-spacing:.12em;font-weight:400}
+
+/* ---------- 指标带 ---------- */
+.metrics{
+  display:grid;grid-template-columns:repeat(6,1fr);
+  margin:44px 0 0;border-top:2px solid var(--ink);
+}
+.metric{padding:20px 18px 22px;border-left:1px solid var(--rule)}
+.metric:first-child{border-left:0;padding-left:0}
+.metric .v{
+  font-family:var(--mono);font-weight:600;font-size:clamp(28px,3vw,40px);
+  color:var(--ink);letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;
+}
+.metric .l{font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.55}
+.metric .s{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--ink-3);margin-top:7px}
+
+/* ---------- 章节 ---------- */
+section{padding-top:26px}
+.sec-head{
+  display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:start;
+  padding:58px 0 20px;border-bottom:1px solid var(--ink);margin-bottom:26px;
+}
+.sec-num{
+  font-family:var(--display);font-size:clamp(46px,6vw,72px);line-height:.82;
+  color:var(--accent);letter-spacing:.02em;
+}
+.sec-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-3)}
+.sec-title{font-family:var(--serif);font-weight:900;font-size:clamp(25px,3.3vw,37px);letter-spacing:.05em;margin:4px 0 0}
+.sec-lead{font-size:14.5px;color:var(--ink-2);max-width:880px;margin:12px 0 0}
+
+/* ---------- 卡片 / 图 ---------- */
+.card{border:1px solid var(--rule);background:var(--paper-2);padding:22px 24px;margin-bottom:16px}
+.card h3{
+  font-size:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--rule);
+}
+.card h4{font-size:13px;margin:18px 0 9px;color:var(--accent);font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:16px}
+
+/* 标签 */
+.tag{
+  display:inline-flex;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  padding:3px 9px;border:1px solid var(--rule-2);color:var(--ink-2);background:var(--paper);
+  border-radius:var(--r-sm);white-space:nowrap;
+}
+.tag.ok{border-color:var(--ok);color:var(--ok)}
+.tag.warn{border-color:var(--warn);color:var(--warn)}
+.tag.bad{border-color:var(--bad);color:var(--bad)}
+.tag.acc{border-color:var(--accent);color:var(--accent)}
+.tag.acc2{border-color:var(--accent-2);color:var(--accent-2)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+
+/* ---------- 表格（规格表） ---------- */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 4px}
+th,td{text-align:left;padding:11px 13px;vertical-align:top}
+th{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;border-bottom:1.5px solid var(--ink);white-space:nowrap;
+}
+td{border-bottom:1px solid var(--rule);color:var(--ink-2)}
+tbody tr{transition:background .18s}
+tbody tr:hover{background:var(--paper-3)}
+tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+td code{
+  color:var(--accent-2);background:var(--paper);padding:1px 6px;border-radius:var(--r-sm);
+  border-bottom:1px solid var(--rule-2);
+}
+
+/* ---------- 代码清单（深色反转面板） ---------- */
+.listing{
+  border:1px solid var(--ink);background:var(--panel);color:var(--panel-text);
+  border-radius:var(--r-sm);position:relative;overflow:hidden;box-shadow:var(--shadow);
+}
+.listing-head{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:9px 15px;background:var(--panel-2);border-bottom:1px solid var(--panel-line);
+}
+.listing-label{font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--panel-dim)}
+.listing pre{
+  margin:0;padding:17px 19px;overflow-x:auto;
+  font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--panel-text);
+}
+pre{margin:8px 0 0}
+pre .c{color:var(--panel-dim);font-style:italic}
+pre .k{color:#e9b04c}
+pre .s{color:#a3cf9f}
+.copy{
+  font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  padding:4px 10px;border:1px solid var(--panel-line);background:transparent;color:var(--panel-dim);
+  cursor:pointer;border-radius:var(--r-sm);transition:.16s;
+}
+.copy:hover{color:var(--panel-text);border-color:var(--panel-text)}
+
+/* ---------- 分层架构图 ---------- */
+.arch{display:grid;gap:0;margin-top:8px}
+.layer{
+  border:1px solid var(--ink);background:var(--paper-2);padding:15px 18px;display:grid;
+  grid-template-columns:172px minmax(0,1fr);gap:18px;align-items:center;
+}
+.layer .lname{font-family:var(--mono);font-size:13px;color:var(--ink);font-weight:600;letter-spacing:.03em}
+.layer .lname i{display:block;font-style:normal;font-size:9px;color:var(--ink-3);letter-spacing:.24em;text-transform:uppercase;margin-top:4px}
+.layer .ldesc{font-size:12.5px;color:var(--ink-2)}
+.layer.core{background:var(--invert-bg);border-color:var(--invert-bg)}
+.layer.core .lname,.layer.core .ldesc,.layer.core strong{color:var(--invert-fg)}
+.layer.core .lname i{color:var(--invert-fg);opacity:.62}
+.layer.core code{background:rgba(128,128,128,.28);color:var(--invert-fg);border-bottom:0}
+.arrow{
+  text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--ink-3);padding:9px 0;border-left:1px solid var(--rule);border-right:1px solid var(--rule);
+}
+.arrow b{color:var(--accent);font-weight:600}
+
+/* ---------- 流水线时间线 ---------- */
+.pipe{position:relative;margin-top:10px;padding-left:4px}
+.pipe::before{content:"";position:absolute;left:21px;top:16px;bottom:16px;width:1px;background:var(--rule-2)}
+.step{
+  position:relative;display:grid;grid-template-columns:52px minmax(0,1fr);gap:18px;
+  padding:11px 0;transition:transform .22s ease;
+}
+.step:hover{transform:translateX(4px)}
+.step .sn{
+  width:36px;height:36px;border:1.5px solid var(--ink);background:var(--paper);border-radius:50%;
+  display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);
+  position:relative;z-index:1;transition:.22s;
+}
+.step:hover .sn{background:var(--accent);border-color:var(--accent);color:#fff}
+.step h4{margin:6px 0 4px;font-size:14.5px}
+.step p{margin:0;font-size:13px;color:var(--ink-2)}
+.step .cls{font-family:var(--mono);font-size:11px;color:var(--accent-2);letter-spacing:.03em}
+
+/* ---------- 算法规格卡 ---------- */
+.algo{border:1px solid var(--rule);background:var(--paper-2);padding:22px 24px;position:relative}
+.algo .afig{
+  font-family:var(--mono);font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);
+}
+.algo h3{font-size:16.5px;margin:7px 0 5px}
+.algo .sub{font-family:var(--mono);font-size:10.5px;color:var(--accent-2);margin-bottom:14px;word-break:break-all;letter-spacing:.02em}
+.algo dl{margin:0;display:grid;grid-template-columns:92px minmax(0,1fr);gap:0}
+.algo dt{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+  padding:10px 12px 10px 0;border-top:1px solid var(--rule);
+}
+.algo dd{margin:0;padding:10px 0;font-size:12.5px;border-top:1px solid var(--rule);color:var(--ink-2)}
+.algo dd code{color:var(--accent-2);background:var(--paper);padding:0 5px;border-radius:var(--r-sm);border-bottom:1px solid var(--rule-2)}
+.algo .chips{border-top:1px solid var(--rule);padding-top:13px}
+
+/* ---------- 规则分布条形图 ---------- */
+.bars{display:grid;gap:4px;margin-top:12px}
+.bar-row{display:grid;grid-template-columns:196px minmax(0,1fr) 44px;gap:12px;align-items:center;font-size:12px;padding:2px 0}
+.bar-row .bn{font-family:var(--mono);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.bar-track{height:11px;background:var(--paper-3);border:1px solid var(--rule-2);overflow:hidden}
+.bar-fill{height:100%;background:var(--ink);opacity:.85;width:0;transition:width 1s cubic-bezier(.22,1,.36,1)}
+.bar-row:nth-child(1) .bar-fill,.bar-row:nth-child(2) .bar-fill,.bar-row:nth-child(3) .bar-fill{background:var(--accent);opacity:1}
+.bar-row .bv{font-family:var(--mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;font-size:11px}
+
+/* ---------- MCP 工具卡 ---------- */
+.tool{
+  border:1px solid var(--rule);padding:14px 16px;background:var(--paper);position:relative;
+  transition:border-color .18s,transform .18s;
+}
+.tool:hover{border-color:var(--accent);transform:translateY(-2px)}
+.tool .tid{position:absolute;top:11px;right:13px;font-family:var(--mono);font-size:8.5px;letter-spacing:.22em;color:var(--ink-3)}
+.tool .tn{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600;margin-bottom:5px}
+.tool p{font-size:12px;color:var(--ink-3);margin:0}
+
+/* ---------- 批注 / 提示 ---------- */
+.note{
+  border:1px solid var(--rule);border-left:3px solid var(--warn);background:var(--paper-2);
+  padding:14px 18px;font-size:13px;color:var(--ink-2);margin:15px 0;
+}
+.note.info{border-left-color:var(--accent-2)}
+.note.bad{border-left-color:var(--bad)}
+.note .nl{
+  display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--warn);margin-bottom:5px;
+}
+.note.info .nl{color:var(--accent-2)}
+.note.bad .nl{color:var(--bad)}
+
+/* ---------- 产物树 ---------- */
+.tree{
+  font-family:var(--mono);font-size:12.5px;line-height:1.95;
+  background:var(--paper-2);border:1px solid var(--rule);padding:18px 20px;overflow-x:auto;
+}
+.tree .d{color:var(--accent-2);font-weight:600}
+.tree .f{color:var(--ink)}
+.tree .c{color:var(--ink-3)}
+
+/* ---------- 页脚图签栏 ---------- */
+.titleblock{
+  margin:76px 0 60px;border:1.5px solid var(--ink);display:grid;
+  grid-template-columns:repeat(4,1fr);background:var(--paper-2);
+}
+.tb-cell{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:13px 15px}
+.tb-cell:nth-child(4n){border-right:0}
+.tb-label{font-family:var(--mono);font-size:8.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3)}
+.tb-value{font-family:var(--mono);font-size:11.5px;color:var(--ink);margin-top:5px;line-height:1.6;word-break:break-all}
+.tb-wide{grid-column:1/-1;border-right:0;border-bottom:0;padding:15px}
+.tb-wide p{margin:0;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);line-height:2}
+
+/* ---------- 入场动画 ---------- */
+.js .reveal{opacity:0;transform:translateY(22px);transition:opacity .85s ease,transform .85s cubic-bezier(.22,1,.36,1)}
+.js .reveal.in{opacity:1;transform:none}
+
+/* ---------- 示意图（内联 SVG） ---------- */
+.sch{width:100%;height:auto;display:block}
+.sch .nd{fill:var(--paper-2);stroke:var(--ink);stroke-width:1.3}
+.sch .nd-t{fill:var(--ink);font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.12em}
+.sch .nd-s{fill:var(--ink-3);font-family:var(--mono);font-size:8px;letter-spacing:.08em}
+.sch .cn{stroke:var(--ink-2);stroke-width:1.15;fill:none;stroke-dasharray:5 5;animation:dashflow 1.3s linear infinite}
+.sch .hd{fill:var(--ink-2)}
+.sch .dim{stroke:var(--rule-2);stroke-width:1;fill:none}
+.sch .dim-t{fill:var(--ink-3);font-family:var(--mono);font-size:8px;letter-spacing:.32em}
+.sch .an{stroke:var(--rule-2);stroke-width:1;stroke-dasharray:2 3;fill:none}
+.sch .an-t{fill:var(--ink-3);font-family:var(--mono);font-size:8px;letter-spacing:.08em}
+.sch .pl{fill:var(--accent);offset-path:path("M 8 128 L 592 128");offset-distance:0%;
+  animation:travel 3.8s cubic-bezier(.45,0,.55,1) infinite}
+.sch .sw{stroke:var(--accent);stroke-width:2;opacity:.45;animation:sweep 2.8s ease-in-out infinite}
+@keyframes dashflow{to{stroke-dashoffset:-20}}
+@keyframes travel{0%{offset-distance:0%;opacity:0}9%{opacity:1}91%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes sweep{0%{transform:translateY(0)}50%{transform:translateY(56px)}100%{transform:translateY(0)}}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:1080px){
+  .hero-grid{grid-template-columns:1fr;gap:30px}
+  .stamp{display:none}
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  .metric:nth-child(3n+1){border-left:0;padding-left:0}
+}
+@media (max-width:980px){
+  .sheet{grid-template-columns:1fr}
+  .rail{
+    position:sticky;top:0;height:auto;z-index:70;
+    border-right:0;border-bottom:1px solid var(--ink);
+    flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 18px;
+  }
+  .rail-cap,.rail-foot{display:none}
+  .nav{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:4px;flex:1 1 100%}
+  .nav a{border-left:0;border-bottom:2px solid transparent;white-space:nowrap;padding:5px 8px}
+  .nav a.active{border-left:0;border-bottom-color:var(--accent)}
+  .mode-btn{width:auto;flex:none}
+  .layer{grid-template-columns:1fr;gap:8px}
+}
+@media (max-width:680px){
+  body{font-size:14px}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .metric{border-left:0;padding-left:0}
+  .sec-head{grid-template-columns:1fr;gap:8px}
+  .algo dl{grid-template-columns:1fr}
+  .algo dt{padding-bottom:0;border-top:1px solid var(--rule)}
+  .algo dd{border-top:0;padding-top:2px}
+  .titleblock{grid-template-columns:repeat(2,1fr)}
+  .tb-cell:nth-child(4n){border-right:1px solid var(--rule)}
+  .tb-cell:nth-child(2n){border-right:0}
+  .bar-row{grid-template-columns:128px minmax(0,1fr) 38px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .js .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="bg-grid"></div>
+<div class="bg-grain"></div>
+
+<div class="sheet">
+
+  <!-- ==================== 左侧索引栏 ==================== -->
+  <aside class="rail">
+    <div class="rail-brand">
+      <div class="rail-mark">CG</div>
+      <div class="rail-title">CODEGUARDIAN<span>ai · java source analyzer</span></div>
+    </div>
+    <div class="rail-cap">Dossier Index · 图纸目录</div>
+    <nav class="nav" id="nav">
+      <a href="#overview"><i>01</i><span>总览与能力</span></a>
+      <a href="#architecture"><i>02</i><span>架构设计</span></a>
+      <a href="#pipeline"><i>03</i><span>分析流水线</span></a>
+      <a href="#stack"><i>04</i><span>所用技术</span></a>
+      <a href="#algorithms"><i>05</i><span>涉及的算法</span></a>
+      <a href="#rules"><i>06</i><span>规则体系</span></a>
+      <a href="#gate"><i>07</i><span>质量门禁</span></a>
+      <a href="#outputs"><i>08</i><span>产出物</span></a>
+      <a href="#interfaces"><i>09</i><span>对外接口</span></a>
+      <a href="#engineering"><i>10</i><span>工程与质量</span></a>
+      <a href="#caveats"><i>11</i><span>口径与边界</span></a>
+    </nav>
+    <button class="mode-btn" id="modeBtn" type="button">◐ 正片 / 负片</button>
+    <div class="rail-foot">
+      <b>REV</b> 3.5.0-SNAPSHOT<br>
+      <b>BRANCH</b> refactor/tech-debt-cleanup<br>
+      <b>JDK</b> 8 · Maven · fat JAR
+    </div>
+  </aside>
+
+  <!-- ==================== 主区 ==================== -->
+  <main class="main">
+
+    <div class="topbar">
+      <span class="crumb">glossary-java-source-analyzer / project-showcase</span>
+      <span class="spacer"></span>
+      <span class="tag acc">静态分析 · 非运行时插桩</span>
+      <span class="tag">单文件 HTML · 无外部依赖</span>
+    </div>
+
+    <!-- ==================== SHEET 00 · 封面 ==================== -->
+    <header class="hero">
+      <div class="stamp"><b>REV</b>3.5.0<br>SNAPSHOT</div>
+      <div class="hero-kicker">Static Analysis · CLI / MCP / SARIF / Web Console</div>
+      <h1 class="hero-title"><span class="ttl">CODEGUARDIAN</span> <span class="ttl outline">AI</span></h1>
+      <p class="hero-sub">Java 源码深度静态分析</p>
+
+      <div class="sheet-rule">
+        <span>Sheet 00 · Cover</span><span class="l"></span>
+        <span>Dossier / 项目全景</span><span class="l"></span>
+        <span>Architecture · Design · Technology · Algorithms</span>
+      </div>
+
+      <div class="hero-grid">
+        <div>
+          <p class="lead">
+            面向 Java 代码库的静态深度分析工具：基于 <strong>JavaParser AST</strong> 构建调用图、控制流图与数据流图，
+            用 <strong>480 条规则</strong>检出缺陷与坏味道，识别架构分层违规与设计模式，最终产出
+            <strong>JSON / SARIF 2.1.0 / HTML</strong> 报告，并以 <strong>MCP Server</strong> 把代码知识开放给 AI Agent。
+            纯 CLI 交付，Java 8 fat JAR，<strong>无 Spring Boot 运行时</strong>。
+          </p>
+          <div class="badges">
+            <span class="tag acc2">glossary-java-source-analyzer 3.5.0-SNAPSHOT</span>
+            <span class="tag">Java 8（maven.compiler.release=8）</span>
+            <span class="tag">JavaParser 3.27.0</span>
+            <span class="tag">SARIF 2.1.0</span>
+            <span class="tag">MCP · stdio · 12 tools</span>
+            <span class="tag">Web 控制台 · React 18 + Vite</span>
+          </div>
+
+          <div class="listing">
+            <div class="listing-head">
+              <span class="listing-label">Listing 1 — Build &amp; Run</span>
+              <button class="copy" type="button" data-copy="cmd">复制</button>
+            </div>
+<pre id="cmd"><span class="c"># 1) 构建 fat JAR</span>
+mvn clean package -DskipTests
+
+<span class="c"># 2) 分析任意 Java 项目（结果写入 &lt;outputDir&gt;/&lt;项目&gt;/run-&lt;时间戳&gt;/）</span>
+java -jar target/glossary-java-source-analyzer-3.5.0-SNAPSHOT-jar-with-dependencies.jar \
+  --sourceRoot /path/to/java-project \
+  --outputDir ./analysis-output</pre>
+          </div>
+        </div>
+
+        <!-- 流水线蓝图示意 -->
+        <figure style="margin:0">
+          <svg class="sch" viewBox="0 0 600 262" role="img" aria-label="分析流水线示意图">
+            <!-- 顶部尺寸线 -->
+            <path class="dim" d="M8 62 H592 M8 56 V68 M592 56 V68"/>
+            <text class="dim-t" x="300" y="46" text-anchor="middle">STATIC ANALYSIS PIPELINE</text>
+
+            <!-- 节点 -->
+            <rect class="nd" x="8" y="96" width="118" height="64"/>
+            <text class="nd-t" x="67" y="122" text-anchor="middle">01 SOURCE</text>
+            <text class="nd-s" x="67" y="140" text-anchor="middle">.java · pom · xml</text>
+
+            <rect class="nd" x="163" y="96" width="118" height="64"/>
+            <text class="nd-t" x="222" y="122" text-anchor="middle">02 PARSE</text>
+            <text class="nd-s" x="222" y="140" text-anchor="middle">javaparser AST</text>
+
+            <rect class="nd" x="318" y="96" width="118" height="64"/>
+            <text class="nd-t" x="377" y="122" text-anchor="middle">03 ANALYZE</text>
+            <text class="nd-s" x="377" y="140" text-anchor="middle">graph · rules · gate</text>
+
+            <rect class="nd" x="473" y="96" width="118" height="64"/>
+            <text class="nd-t" x="532" y="122" text-anchor="middle">04 REPORT</text>
+            <text class="nd-s" x="532" y="140" text-anchor="middle">sarif · json · html</text>
+
+            <!-- 连接线 + 箭头 -->
+            <path class="cn" d="M126 128 H158"/>
+            <path class="hd" d="M158 123 L168 128 L158 133 Z"/>
+            <path class="cn" d="M281 128 H313"/>
+            <path class="hd" d="M313 123 L323 128 L313 133 Z"/>
+            <path class="cn" d="M436 128 H468"/>
+            <path class="hd" d="M468 123 L478 128 L468 133 Z"/>
+
+            <!-- 扫描线（SOURCE 内） -->
+            <g clip-path="url(#cp1)">
+              <line class="sw" x1="14" y1="100" x2="120" y2="100"/>
+            </g>
+            <clipPath id="cp1"><rect x="8" y="96" width="118" height="64"/></clipPath>
+
+            <!-- 流动脉冲 -->
+            <circle class="pl" cx="0" cy="0" r="4.5"/>
+
+            <!-- 批注引线 -->
+            <path class="an" d="M67 160 V196 M222 160 V196 M377 160 V196 M532 160 V196"/>
+            <path class="an" d="M61 196 H73 M216 196 H228 M371 196 H383 M526 196 H538"/>
+            <text class="an-t" x="67" y="216" text-anchor="middle">forkjoin parallel</text>
+            <text class="an-t" x="222" y="216" text-anchor="middle">symbol solver</text>
+            <text class="an-t" x="377" y="216" text-anchor="middle">480 rules / 33 cat</text>
+            <text class="an-t" x="532" y="216" text-anchor="middle">sarif 2.1.0</text>
+            <text class="dim-t" x="300" y="248" text-anchor="middle">FIG. 00 · DATA PATH — DASHED = ANNOTATION</text>
+          </svg>
+        </figure>
+      </div>
+
+      <div class="metrics">
+        <div class="metric reveal"><div class="v" data-count="480">0</div><div class="l">分析规则（唯一键，0 重复注册）</div><div class="s">33 个类别 + 8 条项目级规则</div></div>
+        <div class="metric reveal"><div class="v" data-count="278">0</div><div class="l">主源码文件数</div><div class="s">domain 占 211 / 278</div></div>
+        <div class="metric reveal"><div class="v" data-count="712">0</div><div class="l">JUnit 测试方法</div><div class="s">125 个测试文件</div></div>
+        <div class="metric reveal"><div class="v" data-count="30">0</div><div class="l">设计模式检测器</div><div class="s">GoF 24 + 企业模式 6</div></div>
+        <div class="metric reveal"><div class="v" data-count="12">0</div><div class="l">MCP 工具</div><div class="s">stdio · 惰性装配上下文</div></div>
+        <div class="metric reveal"><div class="v" data-count="75">0</div><div class="l">架构决策记录 DEC</div><div class="s">docs/ai/decisions</div></div>
+      </div>
+    </header>
+
+    <!-- ==================== 01 总览 ==================== -->
+    <section id="overview">
+      <div class="sec-head">
+        <div class="sec-num">01</div>
+        <div>
+          <div class="sec-eyebrow">Overview · Capability Matrix</div>
+          <h2 class="sec-title">总览与能力</h2>
+          <p class="sec-lead">主路径是「fat JAR 静态分析 → JSON / SARIF / HTML」；Web 控制台用眼睛看产物，MCP 把同一套分析能力交给 AI Agent。</p>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>能力矩阵 <span class="tag ok">主路径</span></h3>
+        <div class="tw">
+        <table>
+          <thead><tr><th>能力</th><th>状态</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>静态分析 CLI（AST、规则、调用图、门禁）</td><td><span class="tag ok">主路径</span></td><td>ApplicationBootstrap → AnalysisOrchestrator</td></tr>
+            <tr><td>SARIF 2.1.0 输出</td><td><span class="tag ok">主路径</span></td><td>可直接接入 GitHub Code Scanning / Check Run</td></tr>
+            <tr><td>MCP Server（stdio）</td><td><span class="tag ok">主路径</span></td><td><code>McpApplication</code> + 12 个工具，见 <code>examples/mcp-config.json</code></td></tr>
+            <tr><td>Web 控制台（<code>web/</code>）</td><td><span class="tag acc">可选</span></td><td>只读分析产物的可视化面板，不是分析引擎</td></tr>
+            <tr><td>增量分析与缓存</td><td><span class="tag ok">主路径</span></td><td>SHA-256 文件指纹，缓存默认落在被分析仓库之外</td></tr>
+            <tr><td>内置 LLM / RAG / 向量检索</td><td><span class="tag bad">已移除</span></td><td>DEC-042：<code>domain/analysis/rag/</code> 仅剩空目录</td></tr>
+            <tr><td>Spring Boot 服务 / 旧 frontend / docker-compose</td><td><span class="tag bad">已移除</span></td><td>DEC-041：由 <code>web/</code> 控制台取代</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="note info">
+          <span class="nl">Note · 输出布局</span>
+          一次分析一个轮次目录，同一项目多次分析互不覆盖；分析他人仓库时增量缓存默认已在仓库外
+          <code>~/.glossary-analyzer/cache/&lt;项目&gt;-&lt;路径哈希&gt;</code>。
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 02 架构 ==================== -->
+    <section id="architecture">
+      <div class="sec-head">
+        <div class="sec-num">02</div>
+        <div>
+          <div class="sec-eyebrow">Architecture · Layering</div>
+          <h2 class="sec-title">架构设计</h2>
+          <p class="sec-lead">四层单向依赖的分层架构（specs/architecture/layers.yaml 为规范真源），外加一个完全独立进程的 Web 控制台。</p>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>静态分层结构 <span class="tag">依赖方向：上 → 下，禁止反向</span></h3>
+        <div class="arch">
+          <div class="layer">
+            <div class="lname">interfaces<i>接口层</i></div>
+            <div class="ldesc">对外契约：CLI 参数解析、MCP 协议与工具（<code>interfaces/mcp/tools/*</code> 12 个）。只允许依赖 application 层。</div>
+          </div>
+          <div class="arrow">↓ 允许依赖 <b>application</b>　·　✗ 禁止直连 domain / infrastructure</div>
+
+          <div class="layer">
+            <div class="lname">application<i>应用层 / 用例层</i></div>
+            <div class="ldesc"><code>AnalysisOrchestrator</code>（编排）、<code>ReportGenerator</code>（产物）、<code>QualityAnalyzer</code>、<code>SourceCodeScanner</code>、质量门禁。依赖 domain，不依赖 infrastructure / interfaces。</div>
+          </div>
+          <div class="arrow">↓ 允许依赖 <b>domain</b>　·　✗ 禁止依赖 infrastructure / interfaces</div>
+
+          <div class="layer core">
+            <div class="lname">domain<i>领域层 · 核心</i></div>
+            <div class="ldesc">全部分析算法与业务规则：<code>CoreAnalysisEngine</code>、CallGraph / CFG / DFG / 污点、480 条规则、设计模式、分层分析、增量缓存、指标。<strong>零外部依赖</strong>，禁止依赖其他三层。</div>
+          </div>
+          <div class="arrow">↑ 实现 domain 定义的端口（依赖倒置）　·　✗ 禁止依赖 application / interfaces</div>
+
+          <div class="layer">
+            <div class="lname">infrastructure<i>基础设施层</i></div>
+            <div class="ldesc">技术适配：JavaParser 解析与符号求解、Gson JSON、SnakeYAML、ASM 字节码、WebSocket 进度推送、日志与存储。</div>
+          </div>
+        </div>
+
+        <h4>Fig. 2.2 — 跨层调用检测（本项目也用自己的规则检查自己）</h4>
+        <div class="tw">
+        <table>
+          <thead><tr><th>规则</th><th>severity</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>domain → application / infrastructure / interfaces</code></td><td><span class="tag bad">error</span></td><td>领域层零外部依赖</td></tr>
+            <tr><td><code>application → infrastructure / interfaces</code></td><td><span class="tag bad">error</span></td><td>应用层不依赖基础设施 / 接口层</td></tr>
+            <tr><td><code>interfaces → domain / infrastructure</code></td><td><span class="tag bad">error</span></td><td>接口层不直连领域 / 基础设施</td></tr>
+            <tr><td>例外：<code>*Test*</code> / <code>*Config*</code> / <code>*Application</code></td><td><span class="tag ok">豁免</span></td><td>测试、配置、启动类允许跨层</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p style="font-size:12.5px;color:var(--ink-3);margin-top:12px">
+          检测维度：<code>check_method_calls</code> / <code>check_field_dependencies</code> / <code>check_inheritance</code> / <code>check_annotations</code>，<code>strict_mode: true</code>。
+        </p>
+      </div>
+
+      <div class="card reveal">
+        <h3>运行时拓扑</h3>
+        <div class="tw">
+        <table>
+          <thead><tr><th>入口</th><th>路径</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="tag acc">CLI</span></td>
+              <td><code>ApplicationBootstrap → AnalysisOrchestrator → Domain → ReportGenerator</code></td>
+              <td>严格参数解析：未知 flag / 漏取值 / sourceRoot 不存在 → 直接拒跑 <code>exit 2</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag acc2">MCP</span></td>
+              <td><code>McpApplication → StdioTransport → McpProtocolHandler → 12 tools</code></td>
+              <td>stdout 只走 JSON-RPC（日志全走 stderr）；上下文在<b>首次工具调用时</b>惰性装配，与 CLI 共享同一增量缓存命名空间</td>
+            </tr>
+            <tr>
+              <td><span class="tag ok">Web</span></td>
+              <td><code>web/ (Vite + React, 独立进程) ← outputDir/*_full_*.json</code></td>
+              <td>只读产物 + dev 中间件按 CODE_ROOT 读本机源码，<b>不参与分析计算</b></td>
+            </tr>
+            <tr>
+              <td><span class="tag">进度</span></td>
+              <td><code>WebSocketProgressPublisher</code>（<code>--websocket [port]</code>）</td>
+              <td>可选，广播 <code>AnalysisProgressEvent</code>，结束后发 <code>analysisComplete</code></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 03 流水线 ==================== -->
+    <section id="pipeline">
+      <div class="sec-head">
+        <div class="sec-num">03</div>
+        <div>
+          <div class="sec-eyebrow">Pipeline · Deterministic Stages</div>
+          <h2 class="sec-title">分析流水线</h2>
+          <p class="sec-lead"><code>AnalysisOrchestrator.execute()</code> 的确定性阶段序列；文件级并行发生在扫描阶段，编排本身保持单线程有序。</p>
+        </div>
+      </div>
+
+      <div class="pipe">
+        <div class="step reveal"><div class="sn">0</div><div><h4>装配扫描期符号求解</h4><p>runId（<code>yyyyMMdd-HHmmss</code>）→ <code>attachScanTimeSymbolResolver()</code>：ClasspathPlan <b>单线程构建一次</b>，再安装每线程的 JavaSymbolSolver 工厂（DEC-059/060），供后续并行扫描使用。</p></div></div>
+        <div class="step reveal"><div class="sn">1</div><div><h4>扫描 Java 源码 <span class="cls">SourceCodeScanner.scan()</span></h4><p><code>ForkJoinPool(min(CPU 核数, 8))</code> 并行解析；按 Path 排序保证图结构与环检测结果可复现；解析失败计入 <code>scan_stats</code>。</p></div></div>
+        <div class="step reveal"><div class="sn">2</div><div><h4>扫描非 Java 资产 <span class="cls">ProjectFileScanner</span></h4><p>pom.xml、MyBatis XML mapper、Dockerfile、配置文件等，形成 project_assets。</p></div></div>
+        <div class="step reveal"><div class="sn">3</div><div><h4>跨文件关系发现 <span class="cls">RelationEngine.discoverRelations</span></h4><p>复用唯一一份 <code>CallGraphBuilder</code>（DEC-034，不建第二张图），跑 6 条发现通道。</p></div></div>
+        <div class="step reveal"><div class="sn">4</div><div><h4>质量规则分析 <span class="cls">QualityAnalyzer.analyzeWithClassAssets</span></h4><p>RuleRegistry 注册 480 条规则 → RuleEngine 逐类执行 → 重复代码检测 → 特殊 CFG / 污点 / 架构规则 → 位置去重 + 严重度校准。增量模式只跑变更文件。</p></div></div>
+        <div class="step reveal"><div class="sn">5</div><div><h4>项目类型识别 <span class="cls">ProjectTypeDetector.detect</span></h4><p>判定 spring / spring-boot / 普通 Java 等，决定后续框架分析分支。</p></div></div>
+        <div class="step reveal"><div class="sn">6</div><div><h4>框架专项分析 <span class="cls">FrameworkAnalyzer</span></h4><p>Spring 分支：Bean 依赖图与环、HTTP 端点、@Transactional 边界、AOP、Security 配置（可扩展 MyBatis / Dubbo）。</p></div></div>
+        <div class="step reveal"><div class="sn">7</div><div><h4>核心增强分析 <span class="cls">CoreAnalysisEngine / IncrementalAnalysisEngine</span></h4><p>全量：符号解析 → 接口多态扫描 → 全局调用图 → 字节码精化 → 调用链追踪 → 数据流 → 架构分层 → 技术债。增量：按变更文件重算并合并。</p></div></div>
+        <div class="step reveal"><div class="sn">8</div><div><h4>架构分层检查 <span class="cls">ArchitectureLayerAnalyzer</span></h4><p>包名模式分层 → 依赖白名单比对 → LayerViolation 列表。</p></div></div>
+        <div class="step reveal"><div class="sn">9</div><div><h4>装配结果容器 <span class="cls">assembleResults</span></h4><p>schema_version 1.0.0 / analyzer_version 3.5.0；合并资产、依赖、问题、调用边、scan_stats（解析覆盖率）、缓存溯源。</p></div></div>
+        <div class="step reveal"><div class="sn">10</div><div><h4>设计模式 + 领域语义 <span class="cls">DesignPatternDetector / SemanticRecognizer</span></h4><p>30 个模式检测器并行打标；语义识别给出角色 / 意图 / 领域词 / 状态机。</p></div></div>
+        <div class="step reveal"><div class="sn">11</div><div><h4>生成报告 + 语义词典 + 广播完成 <span class="cls">ReportGenerator</span></h4><p>HTML → 技术债 → 门禁评估 → summary.json → full.json → glossary_raw.json → SARIF → semantic_dictionary.json → WebSocket <code>analysisComplete</code>。</p></div></div>
+      </div>
+
+      <div class="grid2" style="margin-top:20px">
+        <div class="card reveal">
+          <h3>并行与确定性</h3>
+          <ul>
+            <li><b>扫描并行</b>：<code>ForkJoinPool(min(cores, 8))</code>，增量路径另有 <code>changedFiles.parallelStream()</code>。</li>
+            <li><b>符号求解</b>：语言级别为线程局部配置，<code>JavaParserConfig.ensureThreadConfigured()</code> 保证 worker 线程配置一致。</li>
+            <li><b>确定性</b>：源文件按路径排序、调用链 callee 按字典序排序 → 图与环、链路输出字节级可复现。</li>
+            <li><b>规则引擎</b>：<code>RuleEngine.runParallel()</code> 存在（按类并行），当前主路径调用的是串行 <code>run()</code>。</li>
+          </ul>
+        </div>
+        <div class="card reveal">
+          <h3>退出码契约 <span class="tag">ApplicationBootstrap</span></h3>
+          <div class="tw">
+          <table>
+            <tbody>
+              <tr><td><code>0</code></td><td>分析成功</td></tr>
+              <tr><td><code>1</code></td><td><code>--fail-on-gate</code> 且门禁 <code>passed=false</code></td></tr>
+              <tr><td><code>2</code></td><td>CLI 参数非法（未知 flag、漏取值、非数字、sourceRoot 不存在）</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p style="font-size:12.5px;color:var(--ink-3);margin-top:10px">
+            共 22 个已知 flag，未知 flag 会列出全部可选值后拒跑；<code>--cacheDir</code> 是 MCP 拼写，CLI 用 <code>--cache-dir</code>。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 04 技术栈 ==================== -->
+    <section id="stack">
+      <div class="sec-head">
+        <div class="sec-num">04</div>
+        <div>
+          <div class="sec-eyebrow">Technology · Bill of Materials</div>
+          <h2 class="sec-title">所用技术</h2>
+          <p class="sec-lead">Java 侧以 pom.xml 为唯一真源；刻意不引入 Spring Boot / Flyway 等运行时框架——这是一个可分发的本地分析器，不是服务端平台。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card reveal">
+          <h3>JVM 依赖 <span class="tag">pom.xml</span></h3>
+          <div class="tw">
+          <table>
+            <thead><tr><th>组件</th><th>版本</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td><code>javaparser-core</code> + <code>javaparser-symbol-solver-core</code></td><td>3.27.0</td><td>AST 构建、类型与符号求解（分析的地基）</td></tr>
+              <tr><td><code>gson</code></td><td>2.10.1</td><td>JSON 产物、增量缓存、SARIF 序列化</td></tr>
+              <tr><td><code>snakeyaml</code></td><td>2.2</td><td>规则配置 / 阈值 YAML 解析</td></tr>
+              <tr><td><code>asm</code></td><td>9.6</td><td>字节码精化调用边（读取已有 target/classes）</td></tr>
+              <tr><td><code>Java-WebSocket</code></td><td>1.5.4</td><td>可选的分析进度实时推送</td></tr>
+              <tr><td><code>postgresql</code></td><td>42.7.1</td><td>runtime 可选依赖</td></tr>
+              <tr><td><code>slf4j-api</code> + <code>logback</code></td><td>1.7.36 / 1.2.12</td><td>日志（MCP 模式强制走 stderr）</td></tr>
+              <tr><td><code>junit</code></td><td>4.13.2</td><td>测试（test scope）</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <h3>构建与运行时约束</h3>
+          <ul>
+            <li><b>Java 8 目标</b>：必须用 <code>maven.compiler.release=8</code> 而非 source/target —— 高版本 JDK 上仅设 source/target 会让 JDK 9+ API（<code>List.of</code> 等）编译通过、运行时抛 <code>NoSuchMethodError</code>，<code>release 8</code> 在编译期直接拦截。</li>
+            <li><b>打包</b>：<code>maven-assembly-plugin</code> → <code>jar-with-dependencies</code>，Main-Class <code>application.ApplicationBootstrap</code>。</li>
+            <li><b>无 Spring Boot 运行时</b>、无 Flyway / Actuator；老的 frontend 与 docker-compose 已删除。</li>
+            <li><b>字节码策略</b>：默认不进被分析项目执行 <code>mvn compile</code>，只复用已有 <code>target/classes</code>；<code>--compile-target-project</code> 才会编译（10 分钟超时自动回退源码分析）。</li>
+          </ul>
+          <h4>Web 控制台</h4>
+          <div class="chips">
+            <span class="tag acc">React 18.3</span><span class="tag acc">TypeScript 5.6</span>
+            <span class="tag acc">Vite 5</span><span class="tag">react-router 6 · HashRouter</span>
+            <span class="tag">java-parser（浏览器内 AST）</span><span class="tag">Vite 中间件读本机源码</span>
+          </div>
+          <h4>文档与规范</h4>
+          <div class="chips">
+            <span class="tag">MkDocs Material（zh）</span><span class="tag">SARIF 2.1.0</span>
+            <span class="tag">SQALE 技术债模型</span><span class="tag">Conventional Commits</span>
+            <span class="tag">设计令牌 tokens.css + specs/design/tokens.json</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 05 算法 ==================== -->
+    <section id="algorithms">
+      <div class="sec-head">
+        <div class="sec-num">05</div>
+        <div>
+          <div class="sec-eyebrow">Algorithms · Spec Sheets</div>
+          <h2 class="sec-title">涉及的算法</h2>
+          <p class="sec-lead">全部基于 JavaParser AST，而非正则字符串匹配。以下每张规格卡给出：问题 → 数据结构 → 算法策略 → 复杂度 / 参数 → 实现类。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 01 — Call Graph</div>
+          <h3>调用图构建与链路追踪</h3>
+          <div class="sub">CallGraphBuilder · CrossFileCallResolver · InterfaceResolver · BytecodeCallGraphBuilder · CallChainTracer</div>
+          <dl>
+            <dt>数据结构</dt>
+            <dd>双向邻接表：<code>Map&lt;String,Set&lt;String&gt;&gt; callEdges / reverseCallEdges</code>，方法键为 <code>class:method:signature</code>；另有 <code>declaredMethods</code>、<code>pendingFallbacks</code>（延后裁决的启发式边）。</dd>
+            <dt>解析策略</dt>
+            <dd>优先 JavaParser SymbolSolver；失败时走<b>启发式回退链</b>：this/super → 局部变量与参数 → 字段 → 类名（静态）→ 方法链返回类型（<code>foo().bar()</code> 递归）→ import 表 / 同包。</dd>
+            <dt>方法匹配</dt>
+            <dd>先参数个数、再参数类型兼容（含装箱与集合规则）；<code>new X()</code> 恒定产生 <code>CONSTRUCTOR_CALL</code> 边。</dd>
+            <dt>多态分派</dt>
+            <dd><code>InterfaceResolver</code> 扫描接口 / 实现 / 继承树，<code>resolveDispatchTargets</code> 用 <b>BFS + visited 集合</b>求接口与子类的传递闭包；只在目标<b>确实声明该方法</b>时才挂边，避免悬空边。</dd>
+            <dt>边界与字节码</dt>
+            <dd><code>ExternalLibrarySignatureDB</code> 标注外部副作用（如 <code>INSERT pay_order</code>）作为链路语义终点；有 <code>target/classes</code> 时用 ASM 精化边（<code>isResolved=true</code>）。</dd>
+            <dt>图算法</dt>
+            <dd>环检测 = <b>DFS + recursionStack + parentMap</b> 重建环路；调用深度 = <b>记忆化 DFS 最长路</b>；热点方法 = <b>入度排序</b>（reverseEdges）。</dd>
+            <dt>链路追踪</dt>
+            <dd><code>CallChainTracer.traceDFS</code>：DFS + 路径内环检测 + <b>best-depth 剪枝</b>（节点仅在被<b>更深</b>到达时才重展开，把指数级展开压到近多项式）+ 每入口链路预算。</dd>
+            <dt>复杂度</dt>
+            <dd>建图 O(V+E)，邻接查询 O(1)；环检测 / 深度 O(V+E)；默认追踪深度 <code>maxTraceDepth=10</code>（0=不限）。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">邻接表</span><span class="tag acc">BFS 传递闭包</span><span class="tag acc">DFS 环检测</span><span class="tag acc">记忆化最长路</span><span class="tag">入度热点排序</span></div>
+        </div>
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 02 — Control Flow</div>
+          <h3>控制流图（CFG）与支配关系</h3>
+          <div class="sub">domain/analysis/cfg/CFGBuilder.java（772 行）</div>
+          <dl>
+            <dt>数据结构</dt>
+            <dd><code>CFGNode</code> 8 种类型：ENTRY / EXIT / BASIC_BLOCK / CONDITIONAL / SWITCH / TRY / CATCH / FINALLY，含 <code>successors/predecessors</code>（LinkedHashSet，保序）与支配字段；<code>CFGEdge</code> 带边类型。</dd>
+            <dt>构造状态</dt>
+            <dd><code>Deque&lt;LoopContext&gt; loopStack</code>（break/continue 含标签）、<code>Deque&lt;CFGNode&gt; finallyStack</code>、当前 try/catch/finally 槽位，逐语句构造 if/for/while/do/switch/try/synchronized/foreach。</dd>
+            <dt>异常边</dt>
+            <dd>语句按 <code>canThrowException(stmt)</code> 生成指向匹配 catch 节点（或异常出口）的边，try-catch-finally 全覆盖。</dd>
+            <dt>短路与三元</dt>
+            <dd><code>&amp;&amp; / ||</code> 用 <code>buildShortCircuit</code> 展开真假分支；lambda 视为原子块。</dd>
+            <dt>支配树</dt>
+            <dd>经典<b>迭代数据流不动点</b>：<code>dom(n) = {n} ∪ ⋂ dom(p)</code>，悲观初始化为全集，收敛后成对包含关系提取立即支配者。</dd>
+            <dt>度量</dt>
+            <dd><b>真实圈复杂度 M = E − N + 2P</b>（McCabe），另有不可达节点、路径枚举、DOT 导出。</dd>
+            <dt>消费者</dt>
+            <dd><code>TrueCyclomaticComplexity</code> / <code>UnreachableCode</code> / <code>ResourceLeakPath</code> / <code>ExceptionHandlingPath</code> 4 条路径型规则。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">迭代不动点</span><span class="tag acc">支配树</span><span class="tag acc">M=E−N+2P</span><span class="tag">异常边建模</span></div>
+        </div>
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 03 — Data Flow</div>
+          <h3>数据流图与到达定义</h3>
+          <div class="sub">DataFlowGraph · ControlFlowAwareDataFlowGraph</div>
+          <dl>
+            <dt>两遍构建</dt>
+            <dd>第一遍为每条语句收集 <code>defs / uses</code>（表达式 / return / if / while / for / foreach），第二遍按 def→use 建边；索引 <code>defs/uses</code> 映射 + <code>IdentityHashMap&lt;Statement,DFGNode&gt;</code>。</dd>
+            <dt>控制流感知</dt>
+            <dd>叠加顺序 / 分支控制流边后计算<b>到达定义</b>（经典迭代不动点）：<code>IN[n]=⋃OUT[p]</code>，<code>OUT[n]=gen[n] ∪ (IN[n]−kill[n])</code>，迭代至不动点（<b>上限 100 次</b>）。</dd>
+            <dt>结果</dt>
+            <dd>由到达定义导出 def-use 链 → <b>路径敏感、分支感知</b>的污点传播，循环处理正确，误报低于正则型引擎。</dd>
+            <dt>复杂度</dt>
+            <dd>语句数 n、定义数 d 下，迭代次数受循环回边限制（上限 100），单轮 O(E·d)。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">到达定义</span><span class="tag acc">def-use 链</span><span class="tag">分支敏感</span></div>
+        </div>
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 04 — Taint Analysis</div>
+          <h3>污点分析（跨方法）</h3>
+          <div class="sub">TaintEngine · EnhancedTaintEngine · CrossMethodDataFlowGraph · CrossMethodTaintAnalyzer</div>
+          <dl>
+            <dt>源 / 汇 / 净化</dt>
+            <dd>Source：<code>getParameter / getHeader / readLine / getenv / args[</code>…；Sink：<code>executeQuery / prepareStatement / Runtime.exec / new File / evaluate / openConnection</code>…；Sanitizer：<code>escapeSql / PreparedStatement / URLEncoder.encode</code>…</dd>
+            <dt>引擎演进</dt>
+            <dd><code>TaintEngine</code>（正则表，预编译 <code>Pattern[]</code>，快但粗）→ <code>EnhancedTaintEngine</code>（source→标签、sink→漏洞类型映射，走 <code>ControlFlowAwareDataFlowGraph</code> 做路径敏感跟踪）。</dd>
+            <dt>跨方法图</dt>
+            <dd><code>CrossMethodDataFlowGraph</code>：每个方法一份 CFG-DFG，按调用图叠加 <b>PARAM / RETURN</b> 方法间边，METHOD_ENTRY / METHOD_EXIT 作包装节点。</dd>
+            <dt>跨方法追踪</dt>
+            <dd><code>traceTaint</code>：递归 DFS + <code>visitedMethods</code> + <code>maxMethodDepth</code>；<code>traceFromSource</code> 在调用图上 DFS，<b>进入时加入 visited、退出时移除</b>（完整路径回溯），并把污点变量映射到被调方形参。</dd>
+            <dt>输出</dt>
+            <dd>有序 <code>TaintStep</code> 序列构成 <code>CrossMethodTaintPath</code>，末尾按位置去重；规则侧由 <code>TaintFlowRule / EnhancedTaintFlowRule / CrossMethodTaintRule</code> 承接。</dd>
+          </dl>
+          <div class="chips"><span class="tag bad">SQL 注入 / RCE 路径</span><span class="tag acc">路径回溯 DFS</span><span class="tag">参数映射</span></div>
+        </div>
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 05 — Clone Detection</div>
+          <h3>重复代码检测</h3>
+          <div class="sub">quality/DuplicateCodeDetector.java</div>
+          <dl>
+            <dt>方法</dt>
+            <dd><b>Token 序列滑动窗口</b>（不是 AST 哈希）：body 按非标识符切分 → 小写化 → 剔除长度 ≤1 与噪声词（return/if/else/for/while/new/this/null/true/false）。</dd>
+            <dt>索引</dt>
+            <dd>每 <b>10 个 token</b> 一个窗口，串成 key 放进 <b><code>TreeMap&lt;String,List&lt;TokenLocation&gt;&gt;</code></b> —— 有序桶保证与扫描完成顺序无关的确定性输出。</dd>
+            <dt>判定</dt>
+            <dd>桶内 ≥2 个位置 → 报 <code>RSPEC-888 Duplicated code block</code>（MAJOR）；锚点取序最小位置，每个 class.method 只报一次。</dd>
+            <dt>复杂度</dt>
+            <dd>token 数 T → O(T) 窗口入桶 + O(B log B) 排序，B 为桶数。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">滑动窗口指纹</span><span class="tag">确定性输出</span></div>
+        </div>
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 06 — Incremental Cache</div>
+          <h3>增量分析与缓存</h3>
+          <div class="sub">IncrementalAnalysisEngine · IncrementalCache · CacheKeyResolver · CacheLocation</div>
+          <dl>
+            <dt>缓存键</dt>
+            <dd><code>SHA-256(文件字节) + ":" + analyzerVersion</code>；命中即比对 <code>hash:version</code>，统计 hits/misses/hitRate。</dd>
+            <dt>存储</dt>
+            <dd>单文件 Gson JSON：<code>{scan_date, analyzer_version, files:{&lt;relpath&gt;:{hash,class_count,method_count,field_count,cachedAssets[]}}, totals}</code>。</dd>
+            <dt>失效</dt>
+            <dd>两级：<b>整表失效</b> <code>CACHE_VERSION = "2.3.0"</code>（资产结构变更必须 bump，Javadoc 记录每次原因）；<b>文件失效</b> 内容哈希变化。<code>normalizeNumbers()</code> 修复 Gson Double 类型回读，否则规则内 (int) 强转异常会让发现静默丢失。</dd>
+            <dt>位置</dt>
+            <dd>默认 <code>~/.glossary-analyzer/cache/&lt;项目&gt;-&lt;路径哈希&gt;</code>（环境变量 <code>GLOSSARY_ANALYZER_CACHE_DIR</code> 改根），指进被分析仓库会告警。</dd>
+            <dt>增量流程</dt>
+            <dd>移除变更文件旧数据 → 重扫 → 更新类资产索引 → 重建 import 表 → 增量建图 → 接口分析 → 数据流 → 分层 → 技术债 → 合并摘要；<code>--depth</code> 依赖闭包默认 2 层。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">SHA-256 指纹</span><span class="tag acc">版本化失效</span><span class="tag">仓库外缓存</span></div>
+        </div>
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 07 — Pattern Mining</div>
+          <h3>设计模式识别</h3>
+          <div class="sub">DesignPatternDetector + 30 个 AbstractPatternDetector 子类</div>
+          <dl>
+            <dt>输入</dt>
+            <dd>不解析原始源码，只吃 <code>ClassAsset</code>（类型资产）：层级、注解、component_tags、字段类型、方法签名与调用关系。</dd>
+            <dt>策略</dt>
+            <dd><b>规则启发式</b>（非形式化匹配）。例：Strategy = 接口且 ≥2 个实现，置信度 <code>min(0.95, 0.5 + 实现数×0.15)</code>；Singleton = 含 Component/Service/Repository 标签（0.85）；Observer = 方法注解含 EventListener/Subscribe/Handler。</dd>
+            <dt>覆盖</dt>
+            <dd>GoF 24 种 + 企业模式 6 种（Repository / ServiceLayer / DTO / EventSourcing / CQRS / CircuitBreaker）。</dd>
+            <dt>去重</dt>
+            <dd>按锚点类去重；配置 <code>specs/patterns/detector-config.yaml</code> 与 <code>catalog.yaml</code> 可调阈值与开关。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">启发式 + 置信度</span><span class="tag">30 个检测器</span></div>
+        </div>
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 08 — Layer &amp; Relations</div>
+          <h3>架构分层与跨文件关系</h3>
+          <div class="sub">ArchitectureLayerAnalyzer · RelationEngine</div>
+          <dl>
+            <dt>分层</dt>
+            <dd><code>LAYER_PATTERNS</code> 包模式（web/controllers/api · service/biz · repository/dao/mapper · model/entity/dto · config · util）→ <code>determineLayer()</code> 产出带 reasoning 的 LayerAssignment。</dd>
+            <dt>违规定律</dt>
+            <dd>依赖边（方法键 <code>a.b.C#m(int)</code> 先归并到类键）逐条比对 <code>ALLOWED_DEPS</code> 白名单，命中即 <code>LayerViolation</code>（source/target/layer/type/line）。</dd>
+            <dt>关系通道</dt>
+            <dd>RelationEngine 6 条：Java↔MyBatis mapper、SQL 表↔实体、配置→类、POM 依赖→用法、Dockerfile→JAR、方法调用关系（来自统一调用图）。</dd>
+            <dt>框架专项</dt>
+            <dd>Spring：Bean 依赖图 + 循环依赖检测、@RequestMapping 端点、@Transactional 边界、AOP 切面、Security 配置；MyBatis：mapper↔XML 一致性、SQL 注入风险、参数类型核对。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">白名单比对</span><span class="tag">6 条发现通道</span></div>
+        </div>
+
+        <div class="algo reveal">
+          <div class="afig">Alg. 09 — Rule Engine &amp; Gate</div>
+          <h3>规则引擎与质量门禁</h3>
+          <div class="sub">RuleEngine · RuleRegistry · QualityGate · TechnicalDebtEstimator</div>
+          <dl>
+            <dt>执行</dt>
+            <dd>逐类 × 逐规则；<code>isRuleApplicable()</code> 按标签<b>预筛</b>避免全量扫描；记录每规则命中数与耗时（<code>ruleExecutionTimesMs</code>）；单规则异常吞为 warning 不中断。</dd>
+            <dt>注册</dt>
+            <dd>33 个类别静态列表 + Builder 选择性注册，<code>RulePolicy.isRuleEnabled</code> 决定开关；结果按 <code>ruleKey|file|line:col</code> 去重，再做严重度校准。</dd>
+            <dt>门禁双轨</dt>
+            <dd><code>gate_basis=regression</code>（存在 baseline：不得劣于基线）或 <code>density</code>（按 KLOC 归一的密度上限：CRITICAL 0.5/KLOC、MAJOR 15/KLOC、合计 50/KLOC）。</dd>
+            <dt>模式</dt>
+            <dd><code>--gate-mode advisory</code>（默认，只报告不阻断）/ <code>lenient</code>（仅 CRITICAL 超限才失败）/ <code>strict</code>（全阈值判定）；真正退出 1 还需 <code>--fail-on-gate</code>。</dd>
+            <dt>技术债</dt>
+            <dd>SQALE：CRITICAL 30min / MAJOR 15 / MINOR 5 / INFO 1；开发成本 LOC×0.5h×$50；债务比 → 评级 A≤5% B≤10% C≤20% D≤50% E&gt;50%。</dd>
+          </dl>
+          <div class="chips"><span class="tag acc">标签预筛</span><span class="tag acc">密度 / 基线双轨</span><span class="tag">SQALE</span></div>
+        </div>
+      </div>
+
+      <div class="note bad reveal">
+        <span class="nl">Annotation · 诚实标注（未接线代码）</span>
+        <code>metrics.CodeMetricsCalculator</code>、<code>DependencyGraphGenerator</code>、
+        <code>ParallelAnalyzer</code>、<code>ParallelPatternDetector</code>、<code>PatternDetectionCache</code> 当前在 <code>src/main</code> 中无调用方；
+        <code>domain/analysis/rag/</code> 仅剩空目录。真正的并行发生在 <code>SourceCodeScanner</code> 的 ForkJoinPool。详见 §11。
+      </div>
+    </section>
+
+    <!-- ==================== 06 规则体系 ==================== -->
+    <section id="rules">
+      <div class="sec-head">
+        <div class="sec-num">06</div>
+        <div>
+          <div class="sec-eyebrow">Rules · Registry &amp; Distribution</div>
+          <h2 class="sec-title">规则体系</h2>
+          <p class="sec-lead">480 条唯一规则键、33 个类别、50 个规则源文件，另有 8 条项目级（多模块 / 依赖）规则。数据由 <code>scripts/docs/verify-rules.sh</code> 实测：TOTAL 480 480 0。</p>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>类别分布 <span class="tag ok">合计 480 · 0 重复注册</span></h3>
+        <div class="bars" id="ruleBars"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card reveal">
+          <h3>注册与执行机制</h3>
+          <ul>
+            <li><code>RuleRegistry</code>：33 个 <code>private static final List&lt;QualityRule&gt;</code> 静态类别表，注册前经 <code>RulePolicy</code> 过滤。</li>
+            <li>聚合视图：<code>CORE_SECURITY / CORE_PERFORMANCE / CORE_CODE_QUALITY / CORE_DESIGN / CORE_API_DESIGN</code>…</li>
+            <li>特殊规则按条件挂载：<code>RSPEC-2076-XMETHOD</code>→跨方法污点、<code>RSPEC-5135</code>→Spring Bean、<code>RSPEC-1200</code>→架构违规、<code>RSPEC-BIZ-001</code>→调用链。</li>
+            <li><code>SKILL-*</code> 从缺陷计数中分离（能力注册 vs 缺陷）。</li>
+            <li>配置解析优先级：<code>--rules-config</code> → <code>./rules.json</code> → <code>~/.java-source-analyzer/rules.json</code>。</li>
+          </ul>
+          <div class="chips">
+            <span class="tag">规则源文件 50</span>
+            <span class="tag">CFG 路径型规则 6</span>
+            <span class="tag">项目级规则 8</span>
+            <span class="tag ok">重复注册 0</span>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <h3>阈值规范 <span class="tag">specs/quality/thresholds.yaml</span></h3>
+          <div class="tw">
+          <table>
+            <thead><tr><th>指标</th><th>warning</th><th>error</th><th>critical</th></tr></thead>
+            <tbody>
+              <tr><td>圈复杂度（方法）</td><td>10</td><td>20</td><td>50</td></tr>
+              <tr><td>认知复杂度（方法）</td><td>15</td><td>30</td><td>50</td></tr>
+              <tr><td>嵌套深度</td><td>3</td><td>4</td><td>5</td></tr>
+              <tr><td>方法长度（行）</td><td>30</td><td>50</td><td>100</td></tr>
+              <tr><td>类长度（行）</td><td>300</td><td>500</td><td>1000</td></tr>
+              <tr><td>参数个数</td><td>5</td><td>7</td><td>10</td></tr>
+              <tr><td>类字段数</td><td>15</td><td>25</td><td>40</td></tr>
+              <tr><td>重复（token）</td><td>50</td><td>100</td><td>200</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 07 门禁 ==================== -->
+    <section id="gate">
+      <div class="sec-head">
+        <div class="sec-num">07</div>
+        <div>
+          <div class="sec-eyebrow">Quality Gate · Technical Debt</div>
+          <h2 class="sec-title">质量门禁与技术债</h2>
+          <p class="sec-lead">默认 advisory（报告阈值、不硬阻断），CI 需要硬阻断时显式切换 strict + fail-on-gate。</p>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="card reveal">
+          <h3>密度上限 <span class="tag">density</span></h3>
+          <ul>
+            <li>CRITICAL：<b>0.5 / KLOC</b></li>
+            <li>MAJOR：<b>15 / KLOC</b></li>
+            <li>非 INFO 合计：<b>50 / KLOC</b></li>
+            <li>绝对值可用 <code>-1</code> 关闭，改走密度</li>
+          </ul>
+        </div>
+        <div class="card reveal">
+          <h3>结构上限 <span class="tag">structural</span></h3>
+          <ul>
+            <li>架构违规 ≤ <b>5</b></li>
+            <li>数据流问题 ≤ <b>10</b></li>
+            <li>循环调用 ≤ <b>5</b></li>
+            <li>接口问题 ≤ <b>20</b></li>
+          </ul>
+        </div>
+        <div class="card reveal">
+          <h3>比率与基线 <span class="tag">ratio / baseline</span></h3>
+          <ul>
+            <li>技术债占比 ≤ <b>5%</b></li>
+            <li>债务小时数上限默认 0（走占比）</li>
+            <li>存在 <code>quality-baseline.json</code> 时自动切<b>回归轨</b>：不得劣于基线</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>三种模式</h3>
+        <div class="tw">
+        <table>
+          <thead><tr><th>模式</th><th>判定</th><th>典型用法</th></tr></thead>
+          <tbody>
+            <tr><td><code>advisory</code>（默认）</td><td><span class="tag warn">恒 passed=true</span>，reasons 前缀 <code>ADVISORY: thresholds not met (non-blocking)</code></td><td>本地开发 / 首次接入</td></tr>
+            <tr><td><code>lenient</code></td><td>仅 CRITICAL 超上限才失败</td><td>存量项目渐进收紧</td></tr>
+            <tr><td><code>strict</code> + <code>--fail-on-gate</code></td><td><span class="tag bad">全部阈值判定，超限 exit 1</span></td><td>CI 硬阻断</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p style="font-size:12.5px;color:var(--ink-3);margin-top:12px">
+          <code>QualityGate.toGitHubCheckJson()</code> 可直接产出 GitHub Check Run 负载；技术债评级 A(≤5%) / B(≤10%) / C(≤20%) / D(≤50%) / E(&gt;50%)。
+        </p>
+      </div>
+    </section>
+
+    <!-- ==================== 08 产出物 ==================== -->
+    <section id="outputs">
+      <div class="sec-head">
+        <div class="sec-num">08</div>
+        <div>
+          <div class="sec-eyebrow">Outputs · Artifacts</div>
+          <h2 class="sec-title">产出物</h2>
+          <p class="sec-lead">一次分析写入一个轮次目录，多项目按项目 slug 分开，互不覆盖。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card reveal">
+          <h3>目录布局 <span class="tag">AnalysisRunPaths</span></h3>
+          <div class="tree">
+<span class="d">&lt;outputDir&gt;/&lt;项目 slug&gt;/run-&lt;yyyyMMdd-HHmmss&gt;/</span>
+├─ <span class="f">summary.json</span>              <span class="c"># 压缩摘要（看板用，语义按类列表被压实）</span>
+├─ <span class="f">full.json</span>                 <span class="c"># 完整根容器（Web 控制台加载）</span>
+├─ <span class="f">glossary_raw.json</span>         <span class="c"># [{term, kind, description, modifiers}]</span>
+├─ <span class="f">report.html</span>               <span class="c"># 自包含交互式 HTML 仪表盘</span>
+├─ <span class="f">findings.sarif</span>            <span class="c"># SARIF 2.1.0</span>
+└─ <span class="f">semantic_dictionary.json</span>   <span class="c"># 语义词典（SemanticDictionaryBuilder）</span>
+          </div>
+          <div class="note info" style="margin-bottom:0">
+            <span class="nl">Note · 默认值</span>
+            <code>--outputDir</code> 不传时使用 <code>&lt;cwd&gt;/analysis-output</code>（DEC-065 之后该默认值才真正生效）。
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <h3>SARIF 2.1.0 形态 <span class="tag">SarifGenerator</span></h3>
+          <div class="listing">
+            <div class="listing-head">
+              <span class="listing-label">Listing 2 — findings.sarif</span>
+              <button class="copy" type="button" data-copy="sarif">复制</button>
+            </div>
+<pre id="sarif">{
+  <span class="k">"$schema"</span>: <span class="s">"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/
+             master/Schemata/sarif-schema-2.1.0.json"</span>,
+  <span class="k">"version"</span>: <span class="s">"2.1.0"</span>,
+  <span class="k">"runs"</span>: [{
+    <span class="k">"tool"</span>: { <span class="k">"driver"</span>: {
+      <span class="k">"name"</span>: <span class="s">"Java Source Analyzer"</span>,
+      <span class="k">"version"</span>: <span class="s">"3.5.0"</span>,
+      <span class="k">"rules"</span>: [ { <span class="k">"id"</span>, <span class="k">"name"</span>,
+                   <span class="k">"shortDescription"</span>,
+                   <span class="k">"defaultConfiguration.level"</span> } ] } },
+    <span class="k">"results"</span>: [ <span class="c">/* 仅 error / warning，note 只留在 JSON 指标里 */</span> ]
+  }]
+}</pre>
+          </div>
+          <ul style="margin-top:14px;font-size:12.5px">
+            <li>规则来源合并：质量问题 + 架构违规 + 技术债项 + 数据流发现。</li>
+            <li>severity → level 映射：CRITICAL/MAJOR → error，MINOR → warning，INFO → note。</li>
+            <li><code>artifactLocation.uri</code> 必须是 URI，路径空格做百分号编码。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>根容器关键字段 <span class="tag">schema_version 1.0.0</span></h3>
+        <div class="chips">
+          <span class="tag acc">assets</span><span class="tag acc">dependencies</span>
+          <span class="tag acc">project_assets</span><span class="tag acc">project_type</span>
+          <span class="tag acc">quality_issues</span><span class="tag acc">quality_summary</span>
+          <span class="tag acc">architecture_layers</span><span class="tag acc">cross_file_relations</span>
+          <span class="tag acc">merged_call_edges</span><span class="tag acc">call_graph</span>
+          <span class="tag acc">data_flow / taint</span><span class="tag acc">design_patterns</span>
+          <span class="tag acc">semantics</span><span class="tag acc">technical_debt</span>
+          <span class="tag acc">quality_gate</span><span class="tag acc">capability_registry</span>
+          <span class="tag acc">scan_stats</span><span class="tag acc">symbol_resolution</span>
+          <span class="tag acc">classpath / cache provenance</span>
+        </div>
+        <div class="note">
+          <span class="nl">Note · scan_stats 解读</span>
+          <code>java_files_scanned / java_files_failed / parse_coverage_pct</code> 表示解析覆盖率。
+          出现「扫描到 0 个 Java 源文件」或覆盖率不足 100% 时，<b>空结果不代表代码干净</b>。
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 09 接口 ==================== -->
+    <section id="interfaces">
+      <div class="sec-head">
+        <div class="sec-num">09</div>
+        <div>
+          <div class="sec-eyebrow">Interfaces · CLI / MCP / Web</div>
+          <h2 class="sec-title">对外接口</h2>
+          <p class="sec-lead">三种消费方式：人（CLI + HTML/Web 控制台）、机器（SARIF/JSON）、AI Agent（MCP stdio）。</p>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>CLI 参数 <span class="tag">22 个已知 flag</span></h3>
+        <div class="chips">
+          <span class="tag acc">--sourceRoot</span><span class="tag acc">--outputDir</span><span class="tag">--artifactName</span>
+          <span class="tag">--version</span><span class="tag">--internalPkgPrefix</span><span class="tag">--rules-config</span>
+          <span class="tag">--changed-files</span><span class="tag">--cache-dir</span><span class="tag">--force-refresh</span>
+          <span class="tag">--gate-mode</span><span class="tag">--baseline</span><span class="tag">--update-baseline</span>
+          <span class="tag">--fail-on-gate</span><span class="tag">--include-stdlib-hotspots</span>
+          <span class="tag">--compile-target-project</span><span class="tag">--classpath-mode</span>
+          <span class="tag">--transitive-closure</span><span class="tag">--depth</span><span class="tag">--trace-depth</span>
+          <span class="tag">--java-version</span><span class="tag">--websocket</span><span class="tag">--help</span>
+        </div>
+        <p style="font-size:12.5px;color:var(--ink-3);margin-top:14px">
+          单个位置参数等价于 <code>--sourceRoot</code>；<code>--help</code> 打印用法后以 0 退出。
+        </p>
+      </div>
+
+      <div class="card reveal">
+        <h3>MCP 工具 <span class="tag acc2">stdio · 惰性装配上下文</span></h3>
+        <div class="grid3">
+          <div class="tool"><div class="tid">T-01</div><div class="tn">inspect_project</div><p>项目结构与规模总览</p></div>
+          <div class="tool"><div class="tid">T-02</div><div class="tn">trace_symbol</div><p>符号定义 / 引用与调用链追踪</p></div>
+          <div class="tool"><div class="tid">T-03</div><div class="tn">find_violations</div><p>按规则 / 严重度查询违例</p></div>
+          <div class="tool"><div class="tid">T-04</div><div class="tn">analyze_change</div><p>变更影响的文件与依赖闭包</p></div>
+          <div class="tool"><div class="tid">T-05</div><div class="tn">find_impact</div><p>某符号变更的下游影响面</p></div>
+          <div class="tool"><div class="tid">T-06</div><div class="tn">analyze_call_graph</div><p>调用图 / 环 / 深度 / 热点</p></div>
+          <div class="tool"><div class="tid">T-07</div><div class="tn">analyze_interfaces</div><p>接口实现与未实现情况</p></div>
+          <div class="tool"><div class="tid">T-08</div><div class="tn">analyze_data_flow</div><p>数据流 / 污点路径查询</p></div>
+          <div class="tool"><div class="tid">T-09</div><div class="tn">analyze_architecture</div><p>分层归属与跨层违规</p></div>
+          <div class="tool"><div class="tid">T-10</div><div class="tn">analyze_technical_debt</div><p>SQALE 技术债与评级</p></div>
+          <div class="tool"><div class="tid">T-11</div><div class="tn">review_business_flow</div><p>业务流程走查（端到端链路）</p></div>
+          <div class="tool"><div class="tid">T-12</div><div class="tn">recognize_semantics</div><p>类角色 / 意图 / 领域词识别</p></div>
+        </div>
+        <div class="note info">
+          <span class="nl">Note · 启动方式</span>
+          用 <code>-cp ... McpApplication</code>，<b>不要用 <code>-jar</code></b>；stdout 只承载 JSON-RPC，
+          日志全部走 stderr。工具背后与 CLI 同源：<code>QualityAnalyzer.collectIssues</code> + <code>RuleRegistry</code>。
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>Web 控制台 <span class="tag ok">web/ · 只读</span></h3>
+        <div class="grid2">
+          <div>
+            <h4>三个主视图</h4>
+            <ul>
+              <li><code>/chains</code> 调用链 —— 单入口调用链、类图、时序图</li>
+              <li><code>/architecture</code> 架构 —— 分层泳道、层间依赖</li>
+              <li><code>/issues</code> 问题 —— 违例列表与热力图</li>
+            </ul>
+            <p style="font-size:12.5px;color:var(--ink-3)">默认加载 <code>web/public/data/demo-report.json</code>，也可页面内「打开 JSON」加载任意一轮 <code>full.json</code>。</p>
+          </div>
+          <div>
+            <h4>主要组件（~10,870 行 TS/TSX）</h4>
+            <div class="chips">
+              <span class="tag">SourceViewer</span><span class="tag">SourceFileTree</span>
+              <span class="tag">ClassStructureMap</span><span class="tag">ChainClassDiagram</span>
+              <span class="tag">SequenceDiagram</span><span class="tag">UmlCanvas</span>
+              <span class="tag">LayerSwimlanes</span><span class="tag">IssuesHeatmap</span>
+              <span class="tag">VirtualList</span><span class="tag">ReadingTrail</span>
+              <span class="tag">AnnotationPanel</span><span class="tag">UsagesPanel</span>
+            </div>
+          </div>
+        </div>
+        <div class="listing" style="margin-top:16px">
+          <div class="listing-head">
+            <span class="listing-label">Listing 3 — Web Console</span>
+            <button class="copy" type="button" data-copy="webcmd">复制</button>
+          </div>
+<pre id="webcmd">cd web && npm install && npm run dev
+<span class="c"># 打开 http://127.0.0.1:5173/</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 10 工程与质量 ==================== -->
+    <section id="engineering">
+      <div class="sec-head">
+        <div class="sec-num">10</div>
+        <div>
+          <div class="sec-eyebrow">Engineering · Self-Verification</div>
+          <h2 class="sec-title">工程与质量</h2>
+          <p class="sec-lead">本项目用自己定义的规范管理自己：决策日志、规则自检脚本、令牌审计、基准冒烟。</p>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="card reveal">
+          <h3>构建与验证</h3>
+          <div class="listing">
+            <div class="listing-head">
+              <span class="listing-label">Listing 4 — Verify</span>
+              <button class="copy" type="button" data-copy="verify">复制</button>
+            </div>
+<pre id="verify">mvn clean package -DskipTests
+bash scripts/docs/verify-rules.sh
+bash scripts/benchmark-smoke.sh
+cd web && npm run build</pre>
+          </div>
+          <p style="font-size:12.5px;color:var(--ink-3);margin-top:12px">
+            STATUS.md（自动更新）：build=pass · docs_validation=pass · hooks_installed=installed · quality_gate=advisory。
+          </p>
+        </div>
+        <div class="card reveal">
+          <h3>测试与回归</h3>
+          <ul>
+            <li><b>125</b> 个测试文件 / <b>712</b> 个 <code>@Test</code></li>
+            <li>最大测试簇：<code>quality</code> 43、<code>src</code> 24、<code>domain</code> 11</li>
+            <li>最近一次 surefire：705 tests，0 fail（DEC-075 记录 702 通过 / 0 失败）</li>
+            <li>精度评测：标注集 <code>specs/quality/precision/*.labels.json</code> + summary</li>
+          </ul>
+        </div>
+        <div class="card reveal">
+          <h3>决策与治理</h3>
+          <ul>
+            <li><b>75</b> 条架构决策 <code>DEC-001…DEC-075</code>（只追加、不改写）</li>
+            <li>分层规范 <code>specs/architecture/layers.yaml</code></li>
+            <li>设计令牌 <code>web/src/styles/tokens.css</code> ↔ <code>specs/design/tokens.json</code> 双写 + 审计脚本</li>
+            <li>基准套件 <code>specs/benchmark/suite.yaml</code>（PetClinic / Dubbo / Gateway…）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>自分析基线 <span class="tag">DEC-073 / DEC-074 实测</span></h3>
+        <div class="tw">
+        <table>
+          <thead><tr><th>指标</th><th>数值</th></tr></thead>
+          <tbody>
+            <tr><td>自身源文件扫描</td><td><code>278</code></td></tr>
+            <tr><td>类型资产（含嵌套）</td><td><code>921</code></td></tr>
+            <tr><td>方法数</td><td><code>5,383</code></td></tr>
+            <tr><td>调用图边</td><td><code>~3,712</code></td></tr>
+            <tr><td>发现问题（RSPEC-16009 修正后）</td><td><code>~4,200</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p style="font-size:12.5px;color:var(--ink-3);margin-top:10px">
+          评测只写实测基线，无营销估算；入口 <code>bash scripts/benchmark-smoke.sh</code>。
+        </p>
+      </div>
+    </section>
+
+    <!-- ==================== 11 口径 ==================== -->
+    <section id="caveats">
+      <div class="sec-head">
+        <div class="sec-num">11</div>
+        <div>
+          <div class="sec-eyebrow">Caveats · Provenance</div>
+          <h2 class="sec-title">口径与已知边界</h2>
+          <p class="sec-lead">这个页面所有数字都来自仓库内可复跑的证据；已知的坑也一并列出，避免过度承诺。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card reveal">
+          <h3>数字来源</h3>
+          <ul>
+            <li><b>480 / 33 / 8</b> → <code>scripts/docs/verify-rules.sh</code> 输出 <code>TOTAL 480 480 0</code></li>
+            <li><b>278 / 125 / 712</b> → <code>find src -name "*.java"</code> 与 <code>grep -o '@Test'</code> 实测</li>
+            <li><b>75</b> → <code>docs/ai/decisions/DEC-*.md</code> 文件计数（STATUS.md 的 <code>decisions_count 64</code> 字段滞后）</li>
+            <li><b>30</b> → <code>grep -c "detectors.add"</code> 设计模式检测器注册数</li>
+            <li>版本、依赖、Java 版本一律以 <code>pom.xml</code> 为准</li>
+          </ul>
+        </div>
+        <div class="card reveal">
+          <h3>已知边界 / 诚实说明</h3>
+          <ul>
+            <li><b>空结果 ≠ 无问题</b>：解析覆盖率不足时结论不完整，看 <code>scan_stats.parse_coverage_pct</code>。</li>
+            <li><b>未接线代码</b>：<code>CodeMetricsCalculator</code>、<code>DependencyGraphGenerator</code>、<code>ParallelAnalyzer</code>、<code>PatternDetectionCache</code>、<code>ControlFlowAnalyzer</code> 当前无调用方；<code>domain/analysis/rag/</code> 为空目录（DEC-042 移除内置 LLM/RAG）。</li>
+            <li><b>默认门禁是 advisory</b>，不会阻断任何流程；CI 需显式 <code>--gate-mode strict --fail-on-gate</code>。</li>
+            <li><b>默认不编译被分析项目</b>，无 <code>target/classes</code> 时调用边只有源码精度。</li>
+            <li><b>私有仓库</b>：不开源，仅限授权方访问；旧口径（全栈平台 / 17 视图 / Spring Boot 服务）已废弃。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 图签栏页脚 ==================== -->
+    <footer class="titleblock">
+      <div class="tb-cell">
+        <div class="tb-label">Project</div>
+        <div class="tb-value">CodeGuardian AI</div>
+      </div>
+      <div class="tb-cell">
+        <div class="tb-label">Artifact</div>
+        <div class="tb-value">glossary-java-source-analyzer</div>
+      </div>
+      <div class="tb-cell">
+        <div class="tb-label">Revision</div>
+        <div class="tb-value">3.5.0-SNAPSHOT</div>
+      </div>
+      <div class="tb-cell">
+        <div class="tb-label">Branch</div>
+        <div class="tb-value">refactor/tech-debt-cleanup</div>
+      </div>
+      <div class="tb-cell">
+        <div class="tb-label">Sheet</div>
+        <div class="tb-value">00–11 / 共 11 张</div>
+      </div>
+      <div class="tb-cell">
+        <div class="tb-label">Scale</div>
+        <div class="tb-value">1 : 1（实测数据）</div>
+      </div>
+      <div class="tb-cell">
+        <div class="tb-label">Runtime</div>
+        <div class="tb-value">JDK 8 · Maven · fat JAR</div>
+      </div>
+      <div class="tb-cell">
+        <div class="tb-label">Date</div>
+        <div class="tb-value">2026-11-08</div>
+      </div>
+      <div class="tb-wide">
+        <p>
+          单文件展示页 · 数据来源：pom.xml / STATUS.md / specs/* / docs/ai/decisions / src 实测<br>
+          CodeGuardian AI · glossary-java-source-analyzer 3.5.0-SNAPSHOT · branch refactor/tech-debt-cleanup · 生成于 2026-11-08
+        </p>
+      </div>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  /* ---------- 正片 / 蓝图负片 ---------- */
+  var modeBtn = document.getElementById('modeBtn');
+  var saved = null;
+  try { saved = localStorage.getItem('cg-print-mode'); } catch (e) {}
+  if (saved) root.setAttribute('data-mode', saved);
+  function renderMode() {
+    var neg = root.getAttribute('data-mode') === 'negative';
+    modeBtn.textContent = neg ? '◉ 蓝图负片 · 点回正片' : '◐ 正片 · 点切负片';
+  }
+  renderMode();
+  modeBtn.addEventListener('click', function () {
+    var next = root.getAttribute('data-mode') === 'negative' ? 'positive' : 'negative';
+    root.setAttribute('data-mode', next);
+    try { localStorage.setItem('cg-print-mode', next); } catch (e) {}
+    renderMode();
+  });
+
+  /* ---------- 阅读进度 ---------- */
+  var progress = document.getElementById('progress');
+  var links = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+
+  function spy() {
+    var y = window.scrollY + 150, idx = -1;
+    sections.forEach(function (s, i) { if (s && s.offsetTop <= y) idx = i; });
+    links.forEach(function (a, i) { a.classList.toggle('active', i === idx); });
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0).toFixed(2) + '%';
+  }
+  window.addEventListener('scroll', spy, { passive: true });
+  window.addEventListener('resize', spy, { passive: true });
+
+  /* ---------- 入场揭示（同级错峰） ---------- */
+  var reveals = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+  if ('IntersectionObserver' in window) {
+    var ro = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var el = en.target, sibs = [el];
+        if (el.parentNode) {
+          sibs = Array.prototype.slice.call(el.parentNode.children).filter(function (c) {
+            return c.classList && c.classList.contains('reveal');
+          });
+          if (sibs.indexOf(el) < 0) sibs = [el];
+        }
+        el.style.transitionDelay = (Math.max(0, sibs.indexOf(el)) * 70) + 'ms';
+        el.classList.add('in');
+        ro.unobserve(el);
+      });
+    }, { threshold: 0.14, rootMargin: '0px 0px -5% 0px' });
+    reveals.forEach(function (el) { ro.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* ---------- 指标计数 ---------- */
+  function animateCount(el) {
+    var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+    var start = performance.now(), dur = 1150;
+    function tick(now) {
+      var p = Math.min(1, (now - start) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ---------- 规则类别分布（来源：scripts/docs/verify-rules.sh） ---------- */
+  var RULES = [
+    ['owasp',65],['code-smell',35],['database',31],['alibaba-style',28],['bug',27],
+    ['security',21],['solid',14],['security-enhanced',15],['security-performance',15],['skill',15],
+    ['maintainability',11],['concurrency',11],['spring-boot',11],['reflection',11],
+    ['modernization',10],['robustness',10],['web-api',10],['input-validation',10],
+    ['code-smell-enhanced',10],['resource-management',10],['java8-plus',10],['exception-handling',10],
+    ['logging',10],['collection',10],['string',10],['design-pattern',10],['code-organization',10],
+    ['api-design',10],['test-quality',9],['microservice',7],['architecture',6],['cfg-based',6],['performance',2]
+  ];
+  var barsHost = document.getElementById('ruleBars');
+  var max = RULES[0][1];
+  RULES.forEach(function (r) {
+    var row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML =
+      '<span class="bn" title="' + r[0] + '">' + r[0] + '</span>' +
+      '<span class="bar-track"><span class="bar-fill" data-w="' +
+      ((r[1] / max) * 100).toFixed(1) + '"></span></span>' +
+      '<span class="bv">' + r[1] + '</span>';
+    barsHost.appendChild(row);
+  });
+
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var t = en.target;
+        if (t.hasAttribute('data-count')) animateCount(t);
+        if (t === barsHost) {
+          Array.prototype.forEach.call(t.querySelectorAll('.bar-fill'), function (f, i) {
+            setTimeout(function () { f.style.width = f.getAttribute('data-w') + '%'; }, i * 24);
+          });
+        }
+        io.unobserve(t);
+      });
+    }, { threshold: 0.22 });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-count]'), function (e) { io.observe(e); });
+    io.observe(barsHost);
+  } else {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-count]'), animateCount);
+    Array.prototype.forEach.call(barsHost.querySelectorAll('.bar-fill'), function (f) {
+      f.style.width = f.getAttribute('data-w') + '%';
+    });
+  }
+
+  /* ---------- 复制 ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('.copy'), function (btn) {
+    btn.addEventListener('click', function () {
+      var pre = document.getElementById(btn.getAttribute('data-copy'));
+      var text = pre ? pre.innerText : '';
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(function () { btn.textContent = old; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  spy();
+})();
+</script>
+</body>
+</html>

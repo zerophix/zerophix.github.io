@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web AI Bridge · 项目全景 — 架构 / 设计 / 技术 / 算法</title>
+<meta name="description" content="Web AI Bridge 单文件项目展示：本机智能体驱动已登录网页 AI — 架构、请求生命周期、技术栈、核心算法（答案检测状态机/降级/辩论编排/限流去重）、接口与工程质量。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Web AI Bridge — 项目全景档案
+   设计体系：工程仪表盘 / 技术档案
+   字体：Chakra Petch（显示）· Noto Serif SC（正文）· IBM Plex Mono（数据）
+   ============================================================ */
+
+:root, :root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg:        #100d09;
+  --bg-deep:   #0a0806;
+  --surface:   #171310;
+  --surface-2: #1d1813;
+  --surface-3: #241d16;
+  --surface-float: rgba(16,13,9,.88);
+
+  --line:        #2a231b;
+  --line-2:      #362c21;
+  --line-strong: #4d4132;
+
+  --text-1: #f4ecdd;
+  --text-2: #b9ad97;
+  --text-3: #837763;
+
+  --accent:      #ffb224;
+  --accent-2:    #e9843f;
+  --accent-ink:  #1c1204;
+  --accent-soft: rgba(255,178,36,.12);
+  --accent-line: rgba(255,178,36,.35);
+
+  --ok:      #a8c686;
+  --ok-soft: rgba(168,198,134,.12);
+  --warn:    #ffb224;
+  --warn-soft: rgba(255,178,36,.12);
+  --bad:     #e2725b;
+  --bad-soft: rgba(226,114,91,.12);
+  --info:    #7fb3c8;
+  --info-soft: rgba(127,179,200,.12);
+
+  --grid:   rgba(255,178,36,.035);
+  --shadow: 0 18px 44px rgba(0,0,0,.42);
+
+  --font-display: 'Chakra Petch','Noto Serif SC','Songti SC',serif;
+  --font-body:    'Noto Serif SC','Songti SC',Georgia,serif;
+  --font-mono:    'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  --r-sm: 4px; --r: 8px; --r-lg: 14px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg:        #f4efe4;
+  --bg-deep:   #ebe4d4;
+  --surface:   #fffdf7;
+  --surface-2: #f0e9da;
+  --surface-3: #e8dfcb;
+  --surface-float: rgba(244,239,228,.9);
+
+  --line:        #ddd2bd;
+  --line-2:      #e9e1cf;
+  --line-strong: #c4b699;
+
+  --text-1: #211a10;
+  --text-2: #4e4534;
+  --text-3: #857a64;
+
+  --accent:      #a05e00;
+  --accent-2:    #b34a1a;
+  --accent-ink:  #fffdf7;
+  --accent-soft: rgba(160,94,0,.10);
+  --accent-line: rgba(160,94,0,.30);
+
+  --ok:      #4e7a2f;
+  --ok-soft: rgba(78,122,47,.10);
+  --warn:    #a05e00;
+  --warn-soft: rgba(160,94,0,.10);
+  --bad:     #b3402a;
+  --bad-soft: rgba(179,64,42,.10);
+  --info:    #2f6b85;
+  --info-soft: rgba(47,107,133,.10);
+
+  --grid:   rgba(120,90,40,.045);
+  --shadow: 0 18px 44px rgba(60,45,20,.14);
+}
+
+/* ============ 基础 ============ */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{
+  margin:0;background:var(--bg);color:var(--text-2);
+  font-family:var(--font-body);font-size:14px;line-height:1.78;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  position:relative;overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:72px 72px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 55% at 50% 0%,#000 0%,transparent 78%);
+  mask-image:radial-gradient(ellipse 90% 55% at 50% 0%,#000 0%,transparent 78%);
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:var(--accent);color:var(--accent-ink)}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s,color .2s}
+a:hover{color:var(--accent-2);border-bottom-color:var(--accent-line)}
+h1,h2,h3,h4{font-family:var(--font-display);color:var(--text-1);line-height:1.3;margin:0;font-weight:600}
+p{margin:0 0 12px}
+code,kbd{font-family:var(--font-mono);font-size:.85em;font-weight:500}
+ul,ol{margin:0 0 12px;padding-left:20px}
+li{margin:5px 0}
+strong{color:var(--text-1);font-weight:600}
+button{font-family:var(--font-mono);cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+/* ============ 滚动进度 ============ */
+.progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:200;background:transparent}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transform:scaleX(0);transform-origin:left;transition:transform .1s linear}
+
+/* ============ 布局壳 ============ */
+.shell{display:grid;grid-template-columns:268px minmax(0,1fr);align-items:start;position:relative;z-index:1}
+
+/* ============ 左侧信号导轨 ============ */
+.rail{
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  background:var(--bg-deep);border-right:1px solid var(--line);
+  padding:26px 18px 30px;display:flex;flex-direction:column;gap:22px;
+}
+.rail::-webkit-scrollbar{width:5px}
+.rail::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:3px}
+
+.brand{display:flex;gap:12px;align-items:flex-start;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.brand .mark{width:38px;height:38px;flex:0 0 auto;color:var(--accent)}
+.brand .wm strong{display:block;font-family:var(--font-display);font-size:1.02rem;letter-spacing:.01em;font-weight:700;color:var(--text-1);line-height:1.25}
+.brand .wm span{display:block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-top:4px}
+
+.nav{display:flex;flex-direction:column;gap:1px}
+.nav a{
+  display:grid;grid-template-columns:34px 1fr;align-items:baseline;gap:4px;
+  padding:7px 8px;border-radius:var(--r-sm);color:var(--text-2);
+  font-size:.82rem;border-left:2px solid transparent;
+  transition:background .18s,color .18s,border-color .18s;
+}
+.nav a i{font-family:var(--font-mono);font-style:normal;font-size:10.5px;color:var(--text-3);letter-spacing:.06em}
+.nav a:hover{background:var(--surface-2);color:var(--text-1)}
+.nav a.active{background:var(--surface-2);color:var(--text-1);border-left-color:var(--accent)}
+.nav a.active i{color:var(--accent)}
+
+.theme-btn{
+  width:100%;padding:9px 12px;border-radius:var(--r-sm);
+  background:transparent;border:1px solid var(--line);color:var(--text-2);
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  transition:border-color .2s,color .2s;
+}
+.theme-btn:hover{border-color:var(--accent);color:var(--text-1)}
+.theme-btn .sw{width:26px;height:13px;border-radius:8px;border:1px solid var(--line-strong);position:relative;flex:0 0 auto}
+.theme-btn .sw::after{content:"";position:absolute;top:1.5px;left:2px;width:8px;height:8px;border-radius:50%;background:var(--accent);transition:left .25s ease}
+:root[data-theme="light"] .theme-btn .sw::after{left:13px}
+
+.rail-foot{
+  margin-top:auto;padding-top:16px;border-top:1px solid var(--line);
+  font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);line-height:2;
+}
+.rail-foot b{color:var(--text-2);font-weight:500}
+
+/* ============ 主区 ============ */
+.main{min-width:0;padding:0 52px 110px;max-width:1240px}
+
+.topbar{
+  position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:13px 0;background:var(--surface-float);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.crumb{font-family:var(--font-mono);font-size:11px;color:var(--text-3);letter-spacing:.08em}
+.crumb b{color:var(--text-2);font-weight:500}
+.topbar .spacer{flex:1}
+.live{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3)}
+.live i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 var(--accent-line);animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--accent-line)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+/* ============ HERO ============ */
+.hero{padding:64px 0 10px;position:relative}
+.kicker{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--accent);display:flex;align-items:center;gap:12px;margin-bottom:22px;
+}
+.kicker::before{content:"";width:36px;height:1px;background:var(--accent);flex:0 0 auto}
+.hero h1{font-size:clamp(32px,5.2vw,58px);letter-spacing:-.015em;line-height:1.06;font-weight:700}
+.hero h1 .l1{display:block;font-family:var(--font-display);color:var(--text-1)}
+.hero h1 .l2{display:block;margin-top:12px;font-family:var(--font-body);font-size:clamp(19px,2.5vw,29px);font-weight:500;letter-spacing:.01em;color:var(--text-2);line-height:1.4}
+.hero h1 .l2 em{font-style:normal;color:var(--accent);position:relative}
+.hero h1 .l2 em::after{content:"";position:absolute;left:0;right:0;bottom:-3px;height:2px;background:var(--accent);opacity:.55}
+.lead{font-size:15.5px;color:var(--text-2);max-width:880px;margin-top:22px;line-height:1.85}
+.lead code{color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:var(--r-sm)}
+
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 30px}
+.badge{
+  font-family:var(--font-mono);font-size:10.5px;padding:5px 11px;border-radius:2px;
+  border:1px solid var(--line);background:var(--surface);color:var(--text-2);
+  letter-spacing:.04em;
+}
+.badge.acc{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+
+/* —— 端口读数 —— */
+.ports{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:8px 0 30px}
+.port{
+  position:relative;background:var(--surface);border:1px solid var(--line);
+  padding:18px 18px 15px;
+}
+.port::before,.port::after{content:"";position:absolute;width:9px;height:9px;border:1px solid var(--accent);opacity:.7}
+.port::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.port::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+.port .pn{font-family:var(--font-mono);font-size:27px;font-weight:600;color:var(--text-1);letter-spacing:-.01em;line-height:1.1}
+.port .pp{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:8px 0 5px}
+.port .pd{font-size:12px;color:var(--text-3);line-height:1.6}
+
+/* —— 终端窗 —— */
+.term{border:1px solid var(--line-2);border-radius:var(--r);overflow:hidden;background:var(--bg-deep);margin:6px 0 26px;box-shadow:var(--shadow)}
+.term-bar{
+  display:flex;align-items:center;gap:12px;padding:9px 14px;
+  background:var(--surface-2);border-bottom:1px solid var(--line-2);
+}
+.term-dots{display:flex;gap:6px}
+.term-dots i{width:8px;height:8px;border-radius:50%;background:var(--line-strong)}
+.term-dots i:first-child{background:var(--accent);opacity:.8}
+.term-title{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3)}
+.term-bar .spacer{flex:1}
+.copy{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  padding:4px 11px;border-radius:2px;border:1px solid var(--line-strong);
+  background:transparent;color:var(--text-3);transition:.18s;
+}
+.copy:hover{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+.term pre{
+  margin:0;padding:18px 20px;overflow-x:auto;
+  font-family:var(--font-mono);font-size:12.5px;line-height:1.85;color:var(--text-2);
+}
+pre .c{color:var(--text-3);font-style:italic}
+pre .k{color:var(--accent)}
+pre .s{color:var(--ok)}
+pre .n{color:var(--info)}
+
+/* —— 指标读数条 —— */
+.readout{
+  display:grid;grid-template-columns:repeat(6,1fr);
+  border:1px solid var(--line);background:var(--surface);margin-top:28px;
+}
+.ro{padding:18px 16px;border-left:1px solid var(--line);position:relative}
+.ro:first-child{border-left:0}
+.ro::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:0;transition:opacity .25s}
+.ro:hover::before{opacity:.8}
+.ro:hover{background:var(--surface-2)}
+.ro b{
+  display:block;font-family:var(--font-mono);font-size:26px;font-weight:600;
+  color:var(--text-1);letter-spacing:-.02em;line-height:1.15;
+}
+.ro span{display:block;font-size:12px;color:var(--text-2);margin-top:6px}
+.ro i{display:block;font-family:var(--font-mono);font-style:normal;font-size:10px;color:var(--text-3);margin-top:5px;letter-spacing:.03em}
+
+/* ============ 章节 ============ */
+section{padding-top:88px}
+.sec-head{
+  display:grid;grid-template-columns:96px minmax(0,1fr);gap:22px;align-items:start;
+  margin-bottom:26px;padding-bottom:18px;border-bottom:1px solid var(--line);position:relative;
+}
+.sec-head::after{content:"";position:absolute;left:0;bottom:-1px;width:72px;height:2px;background:var(--accent)}
+.sec-idx{text-align:left}
+.sec-idx .num{
+  font-family:var(--font-display);font-size:52px;font-weight:700;line-height:.9;
+  color:transparent;-webkit-text-stroke:1px var(--line-strong);letter-spacing:-.02em;
+}
+.sec-idx .en{
+  display:block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--accent);margin-top:10px;
+}
+.sec-head h2{font-size:clamp(21px,2.6vw,29px);letter-spacing:-.01em}
+.sec-head p{margin:10px 0 0;color:var(--text-3);font-size:13.5px;max-width:920px;line-height:1.8}
+
+/* ============ 规格面板 ============ */
+.sheet{
+  background:var(--surface);border:1px solid var(--line);
+  margin-bottom:18px;position:relative;
+}
+.sheet-head{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:13px 20px;background:var(--surface-2);border-bottom:1px solid var(--line);
+}
+.sheet-head h3{font-size:14.5px;letter-spacing:.01em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sheet-head .spacer{flex:1}
+.sheet-body{padding:20px 22px}
+.sheet-body > :last-child{margin-bottom:0}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}
+.grid2 > .sheet,.grid3 > .sheet{margin-bottom:0}
+
+/* ============ 标签 ============ */
+.tag{
+  font-family:var(--font-mono);font-size:9.5px;padding:3px 8px;border-radius:2px;
+  background:var(--surface-3);border:1px solid var(--line);color:var(--text-3);
+  letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;
+}
+.tag.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.tag.warn{background:var(--warn-soft);border-color:var(--accent-line);color:var(--warn)}
+.tag.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.tag.acc{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.tag.vio{background:var(--info-soft);border-color:var(--info);color:var(--info)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+
+/* ============ 表格 ============ */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12.8px;margin:4px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-2);vertical-align:top;line-height:1.7}
+th{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-3);font-weight:500;background:var(--surface-2);white-space:nowrap;
+}
+td code{color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:2px}
+tbody tr{transition:background .15s,box-shadow .15s}
+tbody tr:hover{background:var(--surface-2);box-shadow:inset 3px 0 0 var(--accent)}
+.matrix thead th{position:sticky;top:52px;z-index:5}
+
+/* ============ 架构总线 ============ */
+.arch{display:grid;gap:0;margin-top:4px}
+.layer{
+  border:1px solid var(--line);background:var(--surface-2);
+  padding:16px 20px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:20px;align-items:center;
+  position:relative;
+}
+.layer .lid{
+  position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line-strong);
+}
+.layer.hot .lid{background:var(--accent);box-shadow:0 0 18px var(--accent-line)}
+.layer .lname{font-family:var(--font-display);font-size:14px;color:var(--text-1);font-weight:600;letter-spacing:.01em}
+.layer .lname i{display:block;font-family:var(--font-mono);font-style:normal;font-size:9.5px;color:var(--text-3);letter-spacing:.16em;text-transform:uppercase;margin-top:5px}
+.layer .ldesc{font-size:12.5px;color:var(--text-2);line-height:1.8}
+.layer .ldesc code{color:var(--accent);background:var(--accent-soft);padding:0 5px;border-radius:2px}
+
+.conn{display:flex;align-items:center;gap:14px;padding:9px 20px}
+.conn .conn-line{flex:1;height:1px;background:var(--line-2);position:relative;overflow:hidden}
+.conn .conn-line::after{
+  content:"";position:absolute;top:0;left:-70px;width:70px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  animation:travel 3.4s linear infinite;
+}
+.conn .conn-line:last-child::after{animation-delay:1.7s}
+@keyframes travel{from{left:-70px}to{left:100%}}
+.conn .conn-label{
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;color:var(--text-3);
+  white-space:nowrap;
+}
+.conn .conn-label b{color:var(--accent);font-weight:600}
+
+/* ============ 生命周期时间轴 ============ */
+.timeline{list-style:none;margin:0;padding:0;position:relative}
+.timeline::before{content:"";position:absolute;left:17px;top:14px;bottom:14px;width:1px;background:linear-gradient(180deg,var(--accent),var(--line-strong) 70%,transparent)}
+.tl-step{
+  display:grid;grid-template-columns:36px minmax(0,1fr);gap:20px;
+  padding:12px 16px 12px 0;position:relative;transition:background .18s;
+}
+.tl-step:hover{background:var(--surface-2)}
+.tl-node{
+  width:36px;height:36px;border:1px solid var(--accent-line);background:var(--bg);
+  display:grid;place-items:center;font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+  color:var(--accent);position:relative;z-index:1;transition:.2s;
+}
+.tl-step:hover .tl-node{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tl-body h4{font-size:14px;margin-bottom:5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tl-body .cls{font-family:var(--font-mono);font-size:10.5px;color:var(--info);letter-spacing:.02em;background:var(--info-soft);padding:2px 8px;border-radius:2px;font-weight:400}
+.tl-body p{margin:0;font-size:12.8px;color:var(--text-2);line-height:1.82}
+.tl-body p code{color:var(--accent);background:var(--accent-soft);padding:0 5px;border-radius:2px}
+
+/* ============ 算法模块 ============ */
+.module{
+  background:var(--surface);border:1px solid var(--line);position:relative;overflow:hidden;
+}
+.module::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2),transparent)}
+.module.hot{border-color:var(--accent-line)}
+.module-head{padding:16px 22px 12px}
+.module-head h3{font-size:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.module-head .sub{
+  font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);
+  margin-top:8px;word-break:break-all;letter-spacing:.03em;line-height:1.7;
+}
+.module-body{padding:6px 22px 20px}
+.module dl{margin:0;display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px 16px;font-size:12.6px}
+.module dt{
+  font-family:var(--font-mono);font-size:10px;color:var(--accent);letter-spacing:.12em;
+  text-transform:uppercase;padding-top:3px;
+}
+.module dd{margin:0;color:var(--text-2);line-height:1.82}
+.module dd code{color:var(--accent);background:var(--accent-soft);padding:0 5px;border-radius:2px}
+.module-foot{padding:0 22px 18px}
+
+/* —— 状态机图 —— */
+.fsm{margin:14px 0 4px;border:1px solid var(--line-2);background:var(--bg-deep);padding:20px}
+.fsm-track{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.st{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;color:var(--text-2);
+  border:1px solid var(--line-strong);padding:8px 13px;background:var(--surface);white-space:nowrap;
+}
+.st.fin{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.ar{font-family:var(--font-mono);color:var(--accent);font-size:13px}
+.fsm-paths{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:18px}
+.path{border-left:2px solid var(--line-strong);padding:8px 12px;background:var(--surface)}
+.path b{
+  display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:4px;
+}
+.path span{font-size:11.5px;color:var(--text-3);line-height:1.7;display:block}
+.path.fast{border-left-color:var(--accent);background:var(--accent-soft)}
+
+/* ============ 条形图 ============ */
+.bars{display:grid;gap:8px;margin-top:6px}
+.bar-row{display:grid;grid-template-columns:190px minmax(0,1fr) 72px;gap:14px;align-items:center;font-size:11.5px}
+.bar-row .bn{font-family:var(--font-mono);color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{height:15px;background:var(--surface-3);overflow:hidden;position:relative}
+.bar-fill{
+  height:100%;background:linear-gradient(90deg,var(--accent-2),var(--accent));
+  width:0;transition:width 1s cubic-bezier(.22,1,.36,1);
+}
+.bar-row .bv{font-family:var(--font-mono);color:var(--text-1);text-align:right;font-weight:500}
+
+/* ============ 提示条 ============ */
+.note{
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  background:var(--accent-soft);padding:15px 18px;font-size:12.8px;
+  color:var(--text-2);margin:16px 0 0;line-height:1.85;
+}
+.note.info{border-left-color:var(--info);background:var(--info-soft)}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.note b{color:var(--text-1)}
+
+/* ============ 协议双栏 ============ */
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pane{border:1px solid var(--line-2);background:var(--bg-deep)}
+.pane h4{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text-3);padding:11px 16px;background:var(--surface-2);
+  border-bottom:1px solid var(--line-2);font-weight:500;margin:0;
+}
+.pane pre{margin:0;padding:16px;overflow-x:auto;font-family:var(--font-mono);font-size:11.5px;line-height:1.85;color:var(--text-2)}
+
+/* ============ 迷你条 ============ */
+.minibar{display:inline-block;width:46px;height:5px;background:var(--surface-3);margin-right:9px;vertical-align:middle;overflow:hidden}
+.minibar i{display:block;height:100%;background:var(--accent);opacity:.75}
+
+/* ============ 脚注 ============ */
+footer{
+  margin-top:80px;padding-top:22px;border-top:1px solid var(--line);
+  font-family:var(--font-mono);font-size:11px;color:var(--text-3);line-height:2.1;letter-spacing:.03em;
+}
+footer b{color:var(--text-2);font-weight:500}
+
+/* ============ 入场动画 ============ */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .75s ease,transform .75s cubic-bezier(.22,1,.36,1)}
+.reveal.in{opacity:1;transform:none}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+
+/* ============ 响应式 ============ */
+@media (max-width:1100px){
+  .readout{grid-template-columns:repeat(3,1fr)}
+  .ro:nth-child(3n+1){border-left:0}
+  .ro:nth-child(n+4){border-top:1px solid var(--line)}
+}
+@media (max-width:1020px){
+  .shell{grid-template-columns:1fr}
+  .rail{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:20px 18px}
+  .rail-foot{margin-top:8px}
+  .nav{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:6px}
+  .nav a{grid-template-columns:auto auto;white-space:nowrap;border-left:0;border-bottom:2px solid transparent}
+  .nav a.active{border-left:0;border-bottom-color:var(--accent)}
+  .main{padding:0 22px 90px}
+  .matrix thead th{top:0}
+}
+@media (max-width:760px){
+  .ports{grid-template-columns:1fr}
+  .sec-head{grid-template-columns:1fr;gap:10px}
+  .sec-idx .num{font-size:40px}
+  .layer{grid-template-columns:1fr;gap:10px}
+  .panes{grid-template-columns:1fr}
+  .bar-row{grid-template-columns:130px minmax(0,1fr) 60px;gap:8px}
+  .readout{grid-template-columns:repeat(2,1fr)}
+  .ro:nth-child(3n+1){border-left:1px solid var(--line)}
+  .ro:nth-child(2n+1){border-left:0}
+  .ro:nth-child(n+3){border-top:1px solid var(--line)}
+  .module dl{grid-template-columns:1fr;gap:2px 0}
+  .module dt{padding-top:10px}
+}
+</style>
+</head>
+<body>
+
+<div class="progress"><i id="progressFill"></i></div>
+
+<div class="shell">
+
+  <!-- ======================= 左侧导轨 ======================= -->
+  <aside class="rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 38 38" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="36" height="36" rx="9" stroke="currentColor" stroke-width="1.5" opacity=".55"/>
+        <circle cx="11" cy="12" r="2.6" fill="currentColor"/>
+        <circle cx="27" cy="12" r="2.6" fill="currentColor"/>
+        <circle cx="19" cy="27" r="2.6" fill="currentColor"/>
+        <path d="M11 12 L19 27 L27 12" stroke="currentColor" stroke-width="1.5" opacity=".8"/>
+        <path d="M11 12 H27" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3" opacity=".5"/>
+      </svg>
+      <div class="wm">
+        <strong>Web AI Bridge</strong>
+        <span>local agent → logged-in web ai</span>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav" aria-label="章节导航">
+      <a href="#overview"><i>01</i><span>总览与定位</span></a>
+      <a href="#architecture"><i>02</i><span>架构设计</span></a>
+      <a href="#lifecycle"><i>03</i><span>请求生命周期</span></a>
+      <a href="#stack"><i>04</i><span>技术栈</span></a>
+      <a href="#algorithms"><i>05</i><span>核心算法</span></a>
+      <a href="#platforms"><i>06</i><span>平台与适配器</span></a>
+      <a href="#interfaces"><i>07</i><span>对外接口</span></a>
+      <a href="#engineering"><i>08</i><span>工程与质量</span></a>
+      <a href="#caveats"><i>09</i><span>口径与边界</span></a>
+    </nav>
+
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="切换浅色或深色主题">
+      <span id="themeLabel">DARK / LIGHT</span>
+      <span class="sw" aria-hidden="true"></span>
+    </button>
+
+    <div class="rail-foot">
+      MV3 扩展 <b>v3.0.0</b><br>
+      branch <b>feat/proxy-auto-rotate</b><br>
+      4af291f · 2026-11-07
+    </div>
+  </aside>
+
+  <!-- ======================= 主区 ======================= -->
+  <main class="main">
+
+    <div class="topbar">
+      <span class="crumb">web-ai-bridge / <b>project-showcase</b></span>
+      <span class="spacer"></span>
+      <span class="badge acc">HTTP :9877 · WS :9876 · SSE :9878</span>
+      <span class="badge">单文件 HTML · 无外部依赖</span>
+      <span class="live"><i></i>bridge</span>
+    </div>
+
+    <!-- ======================= HERO ======================= -->
+    <header class="hero">
+      <div class="kicker reveal">Local Agent → Logged-in Web AI · HTTP + WebSocket + MV3</div>
+      <h1 class="reveal">
+        <span class="l1">Web AI Bridge</span>
+        <span class="l2">本机智能体<em>驱动</em>已登录网页 AI</span>
+      </h1>
+      <p class="lead reveal">
+        本地 Bridge（HTTP <code>:9877</code>）+ Chrome 扩展（MV3，WS <code>:9876</code>）操作网页 DOM，
+        把 <code>curl</code> / MCP 客户端接到 <strong>ChatGPT、DeepSeek、Gemini、Claude、Kimi、Qwen、Grok、
+        豆包、GLM、混元、MiMo、Perplexity</strong>。卖点是<b>复用浏览器登录态</b>（订阅、项目、记忆），
+        而不是再发一套 API Key。反向能力「网页模型调用本地工具」<b>未实现</b>——产品边界见 DEC-213。
+      </p>
+
+      <div class="badges reveal">
+        <span class="badge acc">Python 3.14（conda env: quant）</span>
+        <span class="badge">自研 asyncio HTTP 服务器</span>
+        <span class="badge">websockets ≥16.0</span>
+        <span class="badge">MCP stdio / SSE · 22 tools</span>
+        <span class="badge">Chrome MV3 · 无运行时库</span>
+        <span class="badge acc">12 个平台适配器</span>
+      </div>
+
+      <div class="ports reveal">
+        <div class="port">
+          <div class="pn">:9876</div>
+          <div class="pp">WebSocket</div>
+          <div class="pd">Chrome 扩展持久连接 · 约 40 类消息 · ping 15s / timeout 10s</div>
+        </div>
+        <div class="port">
+          <div class="pn">:9877</div>
+          <div class="pp">HTTP · CLI / MCP API</div>
+          <div class="pd">自研 asyncio 服务器 · 65 条路由 · 1 MB body 上限</div>
+        </div>
+        <div class="port">
+          <div class="pn">:9878</div>
+          <div class="pp">SSE · MCP</div>
+          <div class="pd">MCP <code>--sse</code> 接入 · Starlette + uvicorn · 挂 /sse、/messages/</div>
+        </div>
+      </div>
+
+      <div class="term reveal">
+        <div class="term-bar">
+          <span class="term-dots"><i></i><i></i><i></i></span>
+          <span class="term-title">quickstart — zsh</span>
+          <span class="spacer"></span>
+          <button class="copy" type="button" data-copy="cmd">复制</button>
+        </div>
+<pre id="cmd"><span class="c"># 1) 唯一 Python 入口：conda quant 环境（禁止 venv/poetry/uv）</span>
+export PATH="/opt/anaconda3/envs/quant/bin:$PATH"
+export PYTHONPATH="$PWD:$PWD/backend"
+
+<span class="c"># 2) 启动 Bridge Server（HTTP 9877 + WS 9876 同进程）</span>
+python backend/entrypoints/server.py
+
+<span class="c"># 3) MCP 服务（STDIO 给 Claude Code / Cline；SSE 给 OpenCode）</span>
+python3 backend/entrypoints/mcp_server.py --sse --port 9878
+
+<span class="c"># 4) 一键全栈：Bridge + Chrome + 扩展 + 扫描已有 AI 标签页</span>
+bash scripts/ops/ops-bridge-launch.sh launch
+
+<span class="c"># 提问（阻塞式）</span>
+curl http://localhost:9877/ask -d '{"platform":"chatgpt","prompt":"你好"}'</pre>
+      </div>
+
+      <div class="readout reveal">
+        <div class="ro"><b data-count="12">0</b><span>支持的网页 AI 平台</span><i>12 个 PlatformAdapter</i></div>
+        <div class="ro"><b data-count="65">0</b><span>HTTP 路由</span><i>21+2 GET / 42 POST</i></div>
+        <div class="ro"><b data-count="22">0</b><span>MCP 工具</span><i>ask · chain · debate ×9</i></div>
+        <div class="ro"><b data-count="575">0</b><span>Python 测试函数</span><i>35 文件 · cov ≥40%</i></div>
+        <div class="ro"><b data-count="224">0</b><span>架构决策 DEC</span><i>DEC-001 … DEC-224</i></div>
+        <div class="ro"><b data-count="21563">0</b><span>扩展源码行数</span><i>JS · py 另 13,747</i></div>
+      </div>
+    </header>
+
+    <!-- ======================= 01 总览 ======================= -->
+    <section id="overview">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">01</div><span class="en">Overview</span></div>
+        <div>
+          <h2>总览与产品定位</h2>
+          <p>把已登录的网页模型当成供本机智能体调用的后端；主客户是编码智能体（OpenCode / Claude Code / Cline / Cursor）。</p>
+        </div>
+      </div>
+
+      <div class="sheet reveal">
+        <div class="sheet-head">
+          <h3>产品定位</h3>
+          <span class="spacer"></span>
+          <span class="tag">README</span><span class="tag">AGENTS.md</span><span class="tag acc">DEC-213</span>
+        </div>
+        <div class="sheet-body">
+          <div class="tw">
+          <table>
+            <thead><tr><th style="width:120px">项</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><b>核心生意</b></td><td>把已登录的网页模型当成供本机智能体调用的<b>后端</b></td></tr>
+              <tr><td><b>主客户</b></td><td>编码智能体（OpenCode / Claude Code / Cline / Cursor）</td></tr>
+              <tr><td><b>次客户</b></td><td>仓库主人（保持登录、启动 Bridge）</td></tr>
+              <tr><td><b>核心能力</b></td><td>提问、会话连续、多模型辩论、无角色链式调用</td></tr>
+              <tr><td><span class="tag bad">非目标</span></td><td>网页调本地工具（<b>未实现</b>）、浏览历史爬虫、微信 OCR、治理套件当产品卖</td></tr>
+              <tr><td><b>实验通道</b></td><td><code>web_ai_llm_ask</code> 直连 LLM 池走 API Key，不走登录态网页</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div class="note">
+            <b>为什么是这条路</b>：复用浏览器登录态 = 复用订阅额度、ChatGPT 项目与记忆、各平台多轮上下文；
+            代价是必须对抗 Chrome 对后台标签页的定时器节流、平台 DOM 差异与风控——这些代价正是本页 §05 算法的由来。
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet reveal">
+        <div class="sheet-head">
+          <h3>代码与资产分布</h3>
+          <span class="spacer"></span>
+          <span class="tag acc">实测</span>
+        </div>
+        <div class="sheet-body">
+          <div class="bars" id="locBars"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 02 架构 ======================= -->
+    <section id="architecture">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">02</div><span class="en">Architecture</span></div>
+        <div>
+          <h2>架构设计</h2>
+          <p>三进程 / 两协议：CLI·MCP 走 HTTP，扩展走 WebSocket，两者在同一个 Bridge 进程内汇合，再由 Content Script 操作 DOM。</p>
+        </div>
+      </div>
+
+      <div class="sheet reveal">
+        <div class="sheet-head">
+          <h3>运行时拓扑</h3>
+          <span class="spacer"></span>
+          <span class="tag">README 架构图</span>
+        </div>
+        <div class="sheet-body">
+          <div class="arch">
+
+            <div class="layer">
+              <span class="lid"></span>
+              <div class="lname">CLI / MCP 客户端<i>curl · mcp client</i></div>
+              <div class="ldesc"><code>POST /ask</code>、<code>POST /ask/start</code>、MCP <code>web_ai_ask</code>…；MCP 层（<code>bridge_mcp.py</code>）只做透传，实际执行在 server。</div>
+            </div>
+            <div class="conn">
+              <span class="conn-line"></span>
+              <span class="conn-label">↓ HTTP <b>:9877</b>（CLI/MCP API）· SSE <b>:9878</b>（MCP --sse）</span>
+              <span class="conn-line"></span>
+            </div>
+
+            <div class="layer hot">
+              <span class="lid"></span>
+              <div class="lname">Bridge Server<i>asyncio 双协议</i></div>
+              <div class="ldesc"><code>AsyncHttpServer</code>（<code>asyncio.start_server</code> 手写解析，路由表字典分发，1 MB body 上限）+ <code>websockets.serve</code>（ping 15s / timeout 10s），同一事件循环 <code>asyncio.TaskGroup</code> 托管。职责：<b>路由 / 校验 / 去重 / 限流 / 轮询 / 降级 / 重试</b>。</div>
+            </div>
+            <div class="conn">
+              <span class="conn-line"></span>
+              <span class="conn-label">↓ WebSocket <b>:9876</b>（扩展持久连接，约 40 类消息）</span>
+              <span class="conn-line"></span>
+            </div>
+
+            <div class="layer">
+              <span class="lid"></span>
+              <div class="lname">Chrome Extension<i>MV3 Service Worker</i></div>
+              <div class="ldesc"><code>serviceWorker.js</code> + <code>messageHandler.js</code>（1,813 行）+ <code>connectionManager.js</code>（指数退避重连）；15s <code>alarms</code> 心跳唤醒被节流的标签页；<code>ExecutionQueue</code> 单飞行队列串行化执行。</div>
+            </div>
+            <div class="conn">
+              <span class="conn-line"></span>
+              <span class="conn-label">↓ <b>chrome.runtime</b> 消息 → Content Script（12 个 PlatformAdapter）</span>
+              <span class="conn-line"></span>
+            </div>
+
+            <div class="layer">
+              <span class="lid"></span>
+              <div class="lname">Content Script<i>DOM 注入与读取</i></div>
+              <div class="ldesc"><code>injectionEngine.executePrompt()</code> 五阶段：等输入 → 写文本 → 提交校验 → 提交 → <b>早返回交给 Bridge 轮询</b>；<code>detectBusy()</code> 单次 DOM 读返回完成状态。</div>
+            </div>
+            <div class="conn">
+              <span class="conn-line"></span>
+              <span class="conn-label">↓ 选择器 / 指针事件</span>
+              <span class="conn-line"></span>
+            </div>
+
+            <div class="layer">
+              <span class="lid"></span>
+              <div class="lname">AI 网页<i>已登录会话</i></div>
+              <div class="ldesc">chatgpt.com · chat.deepseek.com · gemini.google.com · claude.ai · www.kimi.com · chat.qwen.ai · grok.com · aistudio.xiaomimimo.com · www.doubao.com · bigmodel.cn · aistudio.tencent.com · www.perplexity.ai</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>后端分层</h3>
+            <span class="spacer"></span>
+            <span class="tag">backend/ · 47 文件 · 13,747 行</span>
+          </div>
+          <div class="sheet-body">
+            <div class="tw">
+            <table>
+              <tbody>
+                <tr><td style="width:160px"><code>entrypoints/</code></td><td><code>server.py</code>（转发 run_bridge）、<code>mcp_server.py</code>（sys.path 引导）</td></tr>
+                <tr><td><code>protocols/mcp/</code></td><td><code>bridge_mcp.py</code>（1,317 行）22 工具，MCP 协议层</td></tr>
+                <tr><td><code>discussion/</code></td><td>辩论域 <code>runtime.py</code>(1,191) / <code>store.py</code>(SQLite) / <code>models.py</code> / <code>context.py</code></td></tr>
+                <tr><td><code>services/web_auto/</code></td><td>核心：<code>server/</code>(7,796 行) + <code>config.py</code> + <code>platform_config.py</code> + <code>prompt_validator.py</code> + 代理/通知</td></tr>
+                <tr><td><code>services/llm/</code></td><td>API Key 直连池：<code>pool.py</code> / <code>client.py</code> / <code>models.py</code></td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet reveal">
+          <div class="sheet-head"><h3>端口与进程</h3></div>
+          <div class="sheet-body">
+            <div class="tw">
+            <table>
+              <thead><tr><th>端口</th><th>协议</th><th>用途</th></tr></thead>
+              <tbody>
+                <tr><td><code>9876</code></td><td>WebSocket</td><td>Chrome 扩展持久连接（<code>websockets.serve</code>）</td></tr>
+                <tr><td><code>9877</code></td><td>HTTP</td><td>CLI / MCP 的 API 端点（自研 asyncio 服务器）</td></tr>
+                <tr><td><code>9878</code></td><td>SSE</td><td>MCP SSE 接入（<code>--sse</code>，Starlette + uvicorn）</td></tr>
+              </tbody>
+            </table>
+            </div>
+            <ul style="margin-top:14px;font-size:12.5px">
+              <li>绑定地址默认 <code>localhost</code>；非回环绑定会打印 DEC-211 显式暴露告警。</li>
+              <li>安全：CORS 仅放行 <code>chrome-extension://</code> 与回环源；<code>/admin/exec</code> 默认 404，其余 <code>/admin</code> 需 token 或回环 Host。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 03 生命周期 ======================= -->
+    <section id="lifecycle">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">03</div><span class="en">Lifecycle</span></div>
+        <div>
+          <h2>请求生命周期</h2>
+          <p><code>POST /ask</code> 从进入 Bridge 到拿到回答的完整链路——每一步都有超时、探针与降级出口。</p>
+        </div>
+      </div>
+
+      <ol class="timeline">
+        <li class="tl-step reveal"><div class="tl-node">01</div><div class="tl-body">
+          <h4>解析与钳制 <span class="cls">_handle_post_ask</span></h4>
+          <p>platform（默认 chatgpt）、prompt、timeout（默认 300s，<code>BRIDGE_REQUEST_TIMEOUT</code>），按 <code>PLATFORM_MIN_TIMEOUT</code> 向上钳制（deepseek 60 / kimi 300 / claude 180 / 其余 120）。Gemini 特例：<code>\n+</code> 折叠为空格。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">02</div><div class="tl-body">
+          <h4>校验 <span class="cls">prompt_validator.validate()</span></h4>
+          <p>滑动窗口限流（60s，chatgpt 30/min、其余 20/min）→ 结构去重（去标点小写后的 MD5 指纹，TTL 60s，≥15 字符，缓存 50 条）→ 黑名单 / 低信息量 / 长度 → 三层代码上下文检查（当前 shadow 模式只记日志）。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">03</div><div class="tl-body">
+          <h4>结果去重 <span class="cls">core._check_dedup</span></h4>
+          <p>key = <code>platform:::conversation_id:::normalized_prompt</code>，TTL 60s；命中直接返回（流式路径合成一条 done 流）。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">04</div><div class="tl-body">
+          <h4>标签页解析 <span class="cls">_resolve_tab_for_conversation / _resolve_target_tab</span></h4>
+          <p>会话优先<b>按 URL 匹配</b>（<code>/c/{platform_conversation_id}</code>）；否则优先级 tab_id → 同平台空闲已连接 → 已连接 → 已断连标签（重载唤醒，DEC-191 <b>绝不盲建</b>）。无标签 → <code>{"error":"no_extension"}</code>。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">05</div><div class="tl-body">
+          <h4>登记 pending <span class="cls">_register_pending</span></h4>
+          <p><code>request_id = uuid4</code> + <code>threading.Event</code>；并发上限 <b>MAX_PENDING = 5</b>，超限返回 <code>too_many_requests</code>；写入 trace（<code>bridge_received</code>）与状态机执行记录。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">06</div><div class="tl-body">
+          <h4>预检 + 发送 <span class="cls">_preflight_cs → tab_ws.send</span></h4>
+          <p>先发 <code>get_chat_state</code> 探针（2s 超时 / 1 次重试，DEC-166，失败只记 <code>cs_probe_failed</code> 不拦截），再 CS 直连 WS 发 <code>{"type":"execute", bridge_driven:true}</code>（SW 路由已删除，DEC-129）。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">07</div><div class="tl-body">
+          <h4>双定时器 <span class="cls">timer_service + ack 窗口</span></h4>
+          <p>extension_timeout 总闹钟；<b>20s 内没收到 ack</b> 即提前超时。Kimi 例外：stop 仍显示时按 30s 续期，封顶 600s。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">08</div><div class="tl-body">
+          <h4>轮询收集 <span class="cls">_poll_and_collect_result</span></h4>
+          <p>前 5s 每 0.01s、之后每 0.1s 检查 event；桥驱动模式下由 <code>_bridge_driven_poll</code> 每 0.5s 发 <code>get_chat_state</code> 拿状态。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">09</div><div class="tl-body">
+          <h4>完成 <span class="cls">_update_state_completed</span></h4>
+          <p>touch 标签、状态机 <code>RESPONSE_COMPLETED</code>、写请求日志 JSON，result 附 trace。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">10</div><div class="tl-body">
+          <h4>失败 / 超时恢复 <span class="cls">_try_recover_after_timeout</span></h4>
+          <p>先做一次 <code>chrome_exec page_context</code> DOM 快照（5s，取末 5000 字符）再放弃，然后 <code>_classify_timeout()</code> 归类。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">11</div><div class="tl-body">
+          <h4>条件重试 <span class="cls">_handle_post_ask L1581</span></h4>
+          <p>错误属 {extension/bridge/transport}_timeout 且 <code>cs_polls &lt; 3</code>（扩展从未应答）且未重试过 → <code>tabs.reload</code> → 最多等 30s（<code>ASK_RETRY_WINDOW</code>）恢复连接 → <b>换新 request_id 完整重发一次</b>；否则返回原错误。连接关闭 → <code>extension_disconnected</code>，标签置 EXEC_RECOVERING。</p>
+        </div></li>
+
+        <li class="tl-step reveal"><div class="tl-node">12</div><div class="tl-body">
+          <h4>代理区域封锁分支 <span class="cls">proxy_switcher / proxy_manager</span></h4>
+          <p>错误 + 代理自动开启 + 页面文本命中区域封锁特征 → <code>rotate()</code> 换 IP → 重载页面 → 睡 20s → 重问一次；IP 限制类错误最多 3 次（2s 间隔）。</p>
+        </div></li>
+      </ol>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="sheet reveal">
+          <div class="sheet-head"><h3>阻塞 vs 流式</h3></div>
+          <div class="sheet-body">
+            <ul>
+              <li><b>阻塞</b>：<code>POST /ask</code> → <code>await ask_platform()</code>，HTTP 请求等到回答结束。</li>
+              <li><b>异步</b>：<code>POST /ask/start</code> → <code>asyncio.create_task</code>，立即返回 <code>{stream_id}</code>。</li>
+              <li><b>拉取进度</b>：<code>GET /ask/progress?stream_id=</code>（JSON）或 <code>GET /ask/stream</code>（SSE）。</li>
+              <li><b>SSE 重分块</b>：桥只存<b>累计文本</b>，按长度差发 delta（<code>chunk = text[last_length:]</code>），<code>event: message / done</code>，0.5s 超时轮转。</li>
+              <li><b>MCP 不阻塞 HTTP</b>：<code>_ask_bridge_sync</code> 走 /ask/start + 每 0.1s 轮询 progress，并检查 <code>cancel_event</code> 支持取消。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>关键超时常量</h3>
+            <span class="spacer"></span><span class="tag acc">core.py</span>
+          </div>
+          <div class="sheet-body">
+            <div class="tw">
+            <table>
+              <tbody>
+                <tr><td style="width:210px"><code>REQUEST_TIMEOUT</code></td><td>300s（<code>BRIDGE_REQUEST_TIMEOUT</code>）</td></tr>
+                <tr><td><code>BRIDGE_STABLE_POLLS</code></td><td>3 —— 文本连续 3 次不变 ≈ 1.5s 静止</td></tr>
+                <tr><td><code>BRIDGE_NO_RESPONSE_TIMEOUT</code></td><td>40s 无新鲜内容 → no_response_detected</td></tr>
+                <tr><td><code>CS_ACK_WINDOW</code></td><td>20s 无 ack 提前超时</td></tr>
+                <tr><td><code>ASK_RETRY_WINDOW</code></td><td>30s 等标签重连</td></tr>
+                <tr><td><code>MAX_PENDING</code></td><td>5 全局在途请求上限</td></tr>
+                <tr><td><code>PROMPT_CACHE_TTL</code></td><td>60s 结果去重窗口</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 04 技术栈 ======================= -->
+    <section id="stack">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">04</div><span class="en">Technology</span></div>
+        <div>
+          <h2>所用技术</h2>
+          <p>Python 侧刻意轻依赖：不引 FastAPI/Playwright，HTTP 与轮询全部自研；扩展侧零运行时库，纯原生 IIFE 打 bundle。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>后端</h3>
+            <span class="spacer"></span>
+            <span class="tag">requirements.txt</span><span class="tag">environment.yml</span>
+          </div>
+          <div class="sheet-body">
+            <div class="tw">
+            <table>
+              <thead><tr><th>组件</th><th>约束</th><th>用途</th></tr></thead>
+              <tbody>
+                <tr><td>Python</td><td><code>quant</code> conda 环境，实测 3.14.6（约束 ≥3.12）</td><td>唯一入口，禁止 venv/poetry/uv</td></tr>
+                <tr><td><code>websockets</code></td><td>≥16.0</td><td>扩展持久连接（ping 15s / timeout 10s）</td></tr>
+                <tr><td><code>mcp</code> + starlette + uvicorn</td><td>—</td><td>MCP Server；SSE 通道挂 <code>/sse</code>、<code>/messages/</code></td></tr>
+                <tr><td><code>aiohttp</code></td><td>≥3.13</td><td>出站代理 API 与（已死）事件路由，<b>不是</b> HTTP 服务器</td></tr>
+                <tr><td><code>python-dotenv</code></td><td>≥1.2,&lt;2.0</td><td><code>.env</code> 配置</td></tr>
+                <tr><td><code>PyYAML</code></td><td>≥6.0</td><td>注册表 / 配置</td></tr>
+                <tr><td>pytest 家族</td><td>pytest ≥9.1 / asyncio ≥1.4 / cov ≥7.1 / mock ≥3.15</td><td>测试，<code>asyncio_mode=auto</code></td></tr>
+                <tr><td>mkdocs + material</td><td>≥1.6 / ≥9.5</td><td>文档站（446 篇 md）</td></tr>
+              </tbody>
+            </table>
+            </div>
+            <div class="note info">
+              <b>HTTP 服务器是自研的</b>：<code>async_http_server.py</code> 用 <code>asyncio.start_server</code> 自己解析请求行/头/体（1 MB 上限），
+              按 <code>_GET_HANDLERS_EXACT</code> / <code>_POST_HANDLERS_EXACT</code> 字典 + pattern 列表分发。
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>Chrome 扩展</h3>
+            <span class="spacer"></span>
+            <span class="tag acc">chrome-extension/ · MV3 v3.0.0</span>
+          </div>
+          <div class="sheet-body">
+            <ul>
+              <li><b>权限</b>：tabs / activeTab / storage / scripting / alarms；host_permissions 覆盖 12 个 AI 站点 + localhost:9877 + ws://localhost:9876。</li>
+              <li><b>零运行时依赖</b>：原生 JS 模块，由 <code>scripts/build/build-{content,background}-bundle.js</code> 打成 IIFE bundle。</li>
+              <li><b>产物</b>：<code>background.bundle.js</code> 261 KB、<code>content-runtime.bundle.js</code> 443 KB（宿主 AI 站点注入）+ <code>pageContext.js</code>（全站点抓页面文本）。</li>
+              <li><b>测试</b>：jest + jsdom（27 个单测文件），<code>tsc --noEmit</code> 类型检查（ES2022 / allowJs）。</li>
+              <li><b>构建校验</b>：<code>npm run check:bundle</code> 比对源与产物同步（ops-check-bundle-sync.sh）。</li>
+            </ul>
+            <h4 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:22px 0 0">工程工具链</h4>
+            <div class="chips">
+              <span class="tag acc">ruff（E,F,I,UP,SIM,B）</span>
+              <span class="tag">branch coverage · fail_under 40</span>
+              <span class="tag">jest 29 + jsdom 27</span>
+              <span class="tag">MkDocs Material（zh）</span>
+              <span class="tag">gov-validate.sh 提交门禁</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 05 算法 ======================= -->
+    <section id="algorithms">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">05</div><span class="en">Algorithms</span></div>
+        <div>
+          <h2>核心算法与机制</h2>
+          <p>网页 AI 没有 API 回执，「回答什么时候结束」只能靠推断——这是整个系统最硬的问题。以下按真实实现类拆解。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+
+        <!-- 1 答案检测状态机 -->
+        <div class="module hot reveal" style="grid-column:span 2">
+          <div class="module-head">
+            <h3>1. 回答完成检测状态机 <span class="tag acc">最难的一块</span></h3>
+            <div class="sub">core._bridge_driven_poll · PlatformAdapter.detectBusy · 每 0.5s 一次 get_chat_state（单次 DOM 读，免疫定时器节流）</div>
+          </div>
+          <div class="module-body">
+
+            <div class="fsm">
+              <div class="fsm-track">
+                <span class="st">WAIT_GENERATION</span><span class="ar">→</span>
+                <span class="st">GENERATING</span><span class="ar">→</span>
+                <span class="st">STABLE</span><span class="ar">→</span>
+                <span class="st fin">COMPLETE</span>
+                <span class="ar" style="margin-left:6px">·</span>
+                <span class="st" style="border-style:dashed">基线守卫 8s</span>
+                <span class="ar">·</span>
+                <span class="st" style="border-style:dashed">40s 无响应</span>
+              </div>
+              <div class="fsm-paths">
+                <div class="path"><b>Path A</b><span>见过生成 + stop 消失 + 文本稳定 + 新鲜</span></div>
+                <div class="path"><b>Path B</b><span>stop 仍显示但文本稳定（ChatGPT 长回答兜底）</span></div>
+                <div class="path"><b>Path C</b><span>有 newTurn、无 stop/gen 但新鲜稳定（短回答）</span></div>
+                <div class="path"><b>Path D</b><span>完全无信号（豆包）——新鲜稳定即完成</span></div>
+                <div class="path fast"><b>Shortcut</b><span>completed &amp;&amp; newTurn &amp;&amp; text &amp;&amp; isFresh 直接返回</span></div>
+              </div>
+            </div>
+
+            <dl style="margin-top:18px">
+              <dt>状态机</dt>
+              <dd><code>WAIT_GENERATION → GENERATING → STABLE → COMPLETE</code>；只在 <code>isFresh</code>（当前文本哈希 ≠ 提交基线哈希）时更新 <code>best_text</code>，避免读到旧回答。</dd>
+              <dt>输入信号</dt>
+              <dd>由各平台适配器采集：<code>stop</code>（停止按钮可见）、<code>state</code>（忙碌）、<code>newTurn</code>（轮次数 / turnKey / messageId 变化）、<code>evenKey</code>（最大偶数轮索引）、<code>completed</code>（平台自带完成属性）、<code>hashChanged</code>、<code>stable</code>。<code>hash = text.slice(0,100) + '|' + text.length</code>。</dd>
+              <dt>完成路径</dt>
+              <dd>全部要求 <b><code>stable_polls ≥ 3</code></b>（文本连续 3 次不变 ≈ 1.5s 静止）；快捷路径 <code>completed && newTurn && text && isFresh</code> 直接返回，跳过 3 次静止窗口——细节见上方 A–D 图例。</dd>
+              <dt>基线守卫</dt>
+              <dd>等待 <code>baseline_ready</code> 最多 8s；回传 <code>request_id</code> 不匹配 → 强制 <code>isFresh=false, text=''</code>，防止读到上一轮残留（DEC-146/147）。</dd>
+              <dt>无响应</dt>
+              <dd><b>40s</b> 既不新鲜、也不生成、也无文本 → <code>no_response_detected</code> 失败。</dd>
+              <dt>自适应退避</dt>
+              <dd><code>_poll_interval(n) = min(0.5 × 2^(n//5), 2.0)</code>——0.5s 起步，每 5 次未变翻倍，封顶 2s；连续 60 次未变（≈30s）发一次 <code>ping</code> 唤醒，<b>绝不 reload</b>（会打断生成）。</dd>
+              <dt>超时兜底</dt>
+              <dd>① 返回 <code>best_text</code> 且标 <code>truncated:true</code>；② <code>chrome_exec page_context</code> 抓 DOM 快照（5s，取末 5000 字符）；③ Kimi 专属 <code>kimi_control {"action":"extract_last"}</code> 读思考区。</dd>
+              <dt>Kimi 续期</dt>
+              <dd>stop/state 仍显示且无文本时，按 30s 一档续期、封顶 <b>600s</b>（产品反思：STOP 是终极完成信号，长思考必须等）。</dd>
+            </dl>
+          </div>
+          <div class="module-foot">
+            <div class="chips"><span class="tag acc">静止窗口 3 次</span><span class="tag acc">指数退避 ×2/5 次</span><span class="tag">单次 DOM 读</span><span class="tag">基线哈希守卫</span><span class="tag">三级超时兜底</span></div>
+          </div>
+        </div>
+
+        <!-- 2 降级 -->
+        <div class="module reveal">
+          <div class="module-head">
+            <h3>2. 降级与重试级联</h3>
+            <div class="sub">core._classify_error · _try_recover_after_timeout · proxy_switcher</div>
+          </div>
+          <div class="module-body">
+            <dl>
+              <dt>级联顺序</dt>
+              <dd>探针(2s) → execute → ack 窗口(20s) → 总超时 → DOM 快照恢复 → 归类 → 条件重载重试(≤30s 等待 + 单次重发) → 放弃。</dd>
+              <dt>错误分类</dt>
+              <dd><code>_classify_error()</code> 分 <b>fixable</b>（登录 / 校验类，重试无用）与 <b>retryable</b>（超时 / 派发 / 无标签）。</dd>
+              <dt>重试守门</dt>
+              <dd>只有 <code>cs_polls &lt; 3</code>（内容脚本从未应答，说明是链路问题而非生成慢）才值得 reload 重发，避免重复提问烧额度。</dd>
+              <dt>区域封锁</dt>
+              <dd>代理自动模式下命中 <code>region_blocked(page_text)</code> → 换 IP → 重载 → 睡 20s → 重问一次；IP 限制类 <code>execute_with_retry</code> 最多 3 次 / 2s 间隔。</dd>
+            </dl>
+          </div>
+          <div class="module-foot"><div class="chips"><span class="tag acc">fixable vs retryable</span><span class="tag">单次重发</span></div></div>
+        </div>
+
+        <!-- 3 会话连续 -->
+        <div class="module reveal">
+          <div class="module-head">
+            <h3>3. 会话连续性</h3>
+            <div class="sub">ConversationRegistry · BindingRegistry · ConversationState</div>
+          </div>
+          <div class="module-body">
+            <dl>
+              <dt>持久化</dt>
+              <dd><code>data/conversations.json</code>（会话 + 浏览器会话）、<code>data/binding_registry.json</code>（bridge 会话 ↔ 平台会话 ↔ tab ↔ 最近验证 URL）。</dd>
+              <dt>定位策略</dt>
+              <dd><b>URL 优先</b>：缓存 tab → 跨标签 URL 搜索 <code>/c/{id}</code> → 标记 <code>need_navigation</code>；导航以 <code>navigate_to</code> 下发（5s 超时），绝不新建会话。</dd>
+              <dt>状态机</dt>
+              <dd><code>ConversationState.can_transition()</code> 约束转换，由 executing/completed 更新驱动；会话 touch + 心跳 30s，陈旧会话每 30s 清理。</dd>
+              <dt>标签状态</dt>
+              <dd><code>tab_registry</code>：<code>IDLE / RUNNING / RECOVERING</code> + 单把 <code>asyncio.Lock</code>；会话绑定拒绝复用 <code>running</code> 标签。</dd>
+            </dl>
+          </div>
+          <div class="module-foot"><div class="chips"><span class="tag acc">URL 优先定位</span><span class="tag">绑定注册表</span></div></div>
+        </div>
+
+        <!-- 4 辩论 -->
+        <div class="module reveal">
+          <div class="module-head">
+            <h3>4. 多模型辩论编排</h3>
+            <div class="sub">backend/discussion/runtime.py（1,191 行）· moderator · governor</div>
+          </div>
+          <div class="module-body">
+            <dl>
+              <dt>建会</dt>
+              <dd><code>create_discussion(topic, participants[{platform,role,role_instruction}], context_mode FULL|HYBRID, governor)</code> → <code>sid = disc_&lt;slug&gt;_&lt;8hex&gt;</code>；<b>Claude 直接拒绝</b>（DEC-141）。</dd>
+              <dt>停止条件</dt>
+              <dd><code>check_discussion_governor()</code> 四条：最大轮数、累计 token、最近评分 ≥ <code>min_score</code>、<b>同平台连续发言</b>（DEC-150 只比较 last_platform）。</dd>
+              <dt>主持人</dt>
+              <dd><code>step_discussion()</code> → 策略检查 → <code>_moderator_decision_prompt()</code> 输出 JSON 契约 <code>{"action":"ask|close","platform","prompt","reason"}</code> → <code>_parse_json()</code>（容忍 markdown 围栏）→ 发言或 <code>close_discussion()</code>。主持人若同时是参赛者 → 换成 <code>["gemini","kimi","deepseek","chatgpt"]</code> 中首个未参与者（DEC-140 中立化）。</dd>
+              <dt>上下文</dt>
+              <dd><code>ctx.build_context() + merge_prompt()</code>，追加固定「（自然讨论）…」后缀（DEC-143）；每次发言前 <code>POST /focus</code> 切标签，Gemini 额外 +1.5s 稳定；限流特征命中即记账（<code>_RATE_LIMIT_PATTERNS</code>）。</dd>
+              <dt>两种运行</dt>
+              <dd><b>auto_run_discussion</b>（有主持人，默认 20 步）/ <b>auto_run_natural</b>（DEC-143，无主持，默认 12 步，<code>_order[step % len]</code> 轮转）。标签预热用 <code>ThreadPoolExecutor(max_workers=平台数)</code>，每标签 8s。</dd>
+              <dt>不阻塞</dt>
+              <dd><code>POST /debate/run</code> + <code>wait:false</code> 起 <b>daemon 线程</b> 立即返回 <code>{status:"started"}</code>，客户端自行轮询 <code>/debate/state|history</code>（DEC-139/143，避免 MCP 超时）。历史存 <code>data/discussions.db</code>（SQLite）。</dd>
+            </dl>
+          </div>
+          <div class="module-foot"><div class="chips"><span class="tag acc">governor 四条件</span><span class="tag">JSON 主持契约</span><span class="tag">中立化换人</span></div></div>
+        </div>
+
+        <!-- 5 链式 -->
+        <div class="module reveal">
+          <div class="module-head">
+            <h3>5. 无角色链式调用</h3>
+            <div class="sub">server/chain.py · run_chain()</div>
+          </div>
+          <div class="module-body">
+            <dl>
+              <dt>模板</dt>
+              <dd>每步 <code>{input}</code> / <code>{prev_output}</code> 占位替换；<b>没有占位符则自动把上一步输出追加</b>。</dd>
+              <dt>执行</dt>
+              <dd>逐步 <code>asyncio.run(ask_platform(...))</code>，<code>stop_on_failure</code> 可中断；单步输出截断 <code>CHAIN_MAX_STEP_TEXT = 10000</code>。</dd>
+              <dt>输出</dt>
+              <dd><code>{chain_id, results[], final_output, total_latency_ms, completed_steps, truncated}</code>；HTTP <code>POST /chain</code> 要求 ≥2 步。</dd>
+            </dl>
+          </div>
+          <div class="module-foot"><div class="chips"><span class="tag acc">模板替换</span><span class="tag">逐步截断</span></div></div>
+        </div>
+
+        <!-- 6 限流 -->
+        <div class="module reveal">
+          <div class="module-head">
+            <h3>6. 限流与并发控制</h3>
+            <div class="sub">prompt_validator · config · ExecutionQueue · tab_registry</div>
+          </div>
+          <div class="module-body">
+            <dl>
+              <dt>滑动窗口</dt>
+              <dd><code>_RATE_WINDOW = 60s</code>，每平台配额 <code>PLATFORM_RATE_LIMIT</code>（chatgpt 30、其余 20），默认 20。</dd>
+              <dt>防封间隔</dt>
+              <dd>辩论同平台两次提问强制随机 <b>2–5s</b> 间隔（<code>MIN_GAP_MIN/MAX</code>，DEC-142）。</dd>
+              <dt>在途上限</dt>
+              <dd><code>MAX_PENDING = 5</code>；看门狗每 5s 扫描，超 <code>REQUEST_TIMEOUT</code> 的 pending 清理，僵尸 1h 回收。</dd>
+              <dt>串行点</dt>
+              <dd>内容脚本侧 <code>ExecutionQueue</code> 单飞行队列（单项超时 <b>130s</b>，DEC-130 防死锁）——服务端<b>不锁每标签</b>，靠它保证同页不并发写 DOM。</dd>
+              <dt>实现要点</dt>
+              <dd>后端<b>没有 Semaphore</b>，只有 <code>asyncio.Lock</code> / <code>threading.Lock</code>；跨标签并发只由 MAX_PENDING 与限流器约束。</dd>
+            </dl>
+          </div>
+          <div class="module-foot"><div class="chips"><span class="tag acc">滑动窗口</span><span class="tag">随机 2–5s</span><span class="tag">单飞行队列</span></div></div>
+        </div>
+
+        <!-- 7 去重 -->
+        <div class="module reveal">
+          <div class="module-head">
+            <h3>7. 去重、关联与流式重分块</h3>
+            <div class="sub">prompt_validator · core._check_dedup · DedupMiddleware · request_id</div>
+          </div>
+          <div class="module-body">
+            <dl>
+              <dt>三层去重</dt>
+              <dd>① 提问指纹：去标点/大小写/空白后取 12 位 MD5，TTL 60s、50 条；② 结果缓存 key <code>platform:::conversation_id:::normalized</code>；③ 内容脚本 <code>DedupMiddleware</code> 用 executing/completed 两组 <code>taskId</code> Set。</dd>
+              <dt>关联</dt>
+              <dd>每个请求 <code>request_id</code>（uuid4）贯穿 wire 上的 <code>id/request_id</code>，response、ack、chat_state、trace 全部按它归位；状态机 <code>PROMPT_SENT → ACKED → RESPONSE_COMPLETED|TIMEOUT|DISCONNECTED → CLOSE</code>。</dd>
+              <dt>流式重分块</dt>
+              <dd>桥只存<b>单调累计文本</b>，SSE 与 MCP 轮询都按长度差切片发增量——天然幂等，断线重连不丢不重。</dd>
+              <dt>注册去重</dt>
+              <dd>扩展侧 <code>register</code> 消息按 platforms+tabs 排序指纹比对，未变即抑制（DEC-220），连接重建时指纹清零保证必注册。</dd>
+            </dl>
+          </div>
+          <div class="module-foot"><div class="chips"><span class="tag acc">三重去重</span><span class="tag">长度差增量</span></div></div>
+        </div>
+
+        <!-- 8 重连保活 -->
+        <div class="module reveal">
+          <div class="module-head">
+            <h3>8. 扩展重连与保活</h3>
+            <div class="sub">connectionManager.js · contentSocket.js · serviceWorker alarms</div>
+          </div>
+          <div class="module-body">
+            <dl>
+              <dt>指数退避</dt>
+              <dd><code>delay = min(3000 × 1.5^attempt, 30000)</code>，最多 10 次（<code>MAX_RECONNECT_RETRIES</code>）。</dd>
+              <dt>心跳双层</dt>
+              <dd>SW → Bridge 每 <b>10s</b> <code>ping</code>；CS → Bridge 每 <b>20s</b> <code>cs_heartbeat</code>（快于服务端 60s 清理阈值，DEC-149）；服务端 WS 层 <code>ping_interval=15s / ping_timeout=10s</code>。</dd>
+              <dt>后台唤醒</dt>
+              <dd><code>chrome.alarms keepAlive</code> 每 <b>15s</b> 发 <code>cs_ping</code> 唤醒被 Chrome 节流的标签（DEC-130）；标签对账/清理/状态广播间隔 30s，陈旧阈值 600s（DEC-138，修复 1s 对账导致的注册风暴）。</dd>
+              <dt>解冻窗口</dt>
+              <dd>DEC-190：<code>CS_THAW_GAP=15s / CS_THAW_WAIT=20s</code>——ws 活着 ≠ 主线程可跑；心跳新鲜但内容脚本冻结时按「解冻」处理，而不是判死。</dd>
+            </dl>
+          </div>
+          <div class="module-foot"><div class="chips"><span class="tag acc">1.5^n 退避</span><span class="tag">15s alarm 保活</span></div></div>
+        </div>
+
+        <!-- 9 LLM 池 -->
+        <div class="module reveal">
+          <div class="module-head">
+            <h3>9. API Key 直连池 <span class="tag">实验通道</span></h3>
+            <div class="sub">services/llm/pool.py · client.py · models.py</div>
+          </div>
+          <div class="module-body">
+            <dl>
+              <dt>双通道</dt>
+              <dd>登录态 = <code>/ask</code> → 扩展 → DOM；API Key = <code>/llm/ask</code> → <code>call_llm()</code>（<code>run_in_executor</code>），返回 <code>{text, model, provider}</code>。</dd>
+              <dt>排序重试</dt>
+              <dd>模型按 tier（good/fair/poor）排序（DEC-171）；外层 <code>attempt ≤ max_retries(2)</code>、内层遍历模型，轮间<b>指数退避 <code>2^attempt</code> 秒</b>；单次尝试：取 key → SSE 流式或 openai 客户端 → 累积 content/reasoning。</dd>
+              <dt>Key 状态机</dt>
+              <dd><code>healthy → cooling → healthy</code> / <code>→ banned</code>：冷却基数 10s、封顶 300s；连续失败 5 次转冷却、<b>鉴权失败 2 次即封禁</b>；30s 后台线程 <code>_recover_cooled()</code> 逐步恢复。</dd>
+              <dt>选取策略</dt>
+              <dd><code>acquire(provider)</code> = 健康 key 内按 <code>last_active</code> 的 <b>LRU</b>；<code>extract_json()</code> 容忍 markdown 围栏。</dd>
+            </dl>
+          </div>
+          <div class="module-foot"><div class="chips"><span class="tag acc">tier 排序 + 2^n 退避</span><span class="tag">LRU 取 key</span><span class="tag">冷却/封禁状态机</span></div></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================= 06 平台 ======================= -->
+    <section id="platforms">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">06</div><span class="en">Platforms</span></div>
+        <div>
+          <h2>平台矩阵与适配器</h2>
+          <p>12 个平台共用 <code>web_ai_ask</code>，但能力并不齐；差异全部收敛在 PlatformAdapter 契约里。</p>
+        </div>
+      </div>
+
+      <div class="sheet reveal">
+        <div class="sheet-head">
+          <h3>平台矩阵</h3>
+          <span class="spacer"></span>
+          <span class="tag acc">platform_config.py 实测</span>
+        </div>
+        <div class="sheet-body">
+          <div class="tw">
+          <table class="matrix">
+            <thead><tr><th>平台</th><th>短名</th><th>宿主</th><th>最小超时</th><th>限流/60s</th><th>适配器</th></tr></thead>
+            <tbody>
+              <tr><td><b>ChatGPT</b></td><td><code>chatgpt</code></td><td>chatgpt.com</td><td>—（默认 300）</td><td>30</td><td>chatgpt.js 624 行 · 项目/原生会话独占</td></tr>
+              <tr><td><b>DeepSeek</b></td><td><code>deepseek</code></td><td>chat.deepseek.com</td><td><span class="minibar"><i style="width:20%"></i></span>60s</td><td>20</td><td>deepseek.js 409 行 · 支持附件</td></tr>
+              <tr><td><b>Gemini</b></td><td><code>gemini</code></td><td>gemini.google.com</td><td><span class="minibar"><i style="width:40%"></i></span>120s</td><td>20</td><td>gemini.js 371 行 · prompt 禁连续换行</td></tr>
+              <tr><td><b>Claude</b></td><td><code>claude</code></td><td>claude.ai</td><td><span class="minibar"><i style="width:60%"></i></span>180s</td><td>20（默认）</td><td>claude.js 195 行 · <span class="tag bad">不参与辩论</span></td></tr>
+              <tr><td><b>Kimi</b></td><td><code>kimi</code></td><td>www.kimi.com</td><td><span class="minibar"><i style="width:100%"></i></span>300s</td><td>20（默认）</td><td>kimi.js 357 行 · 600s 续期 / extract_last 兜底</td></tr>
+              <tr><td><b>通义千问</b></td><td><code>qwen</code></td><td>chat.qwen.ai</td><td>—（默认 300）</td><td>20（默认）</td><td>qwen.js 250 行 · 支持附件</td></tr>
+              <tr><td><b>Grok</b></td><td><code>grok</code></td><td>grok.com</td><td><span class="minibar"><i style="width:40%"></i></span>120s</td><td>20</td><td>grok.js 252 行</td></tr>
+              <tr><td><b>豆包</b></td><td><code>doubao</code></td><td>www.doubao.com</td><td><span class="minibar"><i style="width:40%"></i></span>120s</td><td>20</td><td>doubao.js 245 行 · 完成检测路径 D</td></tr>
+              <tr><td><b>智谱 GLM</b></td><td><code>glm</code></td><td>bigmodel.cn</td><td><span class="minibar"><i style="width:40%"></i></span>120s</td><td>20</td><td>glm.js 150 行</td></tr>
+              <tr><td><b>腾讯混元</b></td><td><code>hunyuan</code></td><td>aistudio.tencent.com</td><td><span class="minibar"><i style="width:40%"></i></span>120s</td><td>20</td><td>hunyuan.js 170 行</td></tr>
+              <tr><td><b>小米 MiMo</b></td><td><code>mimo</code></td><td>aistudio.xiaomimimo.com</td><td><span class="minibar"><i style="width:40%"></i></span>120s</td><td>20</td><td>mimo.js 248 行</td></tr>
+              <tr><td><b>Perplexity</b></td><td><code>perplexity</code></td><td>www.perplexity.ai</td><td><span class="minibar"><i style="width:40%"></i></span>120s</td><td>20</td><td>perplexity.js 158 行</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p style="font-size:12px;color:var(--text-3);margin:12px 0 0">
+            ChatGPT 独有「项目 / 原生会话」；其它平台多轮主要靠当前页 DOM。附件仅 DeepSeek / Qwen（且限 1 个文件）。
+          </p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>适配器契约</h3>
+            <span class="spacer"></span>
+            <span class="tag acc">interface.js · DEC-205</span>
+          </div>
+          <div class="sheet-body">
+            <div class="chips" style="margin-top:0">
+              <span class="tag acc">waitForInput</span><span class="tag acc">inject</span>
+              <span class="tag acc">submit</span><span class="tag acc">readResponse</span>
+              <span class="tag acc">detectBusy</span><span class="tag acc">warmup</span>
+              <span class="tag acc">isStopVisible</span>
+            </div>
+            <ul style="margin-top:16px;font-size:12.5px">
+              <li>构造时校验：<b>缺任何一个方法直接抛错</b>，防止半成品适配器上线。</li>
+              <li><code>waitVisibleInput</code>：40 次 × 500ms 重试；<code>pointerClick</code>：pointerdown → pointerup → click 三段事件。</li>
+              <li>可选 <code>upload()</code>（DeepSeek/Qwen 附件）；<code>capabilities</code> 声明式能力位。</li>
+              <li>回退链：无 adapter → <code>InjectionEngine.getChatState</code> → 旧 injector+reader（<code>buildFromLegacy</code>）→ <code>error:'no_engine'</code>。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>平台最小超时分布</h3>
+            <span class="spacer"></span>
+            <span class="tag acc">PLATFORM_MIN_TIMEOUT</span>
+          </div>
+          <div class="sheet-body">
+            <div class="bars" id="timeoutBars"></div>
+            <p style="font-size:12px;color:var(--text-3);margin:14px 0 0">
+              未列出的平台（chatgpt / qwen / claude 之外的默认档）走 300s 全局默认；深链平台被钳制到该值以上。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 07 接口 ======================= -->
+    <section id="interfaces">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">07</div><span class="en">Interfaces</span></div>
+        <div>
+          <h2>对外接口</h2>
+          <p>HTTP 65 条路由（21 GET 精确 + 2 GET 模式 + 42 POST 精确），MCP 22 个工具，另有 13 个 OpenCode skill 与 AI 对接。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>HTTP 端点分组</h3>
+            <span class="spacer"></span>
+            <span class="tag acc">http.py 路由表</span>
+          </div>
+          <div class="sheet-body">
+            <div class="tw">
+            <table>
+              <thead><tr><th style="width:110px">分组</th><th>代表端点</th></tr></thead>
+              <tbody>
+                <tr><td><b>健康与状态</b></td><td><code>/health</code> <code>/status</code> <code>/platforms</code> <code>/tabs</code> <code>/page-context</code> <code>/selector-health</code></td></tr>
+                <tr><td><b>提问（核心）</b></td><td><code>POST /ask</code>（阻塞）· <code>POST /ask/start</code>（异步+stream_id）· <code>GET /ask/progress</code> · <code>GET /ask/stream</code>(SSE)</td></tr>
+                <tr><td><b>编排</b></td><td><code>POST /chain</code> · <code>POST /debate/{create,run,list,close}</code> · <code>GET /debate/{state,history}</code></td></tr>
+                <tr><td><b>会话与标签</b></td><td><code>/chat/new</code> <code>/chat/new-in-project</code> <code>/chat/create-project</code> <code>/chat/conversations/sync</code> <code>/tabs/{open,close,close-all}</code> <code>/focus*</code> <code>/active</code> <code>/heartbeat</code></td></tr>
+                <tr><td><b>指标与追踪</b></td><td><code>/metrics/summary</code> <code>/metrics/failures</code> <code>/metrics/platform/{p}</code> <code>/trace/{request_id}</code> <code>/health/{status,events}</code></td></tr>
+                <tr><td><b>运维 / 管理</b></td><td><code>/admin/reload</code> <code>/admin/proxy/rotate</code> <code>/admin/{qwen,gemini,deepseek,kimi}-{probe,control}</code> <code>/admin/version</code> <code>/notify/dingtalk</code></td></tr>
+                <tr><td><span class="tag warn">占位</span></td><td><code>/events/subscribe</code> <code>/events/publish</code> → <b>501 not_implemented</b>（DEC-214-A）</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>MCP 工具</h3>
+            <span class="spacer"></span>
+            <span class="tag vio">22 tools · stdio / SSE</span>
+          </div>
+          <div class="sheet-body">
+            <h4 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 10px">核心：提问与会话</h4>
+            <div class="chips" style="margin-top:0">
+              <span class="tag acc">web_ai_ask</span><span class="tag acc">web_ai_status</span>
+              <span class="tag acc">web_ai_new_chat</span><span class="tag acc">web_ai_new_chat_in_project</span>
+              <span class="tag acc">web_ai_chain</span><span class="tag acc">web_ai_list_projects</span>
+              <span class="tag acc">web_ai_get_chat_history</span>
+            </div>
+            <h4 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--info);margin:22px 0 10px">核心：辩论（9）</h4>
+            <div class="chips" style="margin-top:0">
+              <span class="tag vio">debate_create</span><span class="tag vio">debate_ask</span>
+              <span class="tag vio">debate_state</span><span class="tag vio">debate_history</span>
+              <span class="tag vio">debate_list</span><span class="tag vio">debate_prepare</span>
+              <span class="tag vio">debate_close</span><span class="tag vio">debate_step</span>
+              <span class="tag vio">debate_run</span>
+            </div>
+            <h4 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-3);margin:22px 0 10px">运维与实验通道</h4>
+            <div class="chips" style="margin-top:0">
+              <span class="tag">web_ai_dingtalk_notify</span><span class="tag">web_ai_dingtalk_groups</span>
+              <span class="tag">web_ai_direct_llm_ask</span><span class="tag">web_ai_llm_ask</span>
+              <span class="tag">web_ai_llm_status</span><span class="tag">web_page_snapshot</span>
+            </div>
+            <ul style="margin-top:18px;font-size:12.5px">
+              <li>每个工具在<b>独立线程事件循环</b>里跑（<code>asyncio.to_thread + asyncio.run</code>），慢请求不会卡死 MCP server；注入 <code>threading.Event</code> 支持取消。</li>
+              <li><code>_ensure_bridge()</code>：Bridge 未起时自动 <code>bridge.sh start</code> 并轮询 <code>/health</code> 6×0.5s。</li>
+              <li>转发用标准库 <code>urllib.request</code>，MCP 层不持有业务状态。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet reveal">
+        <div class="sheet-head">
+          <h3>桥 ⇄ 扩展消息协议（节选）</h3>
+          <span class="spacer"></span>
+          <span class="tag">wire format</span>
+        </div>
+        <div class="sheet-body">
+          <div class="panes">
+            <div class="pane">
+              <h4>Bridge → Content Script（WS 直连）</h4>
+<pre>{<span class="k">"type"</span>: <span class="s">"execute"</span>, <span class="k">"request_id"</span>, <span class="k">"platform"</span>,
+ <span class="k">"prompt"</span>, <span class="k">"timeout"</span>, <span class="k">"bridge_driven"</span>: <span class="s">true</span>,
+ <span class="k">"stream_id"</span>?, <span class="k">"navigate_to"</span>?, <span class="k">"files"</span>?}
+{<span class="k">"type"</span>: <span class="s">"get_chat_state"</span>, <span class="k">"request_id"</span>}   <span class="c">// 轮询</span>
+{<span class="k">"type"</span>: <span class="s">"chrome_exec"</span>, <span class="k">"api"</span>, <span class="k">"args"</span>}     <span class="c">// 代理 chrome.*</span>
+{<span class="k">"type"</span>: <span class="s">"ping" | "reload_page" | "reconcile"</span>}</pre>
+            </div>
+            <div class="pane">
+              <h4>Content Script → Bridge</h4>
+<pre>{<span class="k">"type"</span>: <span class="s">"cs_hello"</span>, <span class="k">"session_id"</span>, <span class="k">"tab_id"</span>, <span class="k">"platform"</span>}
+{<span class="k">"type"</span>: <span class="s">"ack"</span>, <span class="k">"request_id"</span>}              <span class="c">// DEC-166</span>
+{<span class="k">"type"</span>: <span class="s">"chat_state"</span>, <span class="k">"stopVisible"</span>, <span class="k">"newTurn"</span>,
+        <span class="k">"isFresh"</span>, <span class="k">"stable"</span>, <span class="k">"completed"</span>, <span class="k">"hash"</span>}
+{<span class="k">"type"</span>: <span class="s">"baseline_ready"</span>, <span class="k">"request_id"</span>}   <span class="c">// DEC-146</span>
+{<span class="k">"type"</span>: <span class="s">"cs_heartbeat" | "progress" | "response"</span>}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 08 工程 ======================= -->
+    <section id="engineering">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">08</div><span class="en">Engineering</span></div>
+        <div>
+          <h2>工程与质量</h2>
+          <p>双语言测试、ruff 门禁、治理校验脚本、71 个注册脚本、13 个平台 skill——工程化程度是这个项目的隐性资产。</p>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="sheet reveal">
+          <div class="sheet-head"><h3>测试</h3></div>
+          <div class="sheet-body">
+            <ul>
+              <li>Python：<b>35</b> 个 <code>test_*.py</code> / <b>575</b> 个 <code>def test_</code>（unit 30 + integration 2 + e2e 3）</li>
+              <li>扩展：<b>27</b> 个 jest 单测文件（node 环境 + jsdom fixture HTML ×4）</li>
+              <li><code>asyncio_mode=auto</code>，e2e 默认排除、可单独跑</li>
+              <li>覆盖率：<code>branch=True</code>，<b>fail_under = 40</b></li>
+            </ul>
+            <div class="term" style="margin:16px 0 0">
+              <div class="term-bar">
+                <span class="term-dots"><i></i><i></i><i></i></span>
+                <span class="term-title">test commands</span>
+                <span class="spacer"></span>
+                <button class="copy" type="button" data-copy="testcmd">复制</button>
+              </div>
+<pre id="testcmd">npm run test:py     <span class="c"># pytest（需 PYTHONPATH）</span>
+npm test            <span class="c"># jest（扩展）</span>
+npm run test:e2e    <span class="c"># e2e</span>
+npm run validate    <span class="c"># gov-validate.sh</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet reveal">
+          <div class="sheet-head"><h3>文档与决策</h3></div>
+          <div class="sheet-body">
+            <ul>
+              <li>docs 共 <b>446</b> 篇 markdown</li>
+              <li>决策 <b>DEC-001…DEC-224</b>（224 篇）</li>
+              <li>笔记 <b>90</b> 篇 NOTE-*（YYYYMMDD-NNN 命名）</li>
+              <li>开发指南 <b>12</b> 篇 GC-*；按需参考 <b>6</b> 篇 REF-*</li>
+              <li>MkDocs Material 站点（zh），含 git revision date</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sheet reveal">
+          <div class="sheet-head"><h3>脚本与 Skill</h3></div>
+          <div class="sheet-body">
+            <ul>
+              <li><b>71</b> 个脚本，12 个前缀目录，全部登记在 <code>scripts/registry.yaml</code></li>
+              <li><code>ops-bridge-launch.sh</code> 一键全栈；<code>ops-bridge-autostart.sh</code> launchd 常驻 + 三重守卫</li>
+              <li><code>gov-validate.sh</code> 提交前 <b>0 FAIL</b> 才放行</li>
+              <li><b>13</b> 个 <code>*-interact</code> skill：<code>bridge-interact</code>（通用协议真源）+ 12 平台差异 skill</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet reveal">
+        <div class="sheet-head">
+          <h3>关键工程指标</h3>
+          <span class="spacer"></span>
+          <span class="tag acc">实测</span>
+        </div>
+        <div class="sheet-body">
+          <div class="tw">
+          <table>
+            <thead><tr><th>指标</th><th>数值</th><th>取证方式</th></tr></thead>
+            <tbody>
+              <tr><td>后端 Python</td><td><code>47 文件 / 13,747 行</code></td><td><code>find backend -name "*.py" | xargs wc -l</code></td></tr>
+              <tr><td>扩展 JS 源码</td><td><code>21,563 行</code>（+962 行 TS 类型）</td><td><code>find chrome-extension/src -name "*.js" | xargs wc -l</code></td></tr>
+              <tr><td>最大单文件</td><td><code>messageHandler.js 1,813</code> · <code>core.py 1,691</code> · <code>http.py 1,325</code> · <code>bridge_mcp.py 1,317</code></td><td>行数统计</td></tr>
+              <tr><td>HTTP 路由</td><td><code>65 = 21 + 2 + 42 + 0</code></td><td>解析 <code>_GET/_POST_HANDLERS_*</code> 路由表</td></tr>
+              <tr><td>MCP 工具</td><td><code>22</code></td><td><code>bridge_mcp.py</code> 中 <code>name="…"</code> 去重计数</td></tr>
+              <tr><td>平台适配器</td><td><code>12</code>（+ interface.js 契约）</td><td><code>platforms/adapter/</code> 目录</td></tr>
+              <tr><td>bundle 同步</td><td>background 261,321 B · content-runtime 443,116 B</td><td><code>npm run check:bundle</code></td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 09 口径 ======================= -->
+    <section id="caveats">
+      <div class="sec-head reveal">
+        <div class="sec-idx"><div class="num">09</div><span class="en">Caveats</span></div>
+        <div>
+          <h2>口径与已知边界</h2>
+          <p>产品边界与死代码一并列出——README 的「当前状态」区块是 2026-08-14 的自动生成快照，已滞后，本页数字一律以文件系统实测为准。</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>产品边界</h3>
+            <span class="spacer"></span>
+            <span class="tag bad">DEC-213</span>
+          </div>
+          <div class="sheet-body">
+            <ul>
+              <li><b>反向能力未实现</b>：「网页模型调用本地工具」不存在，别按那条价值流找工具。</li>
+              <li><b>非目标</b>：浏览历史爬虫（DEC-196~199 已冻结）、微信 OCR、治理套件当产品卖。</li>
+              <li><b>Gemini 换行</b>：连续换行在 Bridge 被折叠为空格——prompt 尽量单行。</li>
+              <li><b>Claude 不参与辩论</b>（DEC-141），能力矩阵见 <code>docs/ai/lifecycle/01_PRD.md</code>。</li>
+              <li><b>命名</b>：对外词 <code>debate</code>，Python 包 <code>discussion</code>；<code>web_ai_llm_ask</code> 是实验通道别名。</li>
+              <li><b>并发硬上限</b>：MAX_PENDING=5；MCP ask 超时钳制 ≤600s；<code>/admin/exec</code> 默认关闭。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sheet reveal">
+          <div class="sheet-head">
+            <h3>已知死代码 / 未接线</h3>
+            <span class="spacer"></span>
+            <span class="tag warn">诚实标注</span>
+          </div>
+          <div class="sheet-body">
+            <ul>
+              <li><code>event_layer.setup_event_routes()</code> 自注释「死代码：手写 HTTP 服务器未调用」；线上 <code>/events/*</code> 返回 <b>501</b>。</li>
+              <li><code>PLATFORM_CAPABILITIES</code> 的 <code>bridge_driven</code> / <code>background_tab</code> 声明后<b>从未被读</b>（实际只消费 images / projects），且与 <code>BRIDGE_DRIVEN_PLATFORMS</code>（12 平台）矛盾。</li>
+              <li>扩展 <code>constants.js</code> 里 5 平台评分矩阵、6 宿主映射已过时未用；<code>MESSAGE_TYPES</code> 与 <code>messageTypes.js</code> 两套定义部分冗余。</li>
+              <li><code>buildFromLegacy()</code> 当前无适配器使用（12 个都直接注册）；<code>dist/qwen_*.js</code> 调试脚本为历史残留。</li>
+              <li>README「当前状态」自动生成于 2026-08-14（称 DEC 109 / NOTE 77 / 六平台），实际 224 / 90 / 12 平台。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="note info reveal">
+        <b>平台差异的代价</b>：Chrome 会在后台标签冻结定时器（→ 定时逻辑必须放 Python，DEC-137）、
+        <code>ws alive ≠ 主线程 runnable</code>（→ DEC-190 解冻窗口）、fire-and-forget 派发不可靠（→ DEC-166 探针+ack）、
+        各平台停止按钮语义不同（→ DEC-210 交给适配器）。这些约束决定了上面 §05 的每一个数字。
+      </div>
+
+      <footer>
+        <b>Web AI Bridge</b> · MV3 扩展 v3.0.0 · branch feat/proxy-auto-rotate · 4af291f (2026-11-07)<br>
+        单文件展示页 · 数据来源：README / AGENTS.md / backend 实测 / chrome-extension 实测 / docs 计数 · 生成于 2026-11-08
+      </footer>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var root = document.documentElement;
+
+  /* ---------- 主题切换（默认深色） ---------- */
+  var saved = null;
+  try { saved = localStorage.getItem('wab-showcase-theme'); } catch (e) {}
+  if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved);
+  var themeBtn = document.getElementById('themeBtn');
+  themeBtn.addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('wab-showcase-theme', next); } catch (e) {}
+  });
+
+  /* ---------- 滚动进度条 ---------- */
+  var fill = document.getElementById('progressFill');
+  function updateProgress() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    fill.style.transform = 'scaleX(' + (h > 0 ? Math.min(1, window.scrollY / h) : 0) + ')';
+  }
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  window.addEventListener('resize', updateProgress);
+  updateProgress();
+
+  /* ---------- 图表数据 ---------- */
+  var LOC = [
+    ['Chrome 扩展 JS 源码', 21563, '21,563 行'],
+    ['后端 Python', 13747, '13,747 行'],
+    ['Python 测试代码', 9085, '9,085 行'],
+    ['扩展 TS 类型', 962, '962 行'],
+    ['最大单文件 messageHandler.js', 1813, '1,813 行']
+  ];
+  var TIMEOUTS = [
+    ['kimi', 300, '300s'],
+    ['claude', 180, '180s'],
+    ['gemini / grok / doubao / glm', 120, '120s'],
+    ['mimo / hunyuan / perplexity', 120, '120s'],
+    ['deepseek', 60, '60s']
+  ];
+
+  function renderBars(host, rows) {
+    var max = rows.reduce(function (m, r) { return Math.max(m, r[1]); }, 0);
+    rows.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML =
+        '<span class="bn" title="' + r[0] + '">' + r[0] + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" data-w="' +
+        ((r[1] / max) * 100).toFixed(1) + '"></span></span>' +
+        '<span class="bv">' + r[2] + '</span>';
+      host.appendChild(row);
+    });
+  }
+  var locHost = document.getElementById('locBars');
+  var timeoutHost = document.getElementById('timeoutBars');
+  renderBars(locHost, LOC);
+  renderBars(timeoutHost, TIMEOUTS);
+
+  /* ---------- 数字滚动 ---------- */
+  function animateCount(el) {
+    var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+    var start = performance.now(), dur = 1150;
+    function tick(now) {
+      var p = Math.min(1, (now - start) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function activateBars(host) {
+    var fills = host.querySelectorAll('.bar-fill');
+    Array.prototype.forEach.call(fills, function (f, i) {
+      setTimeout(function () { f.style.width = f.getAttribute('data-w') + '%'; }, i * 90);
+    });
+  }
+
+  /* ---------- 入场揭示（编排 + 交错） ---------- */
+  var revealEls = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+  var seen = (typeof WeakMap === 'function') ? new WeakMap() : null;
+  revealEls.forEach(function (el) {
+    if (!seen) return;
+    var p = el.parentNode;
+    var n = seen.get(p) || 0;
+    seen.set(p, n + 1);
+    el.style.transitionDelay = Math.min(n, 6) * 70 + 'ms';
+  });
+
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var t = en.target;
+        if (t.hasAttribute('data-count')) animateCount(t);
+        if (t.id === 'locBars' || t.id === 'timeoutBars') activateBars(t);
+        t.classList.add('in');
+        io.unobserve(t);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+
+    revealEls.forEach(function (el) { io.observe(el); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-count]'), function (e) { io.observe(e); });
+    io.observe(locHost);
+    io.observe(timeoutHost);
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-count]'), animateCount);
+    activateBars(locHost);
+    activateBars(timeoutHost);
+  }
+
+  /* ---------- 侧栏 scrollspy ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  function spy() {
+    var y = window.scrollY + 140, idx = 0;
+    sections.forEach(function (s, i) { if (s && s.offsetTop <= y) idx = i; });
+    links.forEach(function (a, i) {
+      if (i === idx) { a.classList.add('active'); } else { a.classList.remove('active'); }
+    });
+  }
+  window.addEventListener('scroll', spy, { passive: true });
+  spy();
+
+  /* ---------- 复制按钮 ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('.copy'), function (btn) {
+    btn.addEventListener('click', function () {
+      var pre = document.getElementById(btn.getAttribute('data-copy'));
+      var text = pre ? pre.innerText : '';
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(function () { btn.textContent = old; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

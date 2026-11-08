@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b1220">
+<meta name="color-scheme" content="dark">
+<title>核钟跃迁 · 光的频率与波长</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Noto+Serif+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+
+<style>
+/* =========================================================
+   01. DESIGN TOKENS
+========================================================= */
+:root {
+  --r-background-color: #0b1220;
+  --slide-w: 1600px;
+  --slide-h: 900px;
+  --page-x: 100px;
+  --page-top: 56px;
+  --page-bottom: 44px;
+  --header-h: 84px;
+  --footer-h: 48px;
+
+  --bg-void: #0b1220;
+
+  --text: #f2f6fc;
+  --muted: #a1b0c5;
+  --subtle: #8fa2ba;
+
+  --blue: #65b9ff;
+  --orange: #ffb36b;
+  --green: #6bd6ae;
+  --red: #ff8585;
+
+  --surface-blue:   rgba(101, 185, 255, 0.05);
+  --surface-red:    rgba(255, 133, 133, 0.05);
+  --surface-green:  rgba(107, 214, 174, 0.06);
+  --border-red:     rgba(255, 133, 133, 0.22);
+  --border-green:   rgba(107, 214, 174, 0.22);
+
+  --line: rgba(180, 205, 235, 0.10);
+  --line-strong: rgba(180, 205, 235, 0.25);
+
+  --font: "Newsreader", "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "IBM Plex Mono", "Noto Serif SC", "PingFang SC", monospace;
+  --font-number: "Newsreader", "Times New Roman", serif;
+
+  /* 字阶：增四度 1.413 签名 + 16% 破格 */
+  --fs-display:   78px;
+  --fs-h1:        46px;
+  --fs-lead:      26px;
+  --fs-body:      22px;
+  --fs-caption:   18px;
+  --fs-label:     15px;
+  --fs-equation:  54px;
+  --fs-step:      46px;
+  --fs-mega:      118px;
+
+  --lh-cover: 1.16;
+  --lh-title: 1.24;
+  --lh-body: 1.72;
+  --lh-equation: 1.4;
+
+  --ease-out: cubic-bezier(0.22, 0.7, 0.24, 1);
+}
+
+/* =========================================================
+   02. RESET & BACKGROUND
+========================================================= */
+* { box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%; margin: 0; overflow: hidden;
+  background-color: var(--bg-void);
+}
+
+body {
+  font-family: var(--font); color: var(--text); font-weight: 400;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+}
+
+.reveal-viewport, body {
+  background-color: var(--bg-void);
+  background-image:
+    radial-gradient(ellipse 120% 100% at 82% 8%, rgba(101, 185, 255, 0.085), transparent 55%),
+    radial-gradient(ellipse 85% 85% at 8% 92%, rgba(107, 214, 174, 0.045), transparent 55%),
+    linear-gradient(rgba(180, 205, 235, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(180, 205, 235, 0.028) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 88px 88px, 88px 88px;
+  background-attachment: fixed;
+}
+
+.grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 60;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection { background: rgba(101, 185, 255, 0.28); color: var(--text); }
+
+.reveal {
+  width: 100%; height: 100%; font-family: var(--font); color: var(--text);
+  font-size: var(--fs-lead);
+  font-synthesis: none; -webkit-font-synthesis: none;
+}
+.reveal .slides { text-align: left; }
+
+.reveal .slides section {
+  width: var(--slide-w); height: var(--slide-h);
+  padding: var(--page-top) var(--page-x) var(--page-bottom);
+  box-sizing: border-box; overflow: hidden;
+  background: transparent; color: var(--text); box-shadow: none;
+}
+
+.reveal h1, .reveal h2, .reveal h3, .reveal p { margin: 0; color: inherit; font-family: var(--font); }
+.reveal h1, .reveal h2, .reveal h3 { font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+.reveal p { line-height: var(--lh-body); text-wrap: pretty; }
+
+.reveal sub, .reveal sup {
+  font-size: 0.55em; font-style: normal;
+  font-family: inherit; font-weight: 500; letter-spacing: 0;
+}
+.reveal sub { vertical-align: -0.22em; }
+.reveal sup { vertical-align: 0.45em; }
+
+/* =========================================================
+   03. TYPOGRAPHY
+========================================================= */
+.cover-title, .slide-title { font-weight: 900; letter-spacing: -0.02em; text-wrap: balance; }
+.cover-title { font-size: var(--fs-display); line-height: var(--lh-cover); }
+.slide-title, .question-heading, .process-title, .model-headline,
+.derivation-heading, .calculation-title {
+  font-size: var(--fs-h1); line-height: var(--lh-title); font-weight: 700;
+}
+/* eyebrow → 标题：统一 48px 呼吸量 */
+.question-heading, .process-title, .model-headline,
+.derivation-heading, .calculation-title { margin-top: 48px; }
+
+.eyebrow, .label, .chapter-index, .header-meta,
+.derivation-step-label, .calculation-result-label, .answer-kicker {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label); font-weight: 600; letter-spacing: 0.16em;
+}
+
+.number, .answer-unit, .calculation-result-value, .footer-page {
+  font-family: var(--font-number), var(--font);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+.model-equation .formula, .derivation-formula, .calculation-line {
+  font-family: var(--font-number), var(--font);
+  font-size: var(--fs-equation); line-height: var(--lh-equation); font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.derivation-formula { font-size: var(--fs-step); line-height: 1.35; }
+
+.var { font-style: italic; font-family: "Newsreader", "Times New Roman", serif; font-weight: 500; }
+.blue { color: var(--blue); }
+.orange { color: var(--orange); }
+.green { color: var(--green); }
+.red { color: var(--red); }
+
+.calc-inline {
+  font-family: var(--font-number); font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.calc-inline sub { font-size: 0.66em; }
+
+/* =========================================================
+   04. SLIDE FRAME
+========================================================= */
+.slide-frame {
+  width: 100%; height: 100%;
+  display: grid; grid-template-rows: var(--header-h) minmax(0, 1fr) var(--footer-h);
+}
+.slide-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  border-bottom: 1px solid var(--line); padding-bottom: 24px;
+}
+.header-left { display: flex; align-items: center; gap: 20px; }
+.chapter-index { color: var(--blue); font-size: 16px; position: relative; }
+.chapter-index::after {
+  content: ""; position: absolute; left: 0; bottom: -26px;
+  width: 100%; height: 2px; background: var(--blue);
+}
+.chapter-name { color: var(--muted); font-size: 17px; font-weight: 400; letter-spacing: 0.04em; }
+.header-meta { color: var(--subtle); }
+.slide-main { position: relative; min-height: 0; overflow: hidden; padding-top: 32px; }
+.slide-footer {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  color: var(--subtle); font-size: 14px; letter-spacing: 0.06em;
+  border-top: 1px solid var(--line);
+  padding-top: 20px; padding-bottom: 12px;
+}
+.footer-topic { color: var(--muted); }
+
+.svg-label { fill: var(--muted); font-size: 22px; font-family: var(--font); }
+.svg-small { fill: var(--subtle); font-size: var(--fs-caption); font-family: var(--font); }
+
+.glow-blue { filter: drop-shadow(0 0 10px rgba(101, 185, 255, 0.45)); }
+.glow-orange { filter: drop-shadow(0 0 12px rgba(255, 179, 107, 0.4)); }
+.glow-green { filter: drop-shadow(0 0 12px rgba(107, 214, 174, 0.4)); }
+
+.visual-caption {
+  display: flex; justify-content: space-between;
+  color: var(--subtle); font-family: var(--font-mono);
+  font-size: 14px; letter-spacing: 0.12em;
+}
+
+/* =========================================================
+   05. SLIDE 01 — COVER
+========================================================= */
+.cover { position: relative; display: grid; grid-template-rows: 1fr 64px; height: 100%; }
+.cover-content { display: grid; grid-template-columns: 0.95fr 1.05fr; align-items: center; }
+.cover-copy { padding-right: 36px; }
+.cover-kicker {
+  display: flex; align-items: center; gap: 20px; margin-bottom: 48px;
+  color: var(--blue); font-family: var(--font-mono);
+  font-size: var(--fs-label); font-weight: 600; letter-spacing: 0.22em;
+}
+.accent-rule { width: 64px; height: 3px; background: var(--blue); }
+.cover-title .accent {
+  color: var(--blue);
+  text-shadow: 0 0 42px rgba(101, 185, 255, 0.35);
+}
+.cover-description { max-width: 560px; margin-top: 32px; color: var(--muted); font-size: var(--fs-lead); }
+.cover-divider { width: 100%; height: 1px; margin-top: 40px; background: var(--line-strong); }
+.cover-meta {
+  display: flex; gap: 32px; margin-top: 24px; color: var(--subtle);
+  font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.08em;
+}
+.cover-meta span { display: flex; align-items: center; gap: 10px; }
+.cover-meta span::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--blue); opacity: 0.7;
+}
+.cover-visual { display: flex; align-items: center; justify-content: center; height: 100%; }
+.cover-visual svg { width: 100%; height: 100%; overflow: visible; }
+.cover-bottom {
+  display: flex; justify-content: space-between;
+  border-top: 1px solid var(--line); padding-top: 20px;
+  color: var(--subtle); font-family: var(--font-mono);
+  font-size: 13px; letter-spacing: 0.12em;
+}
+.cover-hint {
+  position: absolute; right: var(--page-x); bottom: 96px;
+  color: var(--subtle); font-family: var(--font-mono); font-size: 13px;
+  letter-spacing: 0.1em; animation: hintPulse 2.6s ease-in-out infinite;
+}
+.cover-hint kbd {
+  padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: 5px;
+  color: var(--muted); font-family: inherit; font-size: 12px;
+}
+
+.orbit-ring { transform-box: view-box; transform-origin: 360px 300px; animation: spin 70s linear infinite; }
+.photon-flow { animation: photonDrift 2.8s ease-in-out infinite alternate; }
+
+/* =========================================================
+   06. SLIDE 02 — QUESTION
+========================================================= */
+.question-layout { display: grid; grid-template-columns: 1.12fr 0.88fr; gap: 56px; height: 100%; }
+.question-heading { margin-bottom: 24px; }
+.question-body {
+  color: var(--muted); font-size: var(--fs-lead);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.question-body .emphasis { color: var(--text); font-weight: 700; white-space: nowrap; }
+.question-options {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px;
+  margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line);
+}
+.option {
+  display: flex; align-items: baseline; gap: 16px;
+  padding: 16px 20px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface-blue);
+  color: var(--muted); font-size: var(--fs-body); white-space: nowrap;
+  font-variant-numeric: lining-nums tabular-nums;
+  transition: border-color 240ms ease, background 240ms ease;
+}
+.option:hover { border-color: rgba(101, 185, 255, 0.35); background: rgba(101, 185, 255, 0.09); }
+.option-letter {
+  color: var(--blue); font-weight: 700;
+  font-family: var(--font-mono); font-size: 17px; letter-spacing: 0.06em;
+}
+.question-visual svg { width: 100%; height: 470px; overflow: visible; }
+
+/* =========================================================
+   07. SLIDE 03 — PROCESS
+========================================================= */
+.process-layout { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 24px; height: 100%; }
+.process-intro { display: flex; justify-content: space-between; align-items: flex-end; }
+.process-tag {
+  color: var(--orange); font-family: var(--font-mono);
+  font-size: var(--fs-caption); letter-spacing: 0.08em;
+  padding-bottom: 6px;
+}
+.process-svg { width: 100%; height: 100%; min-height: 0; }
+.process-note {
+  display: flex; align-items: center; gap: 20px;
+  padding-top: 20px; border-top: 1px solid var(--line);
+  color: var(--muted); font-size: var(--fs-caption);
+}
+.process-note-mark { width: 7px; height: 7px; background: var(--green); border-radius: 50%; flex: none; }
+
+/* =========================================================
+   08. SLIDE 04 — MODEL
+========================================================= */
+.model-layout { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 72px; height: 100%; }
+.model-copy { display: flex; flex-direction: column; justify-content: center; }
+.model-headline { margin-bottom: 28px; }
+.model-explanation { color: var(--muted); font-size: var(--fs-lead); }
+.model-visual { display: flex; flex-direction: column; justify-content: center; }
+.model-equation { padding: 28px 0; border-bottom: 1px solid var(--line); }
+.model-equation:first-child { border-top: 1px solid var(--line); }
+.model-equation .explain { margin-top: 12px; color: var(--subtle); font-size: var(--fs-caption); }
+.direction-line { display: flex; align-items: center; gap: 20px; margin-top: 24px; }
+.direction-line svg { width: 100%; height: 76px; }
+.direction-tag { color: var(--orange); font-size: 18px; white-space: nowrap; }
+
+/* =========================================================
+   09. SLIDE 05 — DERIVATION
+========================================================= */
+.derivation-layout { display: grid; grid-template-columns: 0.78fr 1.22fr; gap: 64px; height: 100%; }
+.derivation-copy { display: flex; flex-direction: column; justify-content: center; }
+.derivation-heading { margin-bottom: 24px; }
+.derivation-description { color: var(--muted); font-size: var(--fs-lead); }
+
+.derivation-steps { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.derivation-step {
+  position: relative;
+  padding: 20px 0 20px 28px;
+  border-left: 2px solid rgba(101, 185, 255, 0.18);
+}
+.derivation-step-label { color: var(--subtle); margin-bottom: 12px; }
+.derivation-step .derivation-formula { white-space: nowrap; }
+
+.derivation-insight {
+  margin-top: 20px;
+  padding: 24px 28px;
+  background: var(--surface-blue);
+  border: 1px solid rgba(101, 185, 255, 0.22);
+  border-left: 3px solid var(--blue);
+  border-radius: 12px;
+}
+.derivation-insight-label { color: var(--blue); margin-bottom: 12px; }
+.derivation-insight-text {
+  color: var(--text); font-size: 26px; line-height: 1.5; font-weight: 700;
+}
+
+/* =========================================================
+   10. SLIDE 06 — CALCULATION
+========================================================= */
+.calculation-layout { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 24px; height: 100%; }
+.calculation-intro { display: flex; align-items: flex-end; justify-content: space-between; }
+.calculation-body { display: grid; grid-template-columns: 1fr 0.85fr; gap: 56px; }
+.calculation-formula { display: flex; flex-direction: column; justify-content: center; }
+.calculation-line { font-size: 42px; white-space: nowrap; }
+.calculation-line + .calculation-line { margin-top: 12px; }
+.calculation-result { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+.calculation-result-label { color: var(--subtle); margin-bottom: 16px; }
+.calculation-result-value {
+  color: var(--orange); font-size: 66px; line-height: 1.2; font-weight: 700; white-space: nowrap;
+  text-shadow: 0 0 36px rgba(255, 179, 107, 0.25);
+}
+.calculation-result-note { margin-top: 12px; color: var(--subtle); font-size: var(--fs-caption); }
+.calculation-visual svg { width: 100%; height: 380px; overflow: visible; }
+.calculation-footnote {
+  color: var(--muted); font-size: var(--fs-caption);
+  padding-top: 20px; border-top: 1px solid var(--line);
+}
+
+/* =========================================================
+   11. SLIDE 07 — ANSWER
+========================================================= */
+.answer-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; height: 100%; }
+.answer-main { display: flex; flex-direction: column; justify-content: center; }
+.answer-kicker { color: var(--subtle); margin-bottom: 48px; }
+.answer-value { display: flex; align-items: baseline; gap: 24px; }
+.answer-letter {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mega); line-height: 0.9; color: var(--green);
+  font-weight: 600; letter-spacing: -0.04em;
+  text-shadow: 0 0 48px rgba(107, 214, 174, 0.35);
+}
+.answer-unit { font-size: 38px; line-height: 1.3; color: var(--text); font-weight: 400; white-space: nowrap; }
+.answer-direction { margin-top: 32px; color: var(--muted); font-size: var(--fs-lead); line-height: 1.75; }
+.answer-visual { display: flex; flex-direction: column; justify-content: center; }
+.answer-visual svg { width: 100%; height: 430px; overflow: visible; }
+.answer-summary {
+  margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);
+  color: var(--muted); font-size: 17px; line-height: 1.8;
+}
+
+/* =========================================================
+   12. SLIDE 08 — ERROR ANALYSIS
+========================================================= */
+.error-layout { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 36px; height: 100%; }
+.error-head { display: flex; align-items: flex-end; justify-content: space-between; }
+.error-columns {
+  display: grid; grid-template-columns: 1.16fr 0.84fr; gap: 44px;
+  align-items: start; align-content: start;
+}
+.error-card {
+  padding: 24px 28px;
+  background: var(--surface-red);
+  border: 1px solid var(--border-red);
+  border-left: 3px solid var(--red);
+  border-radius: 12px; margin-bottom: 20px;
+}
+.error-title {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--red); font-weight: 700; font-size: 19px;
+  margin-bottom: 12px; letter-spacing: 0.03em;
+}
+.error-num {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  letter-spacing: 0.12em; color: rgba(255, 133, 133, 0.75);
+  border: 1px solid var(--border-red); border-radius: 5px; padding: 4px 8px;
+}
+.error-desc { color: var(--muted); font-size: 17px; line-height: 1.75; }
+.note-card {
+  background: var(--surface-green);
+  border: 1px solid var(--border-green);
+  border-left: 3px solid var(--green);
+  padding: 24px 28px; border-radius: 12px;
+}
+.note-title {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--green); font-weight: 700; font-size: 19px; margin-bottom: 16px;
+}
+.note-body { color: var(--muted); font-size: 17px; line-height: 1.85; }
+.note-motto {
+  margin: 16px 0; padding: 16px 24px;
+  background: var(--surface-green); border-radius: 10px;
+  color: var(--text); font-size: 21px; line-height: 1.9; font-weight: 700;
+}
+
+/* =========================================================
+   13. REVEAL UI
+========================================================= */
+.reveal .controls {
+  right: 24px; bottom: 18px; color: var(--blue);
+  opacity: 0.35; transform: scale(0.68); transform-origin: bottom right;
+  transition: opacity 240ms ease;
+}
+.reveal .controls:hover { opacity: 0.9; }
+.reveal .controls button:focus-visible { outline: 2px solid var(--blue); opacity: 1; }
+.reveal .progress { height: 2px; color: var(--blue); background: rgba(180, 205, 235, 0.05); }
+.reveal .slide-number { display: none; }
+
+/* =========================================================
+   14. MOTION
+========================================================= */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOnly { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drawRule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes photonDrift {
+  from { opacity: 0.75; transform: translateX(0); }
+  to   { opacity: 1;    transform: translateX(14px); }
+}
+@keyframes hintPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.9; } }
+
+.reveal .slides section.present .rise { animation: rise 0.75s var(--ease-out) both; }
+.reveal .slides section.present .fade { animation: fadeOnly 1s ease both; }
+.reveal .slides section.present .d1 { animation-delay: 0.10s; }
+.reveal .slides section.present .d2 { animation-delay: 0.20s; }
+.reveal .slides section.present .d3 { animation-delay: 0.30s; }
+.reveal .slides section.present .d4 { animation-delay: 0.40s; }
+.reveal .slides section.present .d5 { animation-delay: 0.50s; }
+.reveal .slides section.present .d6 { animation-delay: 0.60s; }
+.reveal .slides section.present .rule-anim {
+  transform-origin: left center;
+  animation: drawRule 0.9s var(--ease-out) both;
+}
+
+/* =========================================================
+   15. RESPONSIVE / PRINT
+========================================================= */
+.viewport-tip { display: none; }
+@media (max-width: 720px) and (orientation: portrait) {
+  .viewport-tip {
+    display: block; position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    padding: 10px 20px; border-radius: 999px;
+    background: rgba(16, 24, 39, 0.92); border: 1px solid var(--line-strong);
+    color: var(--muted); font-family: var(--font-mono); font-size: 13px;
+    letter-spacing: 0.06em; z-index: 100;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+@media print {
+  @page { size: 1600px 900px; margin: 0; }
+  html, body { overflow: visible; background: white; }
+  .reveal .slides section { position: relative; display: block !important; page-break-after: always; }
+  .reveal .controls, .reveal .progress, .cover-hint, .viewport-tip, .grain { display: none !important; }
+}
+
+/* =========================================================
+   16. 间距工具类
+========================================================= */
+.stack-16 { margin-top: 16px; }
+.stack-20 { margin-top: 20px; }
+.stack-24 { margin-top: 24px; }
+.stack-32 { margin-top: 32px; }
+.stack-48 { margin-top: 48px; }
+</style>
+</head>
+
+<body>
+
+<!-- 共享 SVG 资产：原子核 / 光子波 / 激光头 / 箭头（单一事实来源） -->
+<svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="nucleusGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f2f6fc"/><stop offset="100%" stop-color="#9eafc4"/>
+    </linearGradient>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#65b9ff"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#ffb36b"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#6bd6ae"/>
+    </marker>
+
+    <g id="nucleusG">
+      <circle r="30" fill="url(#nucleusGrad)"/>
+      <circle cx="-11" cy="-9" r="8.5" fill="#65b9ff" opacity="0.9"/>
+      <circle cx="10" cy="7" r="8.5" fill="#24344b"/>
+      <circle cx="11" cy="-11" r="6.5" fill="#8fa2ba"/>
+      <circle cx="-9" cy="12" r="6.5" fill="#172235"/>
+    </g>
+
+    <g id="photonG">
+      <path d="M0 0 q 10 -14 20 0 t 20 0 t 20 0 t 20 0"
+            stroke="#65b9ff" stroke-width="5.5" fill="none" stroke-linecap="round"
+            marker-end="url(#arrowBlue)"/>
+    </g>
+
+    <g id="laserG">
+      <rect x="-52" y="-26" width="76" height="52" rx="10" fill="#24344b" stroke="rgba(180,205,235,.28)"/>
+      <rect x="24" y="-12" width="26" height="24" rx="5" fill="#172235" stroke="#65b9ff" stroke-width="3.5"/>
+      <circle cx="-18" cy="0" r="7" fill="#65b9ff"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="reveal">
+<div class="slides">
+
+<!-- ================= SLIDE 01 — COVER ================= -->
+<section data-transition="fade">
+  <div class="cover">
+    <div class="cover-content">
+      <div class="cover-copy">
+        <div class="cover-kicker rise"><span class="accent-rule"></span><span>PHYSICS · NUCLEAR CLOCK</span></div>
+        <h1 class="cover-title rise d1">核钟跃迁<br><span class="accent">光的频率与波长</span></h1>
+        <p class="cover-description rise d2">一束激光能否激发原子核跃迁，取决于光子的能量而不是光的强弱——一道选择题，拆开能级差、频率与波长的换算链。</p>
+        <div class="cover-divider rule-anim d3"></div>
+        <div class="cover-meta rise d4">
+          <span>能级跃迁</span>
+          <span>光子能量 hν</span>
+          <span>频率与波长</span>
+        </div>
+      </div>
+      <div class="cover-visual fade d2">
+        <svg viewBox="0 0 720 650" role="img" aria-label="光子激发原子核从基态跃迁至激发态">
+          <g class="orbit-ring">
+            <circle cx="360" cy="300" r="185" fill="none" stroke="rgba(180,205,235,.12)" stroke-dasharray="4 14"/>
+          </g>
+          <circle cx="360" cy="300" r="252" fill="none" stroke="rgba(180,205,235,.08)"/>
+          <path d="M80 300 H640" stroke="rgba(180,205,235,.10)" stroke-dasharray="5 10"/>
+          <path d="M360 30 V610" stroke="rgba(180,205,235,.08)" stroke-dasharray="5 10"/>
+
+          <path d="M150 430 H570" stroke="rgba(180,205,235,.4)" stroke-width="3"/>
+          <path d="M150 185 H570" stroke="rgba(180,205,235,.28)" stroke-width="3" stroke-dasharray="10 8"/>
+          <text x="572" y="200" class="svg-small">激发态 E₂</text>
+          <text x="572" y="448" class="svg-small">基态 E₁</text>
+
+          <g class="glow-orange">
+            <path d="M470 195 V420" stroke="#ffb36b" stroke-width="5" fill="none" marker-end="url(#arrowOrange)"/>
+          </g>
+          <text x="495" y="315" class="svg-label" fill="#ffb36b">ΔE = hν</text>
+
+          <use href="#nucleusG" transform="translate(230 430)"/>
+          <g class="photon-flow glow-blue">
+            <use href="#photonG" transform="translate(95 372) rotate(14) scale(1.15)"/>
+            <use href="#photonG" transform="translate(78 430) rotate(0) scale(1.15)"/>
+            <use href="#photonG" transform="translate(95 488) rotate(-14) scale(1.15)"/>
+          </g>
+          <text x="95" y="555" class="svg-label" fill="#65b9ff">光子 hν 射来</text>
+
+          <text x="360" y="628" text-anchor="middle" class="svg-small">频率匹配 · 吸收发生</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="cover-bottom">
+      <span>物理习题讲解</span>
+      <span>01 · PHOTON &amp; NUCLEAR TRANSITION</span>
+    </div>
+
+    <div class="cover-hint">按 <kbd>→</kbd> 开始 · 按 <kbd>O</kbd> 总览</div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 02 — QUESTION ================= -->
+<section data-transition="slide">
+  <div class="slide-frame">
+    <header class="slide-header">
+      <div class="header-left"><span class="chapter-index">01</span><span class="chapter-name">题目呈现</span></div>
+      <span class="header-meta">QUESTION</span>
+    </header>
+    <main class="slide-main">
+      <div class="question-layout">
+        <div class="question-text">
+          <div class="eyebrow rise">READ THE QUESTION</div>
+          <h2 class="question-heading rise d1">激发原子核跃迁</h2>
+
+          <p class="question-body rise d2">核钟是基于原子核能级跃迁建立高精度时间标准的装置。现有一种激光能够激发某原子核从基态跃迁至激发态，其能级差约为 <span class="emphasis">1.3 × 10<sup>−18</sup> J</span>，普朗克常量 <span class="emphasis">h = 6.6 × 10<sup>−34</sup> J·s</span>，真空中光速 <span class="emphasis">c = 3.0 × 10<sup>8</sup> m/s</span>。</p>
+          <p class="question-body stack-20 rise d3">关于该激光，下列说法正确的是？</p>
+
+          <div class="question-options rise d4">
+            <div class="option"><span class="option-letter">A.</span><span>光强倍增，此跃迁不能发生</span></div>
+            <div class="option"><span class="option-letter">B.</span><span>光强减半，此跃迁不能发生</span></div>
+            <div class="option"><span class="option-letter">C.</span><span>频率约为 2.0 × 10<sup>16</sup> Hz</span></div>
+            <div class="option"><span class="option-letter">D.</span><span>波长约为 1.5 × 10<sup>−7</sup> m</span></div>
+          </div>
+        </div>
+
+        <div class="question-visual fade d2">
+          <div class="visual-caption"><span>物理情境</span><span>光子共振吸收</span></div>
+          <svg viewBox="0 0 650 520" role="img" aria-label="激光照射原子核，光子能量与能级差匹配">
+            <path d="M150 350 H520" stroke="rgba(180,205,235,.4)" stroke-width="3"/>
+            <path d="M150 130 H520" stroke="rgba(180,205,235,.28)" stroke-width="3" stroke-dasharray="10 8"/>
+            <text x="524" y="145" class="svg-small">激发态 E₂</text>
+            <text x="524" y="368" class="svg-small">基态 E₁</text>
+
+            <g class="glow-orange">
+              <path d="M430 140 V340" stroke="#ffb36b" stroke-width="5" fill="none" marker-end="url(#arrowOrange)"/>
+            </g>
+            <text x="450" y="250" class="svg-label" fill="#ffb36b">ΔE</text>
+
+            <g class="glow-blue">
+              <use href="#laserG" transform="translate(120 250) rotate(12) scale(0.9)"/>
+            </g>
+            <g class="photon-flow glow-blue">
+              <use href="#photonG" transform="translate(175 235) rotate(20) scale(1.1)"/>
+              <use href="#photonG" transform="translate(165 300) rotate(6) scale(1.1)"/>
+            </g>
+            <use href="#nucleusG" transform="translate(310 350) scale(0.85)"/>
+            <text x="310" y="435" text-anchor="middle" class="svg-label">原子核</text>
+
+            <text x="325" y="490" text-anchor="middle" class="svg-small">光子能量须等于能级差 ΔE</text>
+          </svg>
+        </div>
+      </div>
+    </main>
+    <footer class="slide-footer"><span class="footer-topic">先判断跃迁条件，再算频率与波长</span><span class="footer-page">02 / 08</span></footer>
+  </div>
+</section>
+
+<!-- ================= SLIDE 03 — PHYSICAL PROCESS ================= -->
+<section data-transition="slide">
+  <div class="slide-frame">
+    <header class="slide-header">
+      <div class="header-left"><span class="chapter-index">02</span><span class="chapter-name">物理过程</span></div>
+      <span class="header-meta">PHYSICAL PROCESS</span>
+    </header>
+    <main class="slide-main">
+      <div class="process-layout">
+        <div class="process-intro">
+          <div>
+            <div class="eyebrow rise">BEFORE &amp; AFTER</div>
+            <h2 class="process-title rise d1">吸收光子前后，原子核发生了什么？</h2>
+          </div>
+          <span class="process-tag rise d2">系统：原子核 + 入射光子</span>
+        </div>
+
+        <svg class="process-svg fade d2" viewBox="0 0 1400 500" role="img" aria-label="吸收前后能级跃迁对比图">
+          <g transform="translate(70 0)">
+            <text x="0" y="55" class="svg-label">吸收前</text>
+            <text x="0" y="92" class="svg-small">原子核处于基态</text>
+            <rect x="0" y="130" width="520" height="270" rx="6" fill="rgba(101,185,255,.03)" stroke="rgba(180,205,235,.2)"/>
+
+            <path d="M120 340 H470" stroke="rgba(180,205,235,.4)" stroke-width="3"/>
+            <path d="M120 195 H470" stroke="rgba(180,205,235,.28)" stroke-width="3" stroke-dasharray="10 8"/>
+            <text x="472" y="205" class="svg-small">E₂</text>
+            <text x="472" y="355" class="svg-small">E₁</text>
+
+            <g class="photon-flow glow-blue">
+              <use href="#photonG" transform="translate(60 250) rotate(18) scale(1.0)"/>
+            </g>
+            <text x="52" y="300" class="svg-small" fill="#65b9ff">光子 hν</text>
+            <use href="#nucleusG" transform="translate(300 340) scale(0.62)"/>
+            <text x="300" y="385" text-anchor="middle" class="svg-small">基态</text>
+          </g>
+
+          <g transform="translate(650 260)">
+            <path class="glow-blue" d="M-55 0 H100" stroke="#65b9ff" stroke-width="4" fill="none" marker-end="url(#arrowBlue)" stroke-linecap="round"/>
+            <text x="20" y="-32" text-anchor="middle" class="svg-small">吸收</text>
+            <text x="20" y="42" text-anchor="middle" class="svg-small">跃迁</text>
+          </g>
+
+          <g transform="translate(810 0)">
+            <text x="0" y="55" class="svg-label">吸收后瞬间</text>
+            <text x="0" y="92" class="svg-small">原子核跃迁至激发态</text>
+            <rect x="0" y="130" width="520" height="270" rx="6" fill="rgba(255,179,107,.03)" stroke="rgba(180,205,235,.2)"/>
+
+            <path d="M120 340 H470" stroke="rgba(180,205,235,.4)" stroke-width="3" stroke-dasharray="10 8" opacity="0.5"/>
+            <path d="M120 195 H470" stroke="rgba(180,205,235,.4)" stroke-width="3"/>
+            <text x="472" y="205" class="svg-small">E₂</text>
+            <text x="472" y="355" class="svg-small">E₁</text>
+
+            <g class="glow-orange">
+              <path d="M215 330 V215" stroke="#ffb36b" stroke-width="5" fill="none" marker-end="url(#arrowOrange)"/>
+            </g>
+            <text x="232" y="280" class="svg-small" fill="#ffb36b">ΔE = hν</text>
+            <use href="#nucleusG" transform="translate(350 195) scale(0.62)"/>
+            <text x="350" y="150" text-anchor="middle" class="svg-small">激发态</text>
+            <text x="120" y="385" class="svg-small" fill="#65b9ff">光子被吸收</text>
+          </g>
+        </svg>
+
+        <div class="process-note rise d3">
+          <span class="process-note-mark"></span>
+          <span>只有当光子能量 hν 等于能级差 ΔE 时，吸收才会发生；与光的强弱无关。</span>
+        </div>
+      </div>
+    </main>
+    <footer class="slide-footer"><span class="footer-topic">共振吸收：能量必须精确匹配</span><span class="footer-page">03 / 08</span></footer>
+  </div>
+</section>
+
+<!-- ================= SLIDE 04 — MODEL ================= -->
+<section data-transition="slide">
+  <div class="slide-frame">
+    <header class="slide-header">
+      <div class="header-left"><span class="chapter-index">03</span><span class="chapter-name">建立模型</span></div>
+      <span class="header-meta">RESONANCE CONDITION</span>
+    </header>
+    <main class="slide-main">
+      <div class="model-layout">
+        <div class="model-copy">
+          <div class="eyebrow rise">WHY INTENSITY DOESN'T MATTER</div>
+          <h2 class="model-headline rise d1">为什么光强<br>不影响跃迁？</h2>
+          <p class="model-explanation rise d2">一个原子核一次吸收<span class="blue">一个光子</span>，决定能否跃迁的，是这个光子的能量 <span class="orange">hν</span> 是否恰好等于能级差 ΔE。</p>
+          <p class="model-explanation stack-24 rise d3">光强描述的是单位时间内光子的<span class="blue">数量</span>。改变光强只是改变了光子数量，并不改变单个光子的能量。</p>
+        </div>
+
+        <div class="model-visual">
+          <div class="model-equation rise d2">
+            <div class="label">跃迁条件</div>
+            <div class="formula"><span class="var orange">h</span><span class="var">ν</span> = Δ<span class="var">E</span></div>
+            <div class="explain">光子能量与能级差精确匹配，吸收才能发生</div>
+          </div>
+          <div class="model-equation rise d3">
+            <div class="label">光强的含义</div>
+            <div class="formula"><span class="var">I</span> = <span class="var">n</span> · <span class="var orange">h</span><span class="var">ν</span></div>
+            <div class="explain">光强 = 光子数量 × 单光子能量（n 为光子数）</div>
+          </div>
+          <div class="model-equation rise d4">
+            <div class="label">判定</div>
+            <div class="direction-line">
+              <span class="direction-tag">光强 ×2 或 ÷2</span>
+              <svg viewBox="0 0 500 84" role="img" aria-label="光强变化，跃迁照常">
+                <path d="M30 42 H470" stroke="#ffb36b" stroke-width="4" fill="none" marker-end="url(#arrowOrange)" stroke-linecap="round"/>
+                <text x="30" y="25" class="svg-small">跃迁不发生？</text>
+                <text x="470" y="25" text-anchor="end" class="svg-small">跃迁照常发生</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="slide-footer"><span class="footer-topic">条件在频率，不在强度</span><span class="footer-page">04 / 08</span></footer>
+  </div>
+</section>
+
+<!-- ================= SLIDE 05 — DERIVATION ================= -->
+<section data-transition="slide">
+  <div class="slide-frame">
+    <header class="slide-header">
+      <div class="header-left"><span class="chapter-index">04</span><span class="chapter-name">推导关系</span></div>
+      <span class="header-meta">PHOTON EQUATIONS</span>
+    </header>
+    <main class="slide-main">
+      <div class="derivation-layout">
+        <div class="derivation-copy">
+          <div class="eyebrow rise">FROM THE PHOTON ENERGY</div>
+          <h2 class="derivation-heading rise d1">从能级差<br>算频率与波长</h2>
+          <p class="derivation-description rise d2">由跃迁条件 ΔE = hν 求出频率 ν，再用 c = λν 换算出波长 λ。</p>
+          <p class="derivation-description stack-24 rise d3">两个公式、两个未知数，逐级代入即可。</p>
+        </div>
+
+        <div class="derivation-steps">
+          <div class="derivation-step rise d2">
+            <div class="derivation-step-label">STEP 01 / 跃迁条件</div>
+            <div class="derivation-formula">Δ<span class="var">E</span> = <span class="var orange">h</span><span class="var">ν</span></div>
+          </div>
+          <div class="derivation-step rise d3">
+            <div class="derivation-step-label">STEP 02 / 求频率</div>
+            <div class="derivation-formula"><span class="var">ν</span> = Δ<span class="var">E</span> / <span class="var orange">h</span></div>
+          </div>
+          <div class="derivation-step rise d4">
+            <div class="derivation-step-label">STEP 03 / 求波长</div>
+            <div class="derivation-formula"><span class="var">λ</span> = <span class="var blue">c</span> / <span class="var">ν</span></div>
+          </div>
+
+          <div class="derivation-insight rise d5">
+            <div class="derivation-insight-label">关键理解 / KEY INSIGHT</div>
+            <div class="derivation-insight-text">光强只改变光子数量，不改变单光子能量 hν</div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="slide-footer"><span class="footer-topic">先求频率，再换算波长</span><span class="footer-page">05 / 08</span></footer>
+  </div>
+</section>
+
+<!-- ================= SLIDE 06 — CALCULATION ================= -->
+<section data-transition="slide">
+  <div class="slide-frame">
+    <header class="slide-header">
+      <div class="header-left"><span class="chapter-index">05</span><span class="chapter-name">数值计算</span></div>
+      <span class="header-meta">CALCULATION</span>
+    </header>
+    <main class="slide-main">
+      <div class="calculation-layout">
+        <div class="calculation-intro">
+          <div>
+            <div class="eyebrow rise">PLUG IN THE NUMBERS</div>
+            <h2 class="calculation-title rise d1">代入数据，求频率与波长</h2>
+          </div>
+          <span class="eyebrow rise d2">SI UNITS</span>
+        </div>
+
+        <div class="calculation-body">
+          <div class="calculation-formula">
+            <div class="calculation-line rise d2">Δ<span class="var">E</span> = 1.3 × 10<sup>−18</sup> J</div>
+            <div class="calculation-line rise d3"><span class="var">ν</span> = Δ<span class="var">E</span> / <span class="var">h</span> ≈ 2.0 × 10<sup>15</sup> Hz</div>
+            <div class="calculation-line rise d4"><span class="var">λ</span> = <span class="var">c</span> / <span class="var">ν</span> = 3.0×10<sup>8</sup> / 2.0×10<sup>15</sup></div>
+
+            <div class="calculation-result rise d5">
+              <div class="calculation-result-label">激光波长</div>
+              <div class="calculation-result-value">λ ≈ 1.5 × 10<sup>−7</sup> m</div>
+              <div class="calculation-result-note">对应频率约为 2.0 × 10<sup>15</sup> Hz（紫外线波段）</div>
+            </div>
+          </div>
+
+          <div class="calculation-visual fade d3">
+            <svg viewBox="0 0 650 430" role="img" aria-label="能级差与光子能量匹配示意">
+              <path d="M150 330 H520" stroke="rgba(180,205,235,.4)" stroke-width="3"/>
+              <path d="M150 120 H520" stroke="rgba(180,205,235,.28)" stroke-width="3" stroke-dasharray="10 8"/>
+              <text x="524" y="135" class="svg-small">激发态</text>
+              <text x="524" y="348" class="svg-small">基态</text>
+
+              <g class="glow-orange">
+                <path d="M415 130 V320" stroke="#ffb36b" stroke-width="5" fill="none" marker-end="url(#arrowOrange)"/>
+              </g>
+              <text x="432" y="235" class="svg-label" fill="#ffb36b">ΔE = 1.3×10<sup>−18</sup> J</text>
+
+              <g class="photon-flow glow-blue">
+                <use href="#photonG" transform="translate(70 250) rotate(22) scale(1.05)"/>
+              </g>
+              <text x="60" y="315" class="svg-small" fill="#65b9ff">ν ≈ 2.0×10<sup>15</sup> Hz</text>
+              <use href="#nucleusG" transform="translate(275 330) scale(0.7)"/>
+
+              <text x="330" y="410" text-anchor="middle" class="svg-small">频率匹配，吸收发生</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="calculation-footnote rise d5">C 选项把指数写成了 10<sup>16</sup>：1.3 ÷ 6.6 ≈ 0.2，须先把系数归一到 1~10，得 2.0 × 10<sup>15</sup> Hz——<span class="orange">指数错一位，答案就换人</span>。</div>
+      </div>
+    </main>
+    <footer class="slide-footer"><span class="footer-topic">先求频率，再换算波长</span><span class="footer-page">06 / 08</span></footer>
+  </div>
+</section>
+
+<!-- ================= SLIDE 07 — ANSWER ================= -->
+<section data-transition="fade">
+  <div class="slide-frame">
+    <header class="slide-header">
+      <div class="header-left"><span class="chapter-index">06</span><span class="chapter-name">答案揭晓</span></div>
+      <span class="header-meta">FINAL ANSWER</span>
+    </header>
+    <main class="slide-main">
+      <div class="answer-layout">
+        <div class="answer-main">
+          <div class="answer-kicker rise">CORRECT ANSWER</div>
+          <div class="answer-value rise d1">
+            <span class="answer-letter">D</span>
+            <span class="answer-unit">λ ≈ 1.5 × 10<sup>−7</sup> m</span>
+          </div>
+          <p class="answer-direction rise d2">
+            激光波长约为 <span class="green">1.5 × 10<sup>−7</sup> m</span>。<br>
+            光强变化不影响跃迁（A、B 错）；频率约为 2.0 × 10<sup>15</sup> Hz（C 错）。
+          </p>
+        </div>
+
+        <div class="answer-visual">
+          <svg class="fade d2" viewBox="0 0 650 460" role="img" aria-label="跃迁条件与波长结论示意">
+            <path d="M120 340 H540" stroke="rgba(180,205,235,.4)" stroke-width="3"/>
+            <path d="M120 130 H540" stroke="rgba(180,205,235,.28)" stroke-width="3" stroke-dasharray="10 8"/>
+            <text x="544" y="145" class="svg-small">激发态 E₂</text>
+            <text x="544" y="358" class="svg-small">基态 E₁</text>
+
+            <g class="glow-orange">
+              <path d="M395 140 V330" stroke="#ffb36b" stroke-width="5" fill="none" marker-end="url(#arrowOrange)"/>
+            </g>
+            <text x="412" y="245" class="svg-label" fill="#ffb36b">ΔE = hν</text>
+
+            <g class="photon-flow glow-blue">
+              <use href="#photonG" transform="translate(65 255) rotate(20) scale(1.05)"/>
+            </g>
+            <text x="55" y="320" class="svg-small" fill="#65b9ff">ν ≈ 2.0×10<sup>15</sup> Hz</text>
+            <use href="#nucleusG" transform="translate(245 340) scale(0.75)"/>
+
+            <path class="glow-green" d="M120 415 H540" stroke="#6bd6ae" stroke-width="4" fill="none" marker-end="url(#arrowGreen)" stroke-linecap="round"/>
+            <text x="130" y="400" class="svg-label" fill="#6bd6ae">λ ≈ 1.5 × 10<sup>−7</sup> m</text>
+          </svg>
+
+          <div class="answer-summary rise d3">
+            <span class="green" style="font-weight:700;">共振吸收</span>
+            跃迁是否发生，取决于光子能量是否等于能级差；频率决定能量，频率也决定波长，光强只决定光子的数量。
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="slide-footer"><span class="footer-topic">核心：hν = ΔE</span><span class="footer-page">07 / 08</span></footer>
+  </div>
+</section>
+
+<!-- ================= SLIDE 08 — ERROR ANALYSIS ================= -->
+<section data-transition="slide">
+  <div class="slide-frame">
+    <header class="slide-header">
+      <div class="header-left"><span class="chapter-index">07</span><span class="chapter-name">错题排查</span></div>
+      <span class="header-meta">ERROR ANALYSIS</span>
+    </header>
+    <main class="slide-main">
+      <div class="error-layout">
+        <div class="error-head">
+          <div>
+            <div class="eyebrow rise red">SPOT THE TRAPS</div>
+            <h2 class="slide-title rise d1 stack-48">这道题最容易犯哪些错误？</h2>
+          </div>
+          <span class="process-tag rise d2">两个高频陷阱</span>
+        </div>
+
+        <div class="error-columns">
+          <div>
+            <div class="error-card rise d2">
+              <div class="error-title"><span class="error-num">ERROR 01</span>把光强当成光子能量</div>
+              <div class="error-desc">认为"光更强 = 光子能量更大 = 能打上去"。光强只改变光子的数量，单个光子的能量由频率决定，跃迁条件始终是 <span class="calc-inline">h<span class="var">ν</span> = Δ<span class="var">E</span></span>，与光强无关。</div>
+            </div>
+            <div class="error-card rise d3">
+              <div class="error-title"><span class="error-num">ERROR 02</span>科学记数法指数算错</div>
+              <div class="error-desc">把 <span class="calc-inline">ν = Δ<span class="var">E</span>/<span class="var">h</span> = 1.3×10<sup>−18</sup> / 6.6×10<sup>−34</sup></span> 直接写成 2.0 × 10<sup>16</sup> Hz。1.3 ÷ 6.6 ≈ 0.2，先把系数归一到 1~10，得 <span class="green">2.0 × 10<sup>15</sup> Hz</span>，C 选项正是在这里失分。</div>
+            </div>
+          </div>
+
+          <div class="note-card rise d4">
+            <div class="note-title">学霸笔记</div>
+            <div class="note-body">
+              遇到“光与能级”类问题，默念口诀：
+              <div class="note-motto">能级差定频率，频率定波长；<br>光强再变，跃迁照常。</div>
+              计算时把 10 的幂单独处理：指数相减后，再把系数归一到 1~10 之间，指数错一位就会选到干扰项。
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="slide-footer"><span class="footer-topic">掌握共振吸收的核心逻辑</span><span class="footer-page">08 / 08</span></footer>
+  </div>
+</section>
+
+</div>
+</div>
+
+<div class="viewport-tip" role="status">建议横屏或更大屏幕 · 以保持排版比例</div>
+<div class="grain" aria-hidden="true"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  Reveal.initialize({
+    width: 1600,
+    height: 900,
+    margin: 0,
+    minScale: 0.2,
+    maxScale: 2.0,
+    hash: true,
+    keyboard: true,
+    controls: true,
+    progress: true,
+    slideNumber: false,
+    overview: true,
+    center: false,
+    disableLayout: false,
+    transition: prefersReducedMotion ? "none" : "slide",
+    transitionSpeed: "default",
+    backgroundTransition: prefersReducedMotion ? "none" : "fade",
+    fragments: false,
+    touch: true,
+    accessibility: { enabled: true }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="业务分析资源地图 — 工作流、材料组件、专业补给站">
+<title>业务分析资源地图 · Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f3efe6;--surface:#eae4d6;
+  --ink:#1b211e;--ink-2:#4c554e;--ink-3:#8b9189;
+  --accent:#c2451b;--accent-ink:#9c3312;--moss:#3a6252;
+  --rule:rgba(27,33,30,.13);--rule-2:rgba(27,33,30,.28);
+  --ease:cubic-bezier(.22,.75,.24,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:"Noto Serif SC",serif;font-size:15px;line-height:1.9;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:9998;pointer-events:none;opacity:.04;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+a{color:inherit;text-decoration:none}
+em{font-style:italic}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(243,239,230,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--rule)}
+.nav-in{max-width:1200px;margin:0 auto;padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.brand{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:18px;white-space:nowrap;cursor:pointer}
+.brand em{color:var(--accent)}
+.nav-links{display:flex;gap:22px}
+.nav-links a{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding-bottom:3px;border-bottom:1px solid transparent;transition:.3s var(--ease);cursor:pointer}
+.nav-links a:hover,.nav-links a.active{color:var(--accent);border-color:var(--accent)}
+.nav-back{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;transition:.3s;display:none}
+.nav-back:hover{color:var(--accent)}
+@media(max-width:840px){.nav-links{display:none}}
+
+#app{min-height:100vh;padding-top:56px}
+.page{max-width:1100px;margin:0 auto;padding:48px 32px 80px;animation:pageIn .5s var(--ease) both}
+.page-narrow{max-width:820px}
+@keyframes pageIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+.crumb{display:flex;align-items:center;gap:10px;margin-bottom:36px;font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);flex-wrap:wrap}
+.crumb a{color:var(--ink-2);cursor:pointer;transition:.25s}
+.crumb a:hover{color:var(--accent)}
+.crumb .sep{opacity:.4}
+.crumb .cur{color:var(--accent)}
+
+.home-hero{padding:72px 0 56px;display:grid;grid-template-columns:1.3fr .7fr;gap:56px;align-items:end}
+.home-hero h1{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:clamp(40px,5.5vw,72px);line-height:1.08}
+.home-hero h1 em{color:var(--accent)}
+.home-hero .sub{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-3);margin-top:20px}
+.home-side{border-left:1px solid var(--rule-2);padding-left:28px}
+.home-side p{font-size:13.5px;color:var(--ink-2);line-height:2}
+.home-stats{display:flex;gap:32px;margin-top:22px}
+.home-stats b{font-family:"Instrument Serif",serif;font-size:30px;font-weight:400;display:block;line-height:1}
+.home-stats span{font-family:"DM Mono",monospace;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+@media(max-width:768px){.home-hero{grid-template-columns:1fr;gap:32px}.home-side{border-left:none;border-top:1px solid var(--rule-2);padding:24px 0 0}}
+
+.home-nav{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin:48px 0 64px}
+.home-nav-card{border:1px solid var(--rule);background:var(--surface);padding:28px 22px 22px;cursor:pointer;transition:.4s var(--ease);position:relative;overflow:hidden}
+.home-nav-card::before{content:"";position:absolute;top:0;left:0;width:0;height:2px;background:var(--accent);transition:width .45s var(--ease)}
+.home-nav-card:hover{transform:translateY(-4px);border-color:var(--rule-2);box-shadow:0 18px 40px -22px rgba(27,33,30,.4)}
+.home-nav-card:hover::before{width:100%}
+.home-nav-card .num{font-family:"Instrument Serif",serif;font-size:36px;color:transparent;-webkit-text-stroke:1px var(--rule-2);line-height:1}
+.home-nav-card h3{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:19px;margin:12px 0 8px;line-height:1.35}
+.home-nav-card p{font-size:11.5px;color:var(--ink-2);line-height:1.8}
+.home-nav-card .go{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-top:14px}
+@media(max-width:960px){.home-nav{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.home-nav{grid-template-columns:1fr 1fr}}
+
+.idx-hero{margin-bottom:56px}
+.idx-hero .eyebrow{color:var(--moss);margin-bottom:12px;font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase}
+.idx-hero h1{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:clamp(32px,4vw,48px);line-height:1.18}
+.idx-hero h1 em{color:var(--accent)}
+.idx-hero .lead{margin-top:16px;max-width:680px;color:var(--ink-2);font-size:14px}
+.idx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+
+.card{border:1px solid var(--rule);background:var(--surface);padding:26px 24px 20px;cursor:pointer;transition:.4s var(--ease);position:relative;display:flex;flex-direction:column}
+.card::before{content:"";position:absolute;top:0;left:0;width:0;height:2px;background:var(--accent);transition:width .45s var(--ease)}
+.card:hover{transform:translateY(-4px);border-color:var(--rule-2);box-shadow:0 18px 40px -22px rgba(27,33,30,.4)}
+.card:hover::before{width:100%}
+.card .tag{font-family:"DM Mono",monospace;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);transition:.3s}
+.card:hover .tag{color:var(--accent)}
+.card h3{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:20px;margin:12px 0 8px;line-height:1.35}
+.card p{font-size:12px;color:var(--ink-2);line-height:1.85;flex:1}
+.card .foot{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center}
+.card .meta{font-family:"DM Mono",monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--moss)}
+.card .idx{font-family:"DM Mono",monospace;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+.d-head{margin-bottom:56px;padding-bottom:40px;border-bottom:1px solid var(--rule-2)}
+.d-head .code{font-family:"DM Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.d-head h1{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:clamp(30px,3.8vw,44px);line-height:1.18}
+.d-head h1 em{color:var(--accent)}
+.d-head .en{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);margin-top:10px}
+.d-head .lead{margin-top:18px;max-width:700px;color:var(--ink-2);font-size:14px;line-height:2}
+
+.d-sec{padding-bottom:36px}
+.d-sec + .d-sec{border-top:1px solid var(--rule);padding-top:36px}
+.d-sec .lbl{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--moss);margin-bottom:8px}
+.d-sec h2{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:26px;line-height:1.3;margin-bottom:18px}
+.d-sec h2 em{color:var(--accent)}
+.d-sec > p{font-size:14px;color:var(--ink-2);line-height:2;margin-bottom:14px;max-width:760px}
+
+.m-list{display:flex;flex-direction:column;gap:12px;margin:20px 0}
+.m-item{border:1px solid var(--rule);padding:18px 20px;transition:.3s}
+.m-item:hover{border-color:var(--rule-2);background:var(--surface)}
+.m-item h4{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:17px;margin-bottom:6px}
+.m-item h4 span{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:.14em;color:var(--accent);margin-right:8px}
+.m-item p{font-size:12.5px;color:var(--ink-2);line-height:1.85}
+
+.steps{counter-reset:st;list-style:none;margin:20px 0}
+.steps li{counter-increment:st;padding:12px 0 12px 52px;position:relative;border-bottom:1px solid var(--rule);font-size:13.5px;color:var(--ink-2);line-height:1.9}
+.steps li::before{content:counter(st,decimal-leading-zero);position:absolute;left:0;top:12px;font-family:"DM Mono",monospace;font-size:11px;letter-spacing:.14em;color:var(--accent);border:1px solid var(--rule-2);width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.steps li:last-child{border-bottom:none}
+
+.chk{list-style:none;margin:20px 0}
+.chk li{padding:10px 0 10px 36px;position:relative;font-size:13px;color:var(--ink-2);line-height:1.85;border-bottom:1px solid var(--rule)}
+.chk li::before{content:"";position:absolute;left:0;top:14px;width:18px;height:18px;border:1.5px solid var(--moss);border-radius:3px}
+.chk li::after{content:"\2713";position:absolute;left:3px;top:11px;font-size:14px;color:var(--moss);line-height:1}
+.chk li:last-child{border-bottom:none}
+
+.pit{border-left:3px solid var(--accent);padding:14px 20px;background:var(--surface);margin-bottom:14px}
+.pit h4{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:16px;margin-bottom:5px;color:var(--accent-ink)}
+.pit p{font-size:12.5px;color:var(--ink-2);line-height:1.85}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.chip{display:inline-block;font-family:"DM Mono",monospace;font-size:9.5px;letter-spacing:.06em;border:1px solid var(--rule-2);padding:5px 12px;color:var(--ink-2);transition:.3s}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+
+.exam{background:var(--surface);border:1px solid var(--rule);padding:24px;margin:20px 0;font-family:"DM Mono",monospace;font-size:11.5px;line-height:2;color:var(--ink-2);white-space:pre-wrap;overflow-x:auto;border-radius:2px}
+
+.p-nav{display:flex;justify-content:space-between;align-items:center;margin-top:56px;padding-top:28px;border-top:1px solid var(--rule-2);gap:16px;flex-wrap:wrap}
+.p-nav a,.p-nav span{font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:.3s;display:flex;align-items:center;gap:8px}
+.p-nav a:hover{color:var(--accent)}
+.p-nav .dis{opacity:.3;pointer-events:none;cursor:default}
+.p-nav .bk{color:var(--ink-3)}
+.p-nav .bk:hover{color:var(--accent)}
+
+.tw{overflow-x:auto;border:1px solid var(--rule-2);margin:24px 0}
+table{width:100%;border-collapse:collapse;min-width:880px}
+th{background:var(--ink);color:var(--paper);font-family:"DM Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;text-align:left;padding:14px 18px;font-weight:500}
+td{padding:16px 18px;border-top:1px solid var(--rule);font-size:12px;line-height:1.85;color:var(--ink-2);vertical-align:top}
+td.stg{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:16px;color:var(--ink);white-space:nowrap}
+td.stg span{display:block;font-family:"DM Mono",monospace;font-size:8px;letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin-top:3px}
+td .tool{font-family:"DM Mono",monospace;font-size:9.5px;color:var(--accent-ink)}
+tbody tr{transition:background .25s}
+tbody tr:hover{background:var(--surface)}
+
+.road-g{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:32px 0}
+@media(max-width:900px){.road-g{grid-template-columns:1fr 1fr}}
+@media(max-width:540px){.road-g{grid-template-columns:1fr}}
+
+.res-l{display:flex;flex-direction:column;gap:14px;margin:24px 0}
+.res-i{border:1px solid var(--rule);padding:22px 24px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;transition:.3s}
+.res-i:hover{border-color:var(--rule-2);background:var(--surface)}
+.res-i h4{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:18px;margin-bottom:6px}
+.res-i p{font-size:12px;color:var(--ink-2);line-height:1.85}
+.res-i .use{font-family:"DM Mono",monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--moss);margin-top:8px}
+.res-i .go{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);white-space:nowrap;padding-top:4px;display:flex;align-items:center;gap:6px;transition:.3s}
+.res-i .go:hover{letter-spacing:.22em}
+@media(max-width:600px){.res-i{grid-template-columns:1fr}}
+
+.foot{background:var(--surface);border-top:1px solid var(--rule-2);padding:56px 0 36px;margin-top:40px}
+.foot-in{max-width:1200px;margin:0 auto;padding:0 32px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px}
+.foot-in .mono{color:var(--ink-3);font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+.divider{height:1px;background:var(--rule-2);margin:48px 0}
+.t-lbl{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand" onclick="location.hash='#/'">业务分析 <em>Field Guide</em></div>
+    <div class="nav-links" id="navLinks">
+      <a data-nav="workflow" onclick="location.hash='#/workflow'">工作流</a>
+      <a data-nav="components" onclick="location.hash='#/components'">材料组件</a>
+      <a data-nav="supply" onclick="location.hash='#/supply'">补给站</a>
+      <a data-nav="matrix" onclick="location.hash='#/matrix'">速查矩阵</a>
+      <a data-nav="roadmap" onclick="location.hash='#/roadmap'">补给路线</a>
+    </div>
+    <div class="nav-back" id="navBack" onclick="goBack()">← 返回</div>
+  </div>
+</nav>
+
+<div id="app"></div>
+
+<script>
+'use strict';
+
+/* ========== HELPERS ========== */
+var $app=document.getElementById('app'),
+    $navLinks=document.getElementById('navLinks'),
+    $navBack=document.getElementById('navBack');
+
+function esc(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function sub(s,n){s=String(s||'');return s.length>n?s.substring(0,n)+'\u2026':s}
+function goBack(){
+  var h=location.hash||'#/',m;
+  if((m=h.match(/^#\/(workflow|components)\/\d+$/)))location.hash='#/'+m[1];
+  else if(h.match(/^#\/supply\/[a-z]+$/))location.hash='#/supply';
+  else location.hash='#/';
+}
+function crumb(items){
+  var s='<div class="crumb">';
+  for(var i=0;i<items.length;i++){
+    if(i>0)s+='<span class="sep">/</span>';
+    s+=items[i].href?'<a onclick="location.hash=\''+items[i].href+'\'">'+esc(items[i].text)+'</a>':'<span class="cur">'+esc(items[i].text)+'</span>';
+  }
+  return s+'</div>';
+}
+function pNav(prev,next,back,bLbl){
+  var s='<div class="p-nav">';
+  s+=prev?'<a onclick="location.hash=\''+prev.href+'\'">\u2190 '+esc(prev.label)+'</a>':'<span class="dis">\u2190 上一页</span>';
+  s+='<a class="bk" onclick="location.hash=\''+(back||'#/')+'\'">'+esc(bLbl||'返回首页')+'</a>';
+  s+=next?'<a onclick="location.hash=\''+next.href+'\'">'+esc(next.label)+' \u2192</a>':'<span class="dis">下一页 \u2192</span>';
+  return s+'</div>';
+}
+function setNav(key){
+  var a=$navLinks.querySelectorAll('a');
+  for(var i=0;i<a.length;i++)a[i].classList.toggle('active',a[i].dataset.nav===key);
+  $navBack.style.display=key?'block':'none';
+}
+function num(i){return String(i).padStart(2,'0')}
+
+/* ========== DATA: WORKFLOW ========== */
+var WF=[
+{id:1,code:"STEP \u00b7 01",name:"识别与立项",en:"Problem Framing & Business Case",
+lead:"这是整个业务分析工作的起点。在动笔写任何需求之前，必须先回答最根本的问题：我们到底要解决什么？它值得被解决吗？",
+question:"业务到底要解决什么？它值得被解决吗？",
+questionDetail:"核心任务是将模糊的业务痛点或战略意图转化为清晰、可衡量的问题陈述。分析者需要从四个维度界定问题：痛点（Pain Point）、机会（Opportunity）、战略目标（Strategic Goal）、约束条件（Constraint）。",
+methods:[
+{n:"SMART 目标设定",d:"将模糊的业务意图转化为具体（Specific）、可衡量（Measurable）、可实现（Achievable）、相关（Relevant）、有时限（Time-bound）的目标。"},
+{n:"五维可行性分析",d:"从技术可行性、经济可行性、操作可行性、时间可行性、合规可行性五个维度评估项目可行性。"},
+{n:"问题陈述法",d:"用一句话精确描述问题：「谁」在「什么场景」下遇到「什么问题」，导致「什么后果」，我们需要「什么改善」。"},
+{n:"价值假设（Value Hypothesis）",d:"明确表达「如果我们做了 X，那么 Y 指标将会改善 Z」的假设。这是后续验证效果的基准线。"}
+],
+activities:["与业务发起人和高层管理者进行初步访谈","收集现状数据：效率损失、用户投诉、市场份额变化等量化指标","绘制利益相关方地图，识别关键决策者与受影响群体","完成问题陈述文档，明确问题边界与非目标范围","进行五维可行性分析，形成可行性分析报告","编写业务案例（Business Case），含预期收益、成本估算、风险评估","与决策层评审业务案例，获得立项批准与预算授权"],
+deliverables:[
+{n:"业务目标说明",d:"用 SMART 原则描述的项目目标文档，含目标描述、衡量指标、目标值、达成时限、负责人。"},
+{n:"问题陈述",d:"精确的问题描述，定义问题的范围、影响和紧迫性。"},
+{n:"可行性分析报告",d:"从技术、经济、操作、时间、合规五个维度的评估结果。"},
+{n:"业务案例（Business Case）",d:"面向决策层的综合论证文档，含预期收益、成本估算、风险评估、投资回报分析。"},
+{n:"价值假设",d:"「如果做 X，Y 指标改善 Z」的可验证假设句式。"}
+],
+checklist:["业务目标是否符合 SMART 五项标准？","问题陈述是否精确到任何读者都能理解？","可行性分析是否覆盖全部五个维度？","业务案例中的收益是否量化、可追踪？","价值假设是否可以被数据验证或推翻？","是否明确界定了项目范围（含 / 不含）？","是否获得了关键干系人的初步共识？"],
+pitfalls:[
+{t:"目标模糊，无法衡量",d:"「提升用户体验」无法指导需求取舍。每个目标必须有对应的量化指标。"},
+{t:"跳过可行性直接进入需求",d:"后期发现不可行时前期投入全部浪费。"},
+{t:"范围蔓延从第一天开始",d:"立项时未明确「不做什么」，导致需求范围不断膨胀。"},
+{t:"收益预估过于乐观",d:"收益数字应基于数据推导而非拍脑袋。"}
+],
+tools:["Notion / 语雀（文档协作）","Miro（干系人地图）","Excel（可行性分析表）","Lucidchart（问题域图示）"],
+resources:["BABOK Guide \u2013 Business Analysis Planning","《七步掌握业务分析》第 1-2 章","Statista / 艾瑞咨询（市场数据）"]},
+
+{id:2,code:"STEP \u00b7 02",name:"干系人识别与分析规划",en:"Stakeholder Analysis & BA Planning",
+lead:"业务分析不是一个人的工作。识别所有干系人并制定系统化的沟通策略，是确保需求不遗漏、不冲突的关键前提。",
+question:"谁参与决策、谁使用、谁被影响？如何安排分析工作的推进与沟通？",
+questionDetail:"遗漏关键干系人是需求返工的第二大原因。需要系统性地识别所有相关个人和群体，评估影响力和利益关切，制定差异化沟通策略。",
+methods:[
+{n:"权力-利益矩阵（Power-Interest Grid）",d:"以权力/影响力为纵轴、利益/关注度为横轴，分为四象限：重点管理、保持满意、保持知情、最少关注。"},
+{n:"RACI 职责矩阵",d:"对每项任务定义 Responsible、Accountable、Consulted、Informed 四种角色。"},
+{n:"干系人访谈",d:"一对一了解每个干系人的角色、期望、顾虑、信息偏好和决策风格。"},
+{n:"BA 计划",d:"定义分析范围、方法论、交付物清单、时间里程碑、评审节点和变更管理流程。"}
+],
+activities:["穷举所有干系人","一对一访谈记录角色、期望、顾虑","权力-利益矩阵分层","制定沟通计划","创建 RACI 矩阵","编写业务分析计划","评审分析计划达成共识"],
+deliverables:[
+{n:"干系人登记册",d:"含角色、影响力、利益关切、当前态度、沟通策略。"},
+{n:"权力-利益矩阵",d:"可视化的干系人四象限分布图。"},
+{n:"业务分析计划",d:"分析范围、方法论、交付物清单、里程碑、变更管理机制。"},
+{n:"沟通计划",d:"针对每类干系人的频率、形式、内容深度。"},
+{n:"RACI 矩阵",d:"以任务为行、角色为列的职责分配表。"}
+],
+checklist:["是否穷举了所有相关干系人？","影响力和利益关切是否量化评估？","沟通计划是否覆盖所有重点干系人？","RACI 中每项任务是否有且仅有一个 Accountable？","交付物清单是否与业务案例一致？"],
+pitfalls:[
+{t:"遗漏沉默的利益相关方",d:"容易忽略不在会议上发声但实际受项目影响的群体。"},
+{t:"沟通频率一刀切",d:"必须差异化沟通节奏。"},
+{t:"把干系人分析当一次性工作",d:"态度会随项目推进变化，应定期重新评估。"}
+],
+tools:["Miro（干系人地图）","飞书多维表格","Notion","PPT"],
+resources:["BABOK Guide \u2013 Stakeholder Engagement","PMI-PBA \u2013 Needs Assessment","Bridging the Gap"]},
+
+{id:3,code:"STEP \u00b7 03",name:"需求获取与协作",en:"Elicitation & Collaboration",
+lead:"需求获取是最具挑战性的环节——用户往往说不清楚自己真正需要什么。核心是通过多种方法交叉验证，挖掘真实需求。",
+question:"用户真正需要什么？如何穿透表面诉求获取真实需求？",
+questionDetail:"用户表述受限于认知框架。需综合运用访谈、观察、文档分析、头脑风暴等方法，从不同角度逼近真实需求。",
+methods:[
+{n:"半结构化访谈",d:"准备核心问题但不限定对话方向，通过追问深挖需求背后的动机和约束。"},
+{n:"观察法（Job Shadowing）",d:"直接观察用户的工作流程，发现「习以为常但实际低效」的环节。"},
+{n:"文档与数据分析",d:"审查系统日志、工单记录、用户反馈、运营数据，用数据验证主观陈述。"},
+{n:"焦点小组",d:"组织 6-10 名代表性用户进行引导式讨论，激发新观点。"},
+{n:"联合应用开发（JAD）",d:"将业务方、技术方集中在同一工作坊中，在短时间内达成需求共识。"},
+{n:"标杆分析（Benchmarking）",d:"研究行业最佳实践和竞品方案，提供外部参考坐标。"}
+],
+activities:["制定需求获取计划","准备访谈提纲、观察计划、问卷模板","执行一对一访谈","进行现场观察","收集并分析文档、数据、反馈","组织需求工作坊","整理、去重、分类原始需求","标注每条需求的来源","干系人确认需求获取结果"],
+deliverables:[
+{n:"访谈纪要",d:"含访谈对象、问答记录、关键洞察、待确认问题。"},
+{n:"观察记录",d:"含观察场景、操作步骤、痛点标注、效率数据。"},
+{n:"原始需求清单",d:"未经加工的需求条目，标注来源、紧急程度、分类。"},
+{n:"问卷数据摘要",d:"统计分析结果，含关键发现、分布图、交叉分析。"},
+{n:"需求获取结果报告",d:"汇总所有获取活动产出、关键发现、覆盖度评估。"}
+],
+checklist:["是否覆盖所有重点干系人？","是否至少使用三种方法交叉验证？","每条需求是否标注来源？","是否记录了用户原话？","是否识别了「说的」与「做的」的差异？"],
+pitfalls:[
+{t:"只问「你想要什么」",d:"应问「你的目标是什么」「现在的痛点是什么」。"},
+{t:"过早跳到解决方案",d:"获取阶段应聚焦「是什么」和「为什么」。"},
+{t:"需求无来源标注",d:"「有人说需要 X」无法追溯。每条需求必须标注来源。"}
+],
+tools:["飞书文档 / Google Docs","Miro","录屏工具","Excel"],
+resources:["BABOK Guide \u2013 Elicitation","《软件需求》第 4-5 章","Modern Analyst"]},
+
+{id:4,code:"STEP \u00b7 04",name:"需求分析与设计定义",en:"Requirements Analysis & Design Definition",
+lead:"把杂乱的原始需求整理成精确、有结构、可执行的规格说明。这一步决定需求质量的上限。",
+question:"需求如何被准确、无歧义地表达？如何排优先级、消冲突、补遗漏？",
+questionDetail:"需求分析需要解决完整性、一致性、可行性、可验证性四个核心问题，同时通过优先级排序确保资源集中在最有价值的需求上。",
+methods:[
+{n:"MoSCoW 优先级排序",d:"Must have（必须有）、Should have（应该有）、Could have（可以有）、Won't have this time（本次不做）。"},
+{n:"Kano 模型",d:"将需求分为基本型、期望型、兴奋型，识别差异化价值点。"},
+{n:"BPMN 业务流程建模",d:"使用 BPMN 2.0 标准符号绘制流程图。AS-IS 与 TO-BE 的差距分析即为需求核心。"},
+{n:"用户故事（INVEST）",d:"Independent、Negotiable、Valuable、Estimable、Small、Testable 六项标准。"},
+{n:"数据建模",d:"定义数据实体、属性、关系和约束条件。"},
+{n:"用例规约",d:"以参与者、前置条件、主成功场景、扩展流描述系统行为。"}
+],
+activities:["需求分类（功能/非功能/数据/接口/约束）","业务流程建模 AS-IS \u2192 TO-BE","编写用户故事或用例规约","建立数据字典和领域模型","解决需求冲突、冗余和遗漏","MoSCoW / Kano 优先级排序","定义非功能需求","编写 SRS 草案"],
+deliverables:[
+{n:"业务流程图（BPMN）",d:"AS-IS 与 TO-BE 两版，用泳道区分参与者。"},
+{n:"用例规约 / 用户故事列表",d:"含唯一编号、描述、优先级、验收标准。"},
+{n:"数据字典",d:"关键数据实体和属性的完整定义表。"},
+{n:"优先级排序结果",d:"MoSCoW / Kano 排出的需求优先级列表。"},
+{n:"需求规格说明（SRS）草案",d:"参照 IEEE 830 的完整需求集合。"}
+],
+checklist:["每条需求是否满足 INVEST？","是否区分功能和非功能需求？","非功能需求是否量化？","数据字典是否覆盖所有关键实体？","优先级排序是否得到确认？"],
+pitfalls:[
+{t:"非功能需求被忽略",d:"「性能好」是空话。必须量化：并发量、响应时间、SLA。"},
+{t:"建模画成画",d:"先学会 BPMN 符号再画图。"},
+{t:"优先级全部是「必须」",d:"MoSCoW 的价值在于强制取舍。"}
+],
+tools:["draw.io / Lucidchart","Figma","Notion / Confluence","Jira"],
+resources:["BPMN.org","《用户故事与敏捷方法》","《软件需求》第 7-8 章"]},
+
+{id:5,code:"STEP \u00b7 05",name:"需求确认与基线管理",en:"Validation & Baseline Management",
+lead:"需求写完不等于需求确定。确保所有干系人认可同一份需求基线，并建立变更控制机制。",
+question:"各方认可的需求基线版本是什么？如何管理变更而不失控？",
+questionDetail:"基线是经过正式评审和批准的需求集合。核心是建立 RTM 实现双向可追溯，通过变更控制流程管理所有修改请求。",
+methods:[
+{n:"需求评审",d:"结构化评审会议，逐条审查完整性、一致性、可行性、可验证性。"},
+{n:"需求追踪矩阵（RTM）",d:"建立「目标→需求→设计→实现→测试」的双向追踪链路。"},
+{n:"变更控制委员会（CCB）",d:"负责审批/拒绝所有需求变更请求（CR）。"},
+{n:"需求基线化",d:"冻结需求版本，赋予版本号。后续变更通过 CR 增量管理。"}
+],
+activities:["组织需求评审会议","记录评审意见、修订需求","建立 RTM","发布需求基线","建立变更控制流程","维护变更日志","定期需求覆盖度审计"],
+deliverables:[
+{n:"BRD / SRS 正式版",d:"经评审和批准的需求文档，标注版本号和审批人。"},
+{n:"需求追踪矩阵",d:"双向追踪表格，含需求、设计、测试映射。"},
+{n:"评审记录",d:"参会人、意见、结论、修改跟踪。"},
+{n:"变更日志 / CR",d:"每项变更的描述、原因、影响分析、审批决定。"}
+],
+checklist:["关键干系人是否正式认可需求？","每条需求是否映射到测试用例？","变更控制流程是否定义清楚？","需求基线是否有版本号？"],
+pitfalls:[
+{t:"评审流于形式",d:"应提前分发文档，评审会聚焦讨论。"},
+{t:"RTM 后期才建",d:"应从需求确认阶段开始维护。"},
+{t:"变更口头审批",d:"所有变更必须有书面 CR。"}
+],
+tools:["Confluence","Jira","Smartsheet","飞书多维表格"],
+resources:["IEEE 830","BABOK Guide \u2013 Requirements Life Cycle","《七步掌握业务分析》"]},
+
+{id:6,code:"STEP \u00b7 06",name:"方案评估与设计支持",en:"Solution Evaluation & Design Support",
+lead:"评估「怎么做更划算」。BA 确保技术方案真正对齐业务目标。",
+question:"备选方案如何量化比较？如何确保方案对齐业务目标？",
+questionDetail:"BA 需确保方案满足 Must 级需求、成本效益合理、非功能需求满足约束。通过原型让干系人在编码之前看到方案。",
+methods:[
+{n:"成本效益分析（CBA）",d:"系统比较每个方案的全部成本与全部收益，计算净收益。"},
+{n:"投资回报率（ROI）",d:"ROI =（收益-成本）/ 成本 × 100%。"},
+{n:"净现值（NPV）",d:"将未来收益折现到当前价值。"},
+{n:"原型制作与验证",d:"低保真聚焦流程，高保真聚焦细节。"},
+{n:"非功能需求评估",d:"将性能、安全、可用性转化为可量化约束。"}
+],
+activities:["收集 2-3 个可行方案","CBA 分析","计算 ROI 和 NPV","评估 NFR 满足程度","制作原型并演示","方案对比矩阵评审","传达设计要点给开发团队","支持详细设计"],
+deliverables:[
+{n:"方案对比矩阵",d:"含权重和综合得分的评分矩阵。"},
+{n:"CBA / ROI / NPV",d:"各方案的量化经济分析。"},
+{n:"原型 / 线框图",d:"低保真或高保真的交互原型。"},
+{n:"非功能需求清单",d:"量化的性能、安全、可用性约束。"}
+],
+checklist:["是否比较至少 2 个方案？","成本效益是否含隐性成本？","NFR 是否量化？","原型是否覆盖核心流程？","方案是否与业务目标对齐？"],
+pitfalls:[
+{t:"只比技术不比成本",d:"必须综合考虑开发、运维成本和团队能力。"},
+{t:"原型做太细",d:"低保真先对齐结构。"},
+{t:"忽略迁移成本",d:"数据迁移、培训、切换成本常被低估。"}
+],
+tools:["Figma","Balsamiq","Excel","Lucidchart"],
+resources:["BABOK Guide \u2013 Strategy Analysis","《用户体验要素》","CB Insights"]},
+
+{id:7,code:"STEP \u00b7 07",name:"实施支持与验收测试",en:"Delivery Support & UAT",
+lead:"确保开发产出物真正满足需求。开发阶段持续答疑，验收阶段主导 UAT。",
+question:"实现是否满足需求？验收标准是否可判定、可追溯？",
+questionDetail:"验收标准采用 Given-When-Then 格式。UAT 覆盖主流程、边界、异常三类。每个缺陷必须追溯到具体需求。",
+methods:[
+{n:"Given-When-Then 验收标准",d:"Given（前置）\u2192 When（动作）\u2192 Then（预期）。每条可独立判定。"},
+{n:"用户验收测试（UAT）",d:"由业务方主导，覆盖主流程、边界、异常三类。"},
+{n:"需求走查",d:"定期组织 BA-开发-测试三方走查。"},
+{n:"缺陷追溯",d:"通过 RTM 追溯到需求来源，判断问题根因。"}
+],
+activities:["持续解答需求疑问","管理需求变更","组织需求走查","编写验收标准","设计 UAT 用例","组织 UAT 测试","跟踪缺陷","收集签字确认","支持上线切换"],
+deliverables:[
+{n:"验收标准（GWT）",d:"每条 Must 级需求的可判定验收条件。"},
+{n:"UAT 测试用例",d:"覆盖主流程、边界、异常三类。"},
+{n:"需求走查记录",d:"参会人、问题、解决状态。"},
+{n:"缺陷记录",d:"编号、描述、严重程度、关联需求、根因。"},
+{n:"上线检查单",d:"覆盖率、通过率、缺陷列表、回滚方案。"}
+],
+checklist:["验收标准是否覆盖所有 Must？","是否可独立判定通过/失败？","UAT 是否覆盖三类场景？","通过率是否达标？","业务方是否签字？","是否有回滚方案？"],
+pitfalls:[
+{t:"验收标准写成愿望",d:"「点击提交后 2 秒内显示成功提示」可测试。"},
+{t:"UAT 变成开发自测",d:"必须由业务方执行。"},
+{t:"缺陷只修不分析根因",d:"同一根因导致多个缺陷。"}
+],
+tools:["Jira","Confluence","TestRail","Zephyr"],
+resources:["BABOK Guide \u2013 Solution Evaluation","ISTQB","BA Times"]},
+
+{id:8,code:"STEP \u00b7 08",name:"效果评估与持续改进",en:"Benefits Realization & Continuous Improvement",
+lead:"上线不是终点。通过数据验证业务目标，用复盘驱动下一轮迭代。",
+question:"价值假设实现了吗？哪些指标改善了？下一轮改进机会在哪？",
+questionDetail:"通过实际数据验证价值假设。成立则总结经验，不成立则归因分析。形成复盘报告和需求池。",
+methods:[
+{n:"SMART KPI 追踪",d:"定义可量化的 KPI，设定目标值和追踪周期。"},
+{n:"北极星与护栏指标",d:"北极星反映核心价值；护栏防止负面副作用。"},
+{n:"A/B 测试",d:"对照组/实验组对比，统计显著性验证因果。"},
+{n:"复盘分析",d:"目标 vs 实际、成功经验、失败教训、改进建议。"}
+],
+activities:["收集 30/60/90 天指标数据","对比 KPI 目标与实际","归因分析","A/B 测试","编写效果评估报告","组织复盘会议","输出复盘报告和需求池","沉淀最佳实践"],
+deliverables:[
+{n:"指标看板",d:"北极星+护栏指标可视化面板。"},
+{n:"价值实现追踪报告",d:"价值假设 vs 实际结果对比。"},
+{n:"复盘报告",d:"结构化回顾：目标、交付、经验、教训、建议。"},
+{n:"需求池",d:"下一轮候选需求列表，含优先级。"}
+],
+checklist:["是否与价值假设逐条对比？","数据是否覆盖 30 天？","归因是否区分需求和执行偏差？","建议是否可操作？","需求池是否排好优先级？"],
+pitfalls:[
+{t:"只看上线不看效果",d:"不评估效果等于不知道投入是否值得。"},
+{t:"相关当因果",d:"需 A/B 测试验证因果。"},
+{t:"复盘变成批斗会",d:"聚焦系统和流程改进。"}
+],
+tools:["Tableau / Datawrapper","Google Analytics","Excel","飞书多维表格"],
+resources:["《精益数据分析》","HEART Framework","Kaggle"]}
+];
+
+/* ========== DATA: COMPONENTS ========== */
+var CMP=[
+{id:1,code:"CMP \u00b7 01",name:"BRD 业务需求文档",en:"Business Requirements Document",
+def:"BRD 是面向决策层的需求表达文档，回答「为什么做」。它是项目立项的锚点，定义业务目标、范围边界、成功标准和约束条件。",
+when:"项目立项阶段（Step 01-02）、向高层汇报时、与外部合作方达成共识时。",
+structure:[
+{n:"项目背景",d:"业务现状、市场环境、触发事件。"},
+{n:"业务目标",d:"用 SMART 原则描述的目标列表。"},
+{n:"范围边界",d:"In Scope + Out of Scope 清单。"},
+{n:"干系人",d:"关键干系人列表及角色、期望。"},
+{n:"成功标准",d:"可量化的验收指标。"},
+{n:"假设与约束",d:"前提条件和外部约束。"},
+{n:"风险评估",d:"主要风险、影响、概率、应对策略。"},
+{n:"预算与时间框架",d:"概算预算和关键里程碑。"}
+],
+tips:[
+{t:"面向业务语言",d:"用「客户等待时间减少 50%」而非「引入异步消息队列」。"},
+{t:"目标不超过 5 个",d:"聚焦 3-5 个最关键目标。"},
+{t:"范围边界要狠心",d:"明确「不做什么」比「做什么」更重要。"},
+{t:"收益必须量化",d:"「将订单处理时间从 120 分钟缩短至 30 分钟」可衡量。"}
+],
+quality:["每个业务目标是否满足 SMART？","范围边界是否含排除清单？","成功标准是否可量化？","收益是否有数据支撑？"],
+mistakes:[
+{t:"把 BRD 写成技术方案",d:"BRD 不涉及技术实现细节。"},
+{t:"目标与成功标准脱节",d:"两者必须逻辑一致。"},
+{t:"忽略约束条件",d:"必须明确时间、预算、技术限制。"}
+],
+example:"【业务目标】\n1. 在 2026 Q3 结束前，将订单处理平均时间从 120 分钟缩短至 30 分钟\n2. 将订单错误率从 8% 降低至 2% 以下\n3. CSAT 从 3.2 提升至 4.0（5 分制）\n\n【范围边界】\nIn Scope:\n- 订单录入流程自动化\n- 订单状态实时查询\n- 异常订单预警机制\n\nOut of Scope:\n- 退货流程优化（Q4 单独立项）\n- 财务对账系统改造",
+related:["SRS","业务案例","干系人登记册"],
+tools:["Notion / 语雀","Smartsheet","TemplateLab"]},
+
+{id:2,code:"CMP \u00b7 02",name:"SRS 需求规格说明书",en:"Software Requirements Specification",
+def:"SRS 是面向交付团队的需求基线文档，参照 IEEE 830 标准编写。定义系统「做成什么样」，是开发和测试的唯一需求参照物。",
+when:"需求分析完成后（Step 04-05）、需要与开发/测试建立基线时。",
+structure:[
+{n:"引言",d:"目的、范围、术语定义、参考文档。"},
+{n:"总体描述",d:"产品愿景、用户特征、运行环境、约束。"},
+{n:"功能需求",d:"编号、描述、输入、处理、输出、前置/后置条件。"},
+{n:"非功能需求",d:"性能、安全、可用性等。每项必须量化。"},
+{n:"接口需求",d:"用户界面、硬件、软件、通信接口。"},
+{n:"数据需求",d:"数据实体、属性、关系、数据字典。"},
+{n:"约束条件",d:"技术约束、法规约束、业务规则。"}
+],
+tips:[
+{t:"每条需求有唯一编号",d:"如 FR-001、NFR-003。编号是 RTM 的基础。"},
+{t:"用标准化句式",d:"功能需求使用「The system shall...」句式。"},
+{t:"非功能需求必须量化",d:"「系统应在 P95 条件下于 2 秒内完成页面加载」是需求。"},
+{t:"区分需求和设计约束",d:"「使用 MySQL」是约束。「加载 < 2 秒」是需求。"}
+],
+quality:["每条需求是否有唯一编号？","是否使用标准化句式？","NFR 是否量化？","是否有 TBD 项？","需求之间是否冲突？"],
+mistakes:[
+{t:"把设计当需求写",d:"SRS 写需求，技术文档写设计。"},
+{t:"需求含糊引发返工",d:"「支持大量用户」不量化。"},
+{t:"忽略异常场景",d:"只写正常流程不够。"}
+],
+example:"FR-001: 系统应在用户点击提交订单后，验证订单信息的完整性和有效性。\n  前置条件: 用户已登录，购物车非空\n  输入: 订单表单数据\n  处理: 验证商品库存、价格有效性、地址完整性\n  输出: 验证通过进入支付页 / 失败显示错误信息\n\nNFR-001: 系统应在 P95 条件下于 2 秒内完成订单提交响应。\nNFR-002: 系统应支持 1000 并发用户同时下单，无数据丢失。",
+related:["BRD","RTM","验收标准"],
+tools:["Confluence","TemplateLab","IEEE 830"]},
+
+{id:3,code:"CMP \u00b7 03",name:"用户故事与故事地图",en:"User Stories & Story Mapping",
+def:"用户故事是最小需求单元，格式为「作为〈角色〉，我想要〈功能〉，以便〈价值〉」。故事地图按用户活动流展开，识别 MVP 切片。",
+when:"敏捷开发需求表达（Step 03-04）、迭代规划时。",
+structure:[
+{n:"故事标题",d:"作为〈角色〉，我想要〈功能〉，以便〈价值〉。"},
+{n:"验收标准",d:"Given-When-Then 格式。"},
+{n:"故事点",d:"团队估算的相对工作量。"},
+{n:"优先级",d:"MoSCoW 标签。"},
+{n:"依赖",d:"与其他故事的前后置关系。"}
+],
+tips:[
+{t:"满足 INVEST",d:"Independent、Negotiable、Valuable、Estimable、Small、Testable。"},
+{t:"太大必须拆分",d:"超过 3 天的故事必须拆。"},
+{t:"故事地图先于 backlog",d:"先梳理活动流全貌，再拆故事列表。"}
+],
+quality:["是否满足 INVEST？","验收标准是否用 GWT？","故事地图是否覆盖完整旅程？"],
+mistakes:[
+{t:"写成技术任务",d:"「重构索引」不是用户故事。"},
+{t:"忽略价值句",d:"没有价值描述无法排优先级。"}
+],
+example:"故事: 作为注册用户，我想要邮箱+密码登录，以便访问我的订单\n\n验收标准:\n  Given 用户已注册\n  When 输入正确密码并点击登录\n  Then 跳转至个人订单页面\n\n  Given 用户已注册\n  When 输入错误密码\n  Then 显示密码错误提示\n\n故事点: 5 | 优先级: Must have",
+related:["用例规约","验收标准","RTM"],
+tools:["Jira","Miro","Notion"]},
+
+{id:4,code:"CMP \u00b7 04",name:"业务流程图（BPMN）",en:"Business Process Model & Notation",
+def:"使用 BPMN 2.0 标准符号精确描述「谁在什么条件下做什么」。AS-IS 与 TO-BE 的差距分析即为需求起点。",
+when:"流程优化项目（Step 03-04）、跨部门对齐流程时。",
+structure:[
+{n:"事件（Event）",d:"圆圈。开始、中间、结束事件。"},
+{n:"活动（Activity）",d:"圆角矩形。任务、子流程。"},
+{n:"网关（Gateway）",d:"菱形。排他（XOR）、并行（AND）。"},
+{n:"顺序流",d:"箭头线表示执行顺序。"},
+{n:"泳道（Swimlane）",d:"区分角色/部门/系统。"},
+{n:"数据对象",d:"流程中流转的数据。"}
+],
+tips:[
+{t:"先画 AS-IS 再画 TO-BE",d:"差距分析=需求。"},
+{t:"泳道必须画",d:"至少区分业务方、系统、外部接口。"},
+{t:"网关标注判断条件",d:"如「金额 大于 10000？」。"},
+{t:"控制复杂度",d:"单张图不超过 20 个活动。"}
+],
+quality:["是否有 AS-IS 和 TO-BE？","网关是否有判断条件？","是否用泳道？","符号是否符合 BPMN 2.0？"],
+mistakes:[
+{t:"画成示意图",d:"必须用 BPMN 标准。"},
+{t:"忽略异常流",d:"异常流才是需求的复杂所在。"}
+],
+example:"[泳道: 客户] 提交订单 → [网关: 金额 > 10000?]\n  是 → [泳道: 主管] 审批 → [网关: 通过?]\n    是 → [泳道: 系统] 生成出库单 → [结束]\n    否 → [泳道: 系统] 通知拒绝 → [结束]\n  否 → [泳道: 系统] 自动确认 → 生成出库单 → [结束]",
+related:["用例规约","DFD","用户故事"],
+tools:["draw.io","Lucidchart","BPMN.io","Visio"]},
+
+{id:5,code:"CMP \u00b7 05",name:"用例规约",en:"Use Case Specification",
+def:"以参与者+目标+主成功场景+扩展流的结构描述系统行为。每条规约可推导出多条测试用例。",
+when:"有复杂业务规则的系统（Step 04）。",
+structure:[
+{n:"用例名称",d:"动词+名词格式。"},
+{n:"参与者",d:"触发该用例的角色。"},
+{n:"前置条件",d:"执行前必须满足的条件。"},
+{n:"主成功场景",d:"编号步骤描述正常流程。"},
+{n:"扩展流",d:"主场景的分支处理。"},
+{n:"业务规则",d:"计算规则、校验规则。"}
+],
+tips:[
+{t:"主场景不超过 10 步",d:"超过则拆分。"},
+{t:"每步含动作+响应",d:"「用户点击提交，系统验证数据并显示确认页」。"},
+{t:"扩展流引用主步骤编号",d:"格式「3a. 如果库存不足」。"}
+],
+quality:["主场景是否不超过 10 步？","每步是否含动作+响应？","扩展流是否覆盖异常？"],
+mistakes:[
+{t:"用例太大",d:"20+ 步骤应拆分。"},
+{t:"忽略前置条件",d:"测试时不知道从哪里开始。"}
+],
+example:"用例名称: 处理退货申请\n参与者: 客户、客服\n前置条件: 客户已登录，存在已完成订单（7天内）\n\n主成功场景:\n1. 客户点击申请退货\n2. 系统显示退货表单\n3. 客户填写并提交\n4. 系统校验退货资格\n5. 系统创建退货工单\n\n扩展流:\n4a. 超过 7 天: 显示已超期提示\n4b. 不可退货类商品: 显示特殊政策",
+related:["BPMN","UAT","测试用例"],
+tools:["Confluence","Lucidchart","draw.io"]},
+
+{id:6,code:"CMP \u00b7 06",name:"数据字典与数据流图",en:"Data Dictionary & DFD",
+def:"数据字典定义实体、属性、取值范围和约束。DFD 描述数据流转路径。数据定义含糊是返工首要原因。",
+when:"涉及数据结构定义时（Step 04）。",
+structure:[
+{n:"实体",d:"数据对象的名称和描述。"},
+{n:"属性",d:"字段名、数据类型、长度。"},
+{n:"取值范围",d:"枚举值必须穷举。"},
+{n:"实体关系",d:"1:1、1:N、M:N。"},
+{n:"业务规则",d:"计算公式、默认值。"}
+],
+tips:[
+{t:"数据字典是团队契约",d:"消除业务和技术之间的歧义。"},
+{t:"DFD 按层展开",d:"Level 0 → Level 1 → Level 2。"},
+{t:"枚举值穷举",d:"不要写「等」。"}
+],
+quality:["实体是否有清晰定义？","枚举值是否穷举？","金额是否明确精度和币种？"],
+mistakes:[
+{t:"金额定义模糊",d:"需标注含税、币种、精度。"},
+{t:"DFD 画成流程图",d:"DFD 关注数据流动。"}
+],
+example:"实体: 订单 (Order)\n+-- 订单号 VARCHAR(20) 主键\n+-- 客户ID INT 外键\n+-- 订单金额 DECIMAL(10,2) 含税 CNY\n+-- 状态 TINYINT 1=待支付 2=已支付 3=已发货 4=已完成 5=已取消\n\n关系: 客户 1:N 订单 | 订单 1:N 明细",
+related:["SRS","ER 图","BPMN"],
+tools:["draw.io","Lucidchart","dbdiagram.io"]},
+
+{id:7,code:"CMP \u00b7 07",name:"需求追踪矩阵（RTM）",en:"Requirements Traceability Matrix",
+def:"将目标、需求、设计、实现、测试串成双向可追溯链路。变更控制和验收审计的基础设施。",
+when:"需求基线建立后（Step 05）、变更分析时。",
+structure:[
+{n:"需求编号",d:"与 SRS 一一对应。"},
+{n:"需求描述",d:"简要描述。"},
+{n:"设计引用",d:"设计文档章节。"},
+{n:"测试用例",d:"验证该需求的用例列表。"},
+{n:"当前状态",d:"未开始/设计中/开发中/测试中/已完成。"}
+],
+tips:[
+{t:"从第一天维护",d:"后期补建成本远高于早期维护。"},
+{t:"正向+逆向都查",d:"确保无遗漏。"},
+{t:"变更分析是核心价值",d:"快速定位受影响的设计、代码和测试。"}
+],
+quality:["每条需求是否有测试用例？","每个测试是否追溯到需求？","变更记录是否完整？"],
+mistakes:[
+{t:"项目末期才建",d:"追溯关系混乱。"},
+{t:"只建不用",d:"价值在于使用。"}
+],
+example:"| 需求编号 | 描述      | 设计文档 | 测试用例   | 状态   |\n|---------|----------|---------|-----------|--------|\n| FR-001  | 订单验证  | DD-3.1  | TC-001~005 | 已完成 |\n| FR-002  | 库存扣减  | DD-3.2  | TC-006~009 | 测试中 |\n| NFR-001 | 响应<2秒  | DD-5.1  | TC-020~022 | 开发中 |",
+related:["SRS","UAT","变更日志"],
+tools:["Jira + Zephyr","Azure DevOps","Smartsheet"]},
+
+{id:8,code:"CMP \u00b7 08",name:"原型与线框图",en:"Prototype & Wireframe",
+def:"低成本把需求「演」出来。低保真聚焦信息架构，高保真聚焦视觉与交互。",
+when:"需求确认阶段（Step 05-06）。",
+structure:[
+{n:"低保真线框",d:"聚焦布局、信息层次、操作流程。"},
+{n:"高保真原型",d:"聚焦视觉、交互细节。"},
+{n:"交互流程图",d:"页面跳转逻辑。"},
+{n:"状态标注",d:"空、加载、错误、正常状态。"}
+],
+tips:[
+{t:"低保真先于高保真",d:"先对齐结构再做细节。"},
+{t:"标注每个状态",d:"空列表、加载中、错误提示常被遗漏。"},
+{t:"让业务方点起来",d:"可点击原型比截图有效得多。"}
+],
+quality:["是否覆盖核心流程？","是否标注所有状态？","是否收集反馈并迭代？"],
+mistakes:[
+{t:"直接做高保真",d:"跳过低保真导致返工。"},
+{t:"只做主流程",d:"异常路径不完整。"}
+],
+example:"低保真线框:\n+-------------------------------+\n| [Logo]   搜索框     [购物车]  |\n+-------------------------------+\n| +------+  商品名称            |\n| | 图片 |  99.00               |\n| +------+  [加入购物车][购买]   |\n+-------------------------------+\n| 状态: 正常 / 空 / 加载中      |\n+-------------------------------+",
+related:["BRD","用户故事","验收标准"],
+tools:["Figma","Balsamiq","Axure","Whimsical"]},
+
+{id:9,code:"CMP \u00b7 09",name:"竞品与行业分析报告",en:"Competitor & Industry Analysis",
+def:"用外部坐标系校准内部判断。SWOT、波特五力、功能矩阵等框架分析市场格局。",
+when:"立项阶段（Step 01-02）、需要外部数据支撑时。",
+structure:[
+{n:"市场概览",d:"规模、增长率、趋势。标注数据来源。"},
+{n:"竞品定位图",d:"功能矩阵、定价策略、目标用户。"},
+{n:"SWOT 分析",d:"优势、劣势、机会、威胁。"},
+{n:"功能对比矩阵",d:"核心维度横向对比。"},
+{n:"差异化建议",d:"可操作的建议。"}
+],
+tips:[
+{t:"输出建议不罗列事实",d:"每章应有「所以呢」。"},
+{t:"数据来源要标注",d:"可信度差 100 倍。"},
+{t:"关注为什么",d:"竞品为什么做 X 才重要。"}
+],
+quality:["数据是否有来源？","SWOT 是否有数据支撑？","建议是否可操作？"],
+mistakes:[
+{t:"只分析有什么",d:"需要分析效果和机会。"},
+{t:"忽视间接竞品",d:"还有替代方案和潜在进入者。"}
+],
+example:"| 功能维度   | 竞品A | 竞品B | 我们  |\n|-----------|-------|-------|-------|\n| 智能搜索   | ★★★★  | ★★★   | ★★★★★ |\n| 移动端     | ★★★★  | ★★★   | ★★★★★ |\n| 开放API    | ★★    | ★★★★  | ★★★★  |\n\n结论: 差异化方向=智能搜索+移动端组合优势",
+related:["BRD","指标看板","业务案例"],
+tools:["Statista","艾瑞","QuestMobile","CB Insights"]},
+
+{id:10,code:"CMP \u00b7 10",name:"干系人登记册",en:"Stakeholder Register",
+def:"结构化记录干系人的角色、影响力、利益关切和沟通策略。配合权力-利益矩阵使用。",
+when:"项目启动阶段（Step 02）。",
+structure:[
+{n:"姓名/角色",d:"个人或角色名称。"},
+{n:"影响力",d:"高/中/低。"},
+{n:"利益关切",d:"最关注什么。"},
+{n:"当前态度",d:"支持/中立/反对。"},
+{n:"沟通策略",d:"频率、形式、内容深度。"}
+],
+tips:[
+{t:"态度会变化",d:"每个里程碑后重新评估。"},
+{t:"沟通策略要具体",d:"「每周五发 1 页摘要」是策略。"}
+],
+quality:["是否覆盖所有受影响群体？","策略是否具体？"],
+mistakes:[
+{t:"一次填写不更新",d:"态度会变化。"},
+{t:"忽略外部干系人",d:"供应商、监管机构也是影响因素。"}
+],
+example:"| 角色      | 影响力 | 关切     | 态度 | 策略         |\n|----------|-------|---------|------|-------------|\n| CEO      | 高    | ROI     | 支持 | 月度摘要邮件  |\n| 运营经理  | 高    | 效率成本 | 中立 | 周会+IM     |\n| 一线客服  | 低    | 操作便利 | 中立 | 双周培训    |",
+related:["权力-利益矩阵","沟通计划","BRD"],
+tools:["飞书多维表格","Notion","Miro"]},
+
+{id:11,code:"CMP \u00b7 11",name:"验收标准与 UAT 用例",en:"Acceptance Criteria & UAT",
+def:"每条需求的可判定通过条件。Given-When-Then 格式。UAT 覆盖主流程、边界、异常三类。",
+when:"实施验收阶段（Step 07）。",
+structure:[
+{n:"用例编号",d:"关联需求编号。"},
+{n:"前置条件",d:"系统和数据状态。"},
+{n:"操作步骤",d:"具体操作序列。"},
+{n:"预期结果",d:"系统预期响应。"},
+{n:"通过/失败",d:"判定结论。"}
+],
+tips:[
+{t:"GWT 三段式",d:"Given → When → Then。每段一句话。"},
+{t:"三类场景全覆盖",d:"主流程、边界、异常。"},
+{t:"业务方执行",d:"开发自测不算 UAT。"}
+],
+quality:["是否用 GWT？","是否覆盖三类场景？","是否获得签字？"],
+mistakes:[
+{t:"标准不量化",d:"「2 秒内显示成功提示」可判定。"},
+{t:"只测正常流程",d:"边界和异常才是高发区。"}
+],
+example:"验收标准:\n  Given 购物车有 3 件商品\n  When 点击提交订单\n  Then 2 秒内跳转支付页\n\nUAT 用例:\n  TC-001 | 正常下单 | Pass\n  TC-002 | 购物车为空 | Pass\n  TC-003 | 并发库存冲突 | Fail\n  TC-004 | 网络断开 | Pass",
+related:["RTM","用户故事","用例规约"],
+tools:["Jira + Zephyr","TestRail","Smartsheet"]},
+
+{id:12,code:"CMP \u00b7 12",name:"指标看板与复盘报告",en:"Metrics Dashboard & Retrospective",
+def:"SMART KPI + 北极星指标 + 护栏指标。复盘含目标对比、归因分析、改进建议。",
+when:"效果评估阶段（Step 08）。",
+structure:[
+{n:"北极星指标",d:"核心价值的单一关键指标。"},
+{n:"护栏指标",d:"防止负面副作用。"},
+{n:"SMART KPI",d:"名称、定义、公式、目标值、当前值。"},
+{n:"归因分析",d:"未达成的原因。"},
+{n:"改进建议",d:"具体可操作的措施。"}
+],
+tips:[
+{t:"北极星只有一个",d:"多个等于没有。"},
+{t:"护栏指标不可少",d:"防止盲目增长。"},
+{t:"改进建议要可操作",d:"「覆盖率至 80%」比「加强测试」好。"}
+],
+quality:["北极星是否唯一？","护栏是否覆盖风险？","KPI 是否 SMART？"],
+mistakes:[
+{t:"指标过多",d:"北极星 1 个+护栏 3-5 个。"},
+{t:"归因流于表面",d:"「入口在二级页面找不到」才是归因。"}
+],
+example:"北极星: 月订单量 目标 10000 | 当前 8200 | 达成率 82%\n\n护栏:\n  错误率  目标<2%  当前 3.1%  超标\n  P95加载 目标<2秒  当前 1.8秒  达标\n\n归因: 错误率超标原因:\n1. 地址校验规则不完善\n2. 高峰期并发异常",
+related:["BRD","价值假设","需求池"],
+tools:["Tableau","Datawrapper","Google Analytics"]}
+];
+
+/* ========== DATA: SUPPLY ========== */
+var SUPPLY={
+knowledge:{name:"知识体系",en:"Knowledge System",desc:"补齐方法论骨架和术语体系。",items:[
+{n:"IIBA \u00b7 BABOK Guide",d:"商业分析全球知识体系标准（第 3 版），六大知识领域与 30 项胜任力。",u:"方法论基准",url:"https://www.iiba.org/business-analysis-certifications/babok-guide/"},
+{n:"PMI-PBA",d:"项目管理协会商业分析认证。",u:"认证路径",url:"https://www.pmi.org/certifications/business-analysis-pba"},
+{n:"Modern Analyst",d:"老牌 BA 社区，实务文章和模板。",u:"社区问答",url:"https://www.modernanalyst.com"},
+{n:"BA Times",d:"商业分析垂直媒体。",u:"行业动态",url:"https://www.batimes.com"},
+{n:"Bridging the Gap",d:"BA 软技能培训。",u:"实战训练",url:"https://www.bridging-the-gap.com"},
+{n:"人人都是产品经理",d:"中文产品需求社区。",u:"中文案例",url:"https://www.woshipm.com"}]},
+template:{name:"模板素材",en:"Templates",desc:"标准化文档模板和填写指南。",items:[
+{n:"TemplateLab",d:"综合商务文档模板库。",u:"文档结构",url:"https://templatelab.com"},
+{n:"Smartsheet",d:"BRD、RTM、UAT 模板。",u:"BRD/RTM/UAT",url:"https://www.smartsheet.com/content-center/templates"},
+{n:"Notion 模板库",d:"需求池、故事地图、PRD 模板。",u:"分析工作台",url:"https://www.notion.com/templates"},
+{n:"语雀模板库",d:"中文团队知识库模板。",u:"中文文档",url:"https://www.yuque.com"}]},
+model:{name:"建模 / 流程图",en:"Modeling & Diagrams",desc:"用标准化图形语言表达业务逻辑。",items:[
+{n:"draw.io",d:"免费开源，BPMN、UML、ER 图。",u:"流程图/UML",url:"https://app.diagrams.net"},
+{n:"Lucidchart",d:"企业级协作图表。",u:"协作绘图",url:"https://www.lucidchart.com"},
+{n:"BPMN.org",d:"BPMN 2.0 国际标准。",u:"建模规范",url:"https://www.bpmn.org"},
+{n:"Miro",d:"协作白板。",u:"工作坊",url:"https://miro.com"},
+{n:"Whimsical",d:"流程图+线框图。",u:"轻量绘图",url:"https://whimsical.com"}]},
+proto:{name:"原型 / 设计",en:"Prototyping & Design",desc:"编码前把需求演出来。",items:[
+{n:"Figma Community",d:"组件库和模板。",u:"高保真原型",url:"https://www.figma.com/community"},
+{n:"Balsamiq",d:"低保真线框。",u:"低保真",url:"https://balsamiq.com"},
+{n:"Axure RP",d:"复杂交互原型。",u:"交互原型",url:"https://www.axure.com"},
+{n:"即时设计",d:"国产 UI 工具。",u:"中文设计",url:"https://js.design"}]},
+data:{name:"数据分析",en:"Data & Analytics",desc:"用数据说话的核心能力。",items:[
+{n:"Kaggle",d:"公开数据集+Notebook。",u:"数据练习",url:"https://www.kaggle.com/datasets"},
+{n:"Tableau Public",d:"交互式看板。",u:"指标看板",url:"https://public.tableau.com"},
+{n:"Datawrapper",d:"出版级图表。",u:"报告图表",url:"https://www.datawrapper.de"},
+{n:"Google Dataset Search",d:"数据集搜索引擎。",u:"数据检索",url:"https://datasetsearch.research.google.com"}]},
+industry:{name:"行业 / 竞品",en:"Industry & Competitor",desc:"外部坐标系校准内部判断。",items:[
+{n:"Statista",d:"全球统计数据。",u:"市场数据",url:"https://www.statista.com"},
+{n:"艾瑞咨询",d:"中国数字经济研究。",u:"国内报告",url:"https://www.iresearch.com.cn"},
+{n:"QuestMobile",d:"用户行为与竞品数据。",u:"用户数据",url:"https://www.questmobile.com.cn"},
+{n:"36氪研究院",d:"新经济行业洞察。",u:"赛道格局",url:"https://36kr.com/information/report"},
+{n:"CB Insights",d:"市场情报。",u:"竞争情报",url:"https://www.cbinsights.com"},
+{n:"Crunchbase",d:"公司与融资数据库。",u:"公司信息",url:"https://www.crunchbase.com"}]},
+learn:{name:"学习平台",en:"Learning Platforms",desc:"持续学习的能力补给线。",items:[
+{n:"Coursera",d:"全球高校专项课程。",u:"系统课程",url:"https://www.coursera.org"},
+{n:"LinkedIn Learning",d:"技能短课。",u:"碎片学习",url:"https://www.linkedin.com/learning"},
+{n:"中国大学 MOOC",d:"国内高校课程。",u:"中文课程",url:"https://www.icourse163.org"},
+{n:"B站",d:"工具实操、面试经验。",u:"动手实操",url:"https://www.bilibili.com"}]},
+collab:{name:"协作文档",en:"Collaboration",desc:"可追溯、可协作的需求管理体系。",items:[
+{n:"Confluence",d:"企业知识库。",u:"需求知识库",url:"https://www.atlassian.com/software/confluence"},
+{n:"Jira",d:"需求条目与迭代管理。",u:"需求管理",url:"https://www.atlassian.com/software/jira"},
+{n:"飞书多维表格",d:"需求池、登记册。",u:"轻量管理",url:"https://www.feishu.cn"},
+{n:"Google Docs",d:"实时共编。",u:"评审协作",url:"https://docs.google.com"}]},
+book:{name:"必读书目",en:"Must-Read Books",desc:"经过时间检验的方法论深度。",items:[
+{n:"《软件需求》",d:"需求工程实务经典。",u:"需求全景",url:"https://www.amazon.cn/s?k=%E8%BD%AF%E4%BB%B6%E9%9C%80%E6%B1%82"},
+{n:"《用户故事与敏捷方法》",d:"敏捷需求实践权威。",u:"敏捷需求",url:"https://www.amazon.cn/s?k=%E7%94%A8%E6%88%B7%E6%95%85%E4%BA%8B"},
+{n:"《用户体验要素》",d:"五层模型经典。",u:"需求到设计",url:"https://www.amazon.cn/s?k=%E7%94%A8%E6%88%B7%E4%BD%93%E9%AA%8C%E8%A6%81%E7%B4%A0"},
+{n:"《七步掌握业务分析》",d:"BA 能力七步训练。",u:"能力搭建",url:"https://www.amazon.cn/s?k=%E4%B8%83%E6%AD%A5%E6%8E%8C%E6%8F%A1%E4%B8%9A%E5%8A%A1%E5%88%86%E6%9E%90"}]}
+};
+
+/* ========== RENDERERS ========== */
+function renderHome(){
+  setNav(null);$navBack.style.display='none';
+  var h='<div class="page"><div class="home-hero"><div>';
+  h+='<div class="crumb"><span class="cur">Business Analysis Field Guide</span></div>';
+  h+='<h1>把业务分析拆成<br><em>可补给</em>的零件与路线</h1>';
+  h+='<div class="sub">Workflow \u00d7 Component \u00d7 Resource</div></div>';
+  h+='<div class="home-side"><p>基础不牢，靠工具补齐。将业务分析的完整工作流、材料组件和专业素材整合为可操作的资源地图。术语与框架对齐 BABOK 与 IEEE 830 等行业标准。</p>';
+  h+='<div class="home-stats"><div><b>08</b><span>Stages</span></div><div><b>12</b><span>Components</span></div><div><b>40+</b><span>Stations</span></div></div></div></div>';
+
+  h+='<div class="home-nav">';
+  var hc=[['#/workflow','01','八阶段工作流','从业务立项到效果评估的完整流程。'],['#/components','02','十二个材料组件','BRD、SRS 等核心文档的标准结构。'],['#/supply','03','专业补给站','40+ 个按缺口分类的资源。'],['#/matrix','04','速查矩阵','阶段\u00d7交付物\u00d7工具对齐表。'],['#/roadmap','05','90天补给路线','系统学习路线。']];
+  for(var i=0;i<hc.length;i++)h+='<div class="home-nav-card" onclick="location.hash=\''+hc[i][0]+'\'"><div class="num">'+hc[i][1]+'</div><h3>'+hc[i][2]+'</h3><p>'+hc[i][3]+'</p><div class="go">进入 \u2192</div></div>';
+  h+='</div><div class="divider"></div>';
+
+  h+='<div class="idx-hero"><div class="eyebrow">Quick Access</div><h1>快速<em>入口</em></h1></div><div class="idx-grid">';
+  for(var j=0;j<WF.length;j++)h+='<div class="card" onclick="location.hash=\'#/workflow/'+WF[j].id+'\'"><div class="tag">'+WF[j].code+'</div><h3>'+esc(WF[j].name)+'</h3><p>'+esc(sub(WF[j].question,55))+'</p><div class="foot"><span class="meta">Workflow</span><span class="idx">'+num(WF[j].id)+' / 08</span></div></div>';
+  for(var k=0;k<6;k++)h+='<div class="card" onclick="location.hash=\'#/components/'+CMP[k].id+'\'"><div class="tag">'+CMP[k].code+'</div><h3>'+esc(CMP[k].name)+'</h3><p>'+esc(sub(CMP[k].def,55))+'</p><div class="foot"><span class="meta">Component</span><span class="idx">'+num(CMP[k].id)+' / 12</span></div></div>';
+  h+='</div><div class="foot"><div class="foot-in"><span class="mono">Business Analysis Field Guide</span><span class="mono">Compiled 2026</span></div></div></div>';
+  $app.innerHTML=h;
+}
+
+function renderWFIndex(){
+  setNav('workflow');
+  var h='<div class="page">'+crumb([{text:'首页',href:'#/'},{text:'工作流全景'}]);
+  h+='<div class="idx-hero"><div class="eyebrow">Eight-Stage Workflow</div><h1>业务分析的<em>八个阶段</em></h1><p class="lead">参照 BABOK 六大知识领域，每阶段含核心问题、关键方法和交付物。</p></div><div class="idx-grid">';
+  for(var i=0;i<WF.length;i++)h+='<div class="card" onclick="location.hash=\'#/workflow/'+WF[i].id+'\'"><div class="tag">'+WF[i].code+'</div><h3>'+esc(WF[i].name)+'</h3><p>'+esc(sub(WF[i].lead,70))+'</p><div class="foot"><span class="meta">'+esc(WF[i].en)+'</span><span class="idx">'+num(WF[i].id)+' / 08</span></div></div>';
+  h+='</div></div>';$app.innerHTML=h;
+}
+
+function renderWFDetail(id){
+  setNav('workflow');
+  var w=null;for(var i=0;i<WF.length;i++)if(WF[i].id===id)w=WF[i];
+  if(!w)return renderWFIndex();
+  var prev=id>1?{href:'#/workflow/'+(id-1),label:WF[id-2].name}:null,
+      next=id<8?{href:'#/workflow/'+(id+1),label:WF[id].name}:null;
+  var h='<div class="page page-narrow">'+crumb([{text:'首页',href:'#/'},{text:'工作流',href:'#/workflow'},{text:w.name}]);
+  h+='<div class="d-head"><div class="code">'+esc(w.code)+'</div><h1>'+esc(w.name)+'</h1><div class="en">'+esc(w.en)+'</div><p class="lead">'+esc(w.lead)+'</p></div>';
+  h+='<div class="d-sec"><div class="lbl">Key Question</div><h2>核心<em>问题</em></h2><p><strong>'+esc(w.question)+'</strong></p><p>'+esc(w.questionDetail)+'</p></div>';
+  h+='<div class="d-sec"><div class="lbl">Methods</div><h2>关键<em>方法</em></h2><div class="m-list">';
+  for(var m=0;m<w.methods.length;m++)h+='<div class="m-item"><h4><span>'+num(m+1)+'</span>'+esc(w.methods[m].n)+'</h4><p>'+esc(w.methods[m].d)+'</p></div>';
+  h+='</div></div>';
+  h+='<div class="d-sec"><div class="lbl">Activities</div><h2>活动<em>清单</em></h2><ol class="steps">';
+  for(var a=0;a<w.activities.length;a++)h+='<li>'+esc(w.activities[a])+'</li>';
+  h+='</ol></div>';
+  h+='<div class="d-sec"><div class="lbl">Deliverables</div><h2>关键<em>交付物</em></h2><div class="m-list">';
+  for(var d=0;d<w.deliverables.length;d++)h+='<div class="m-item"><h4><span>'+num(d+1)+'</span>'+esc(w.deliverables[d].n)+'</h4><p>'+esc(w.deliverables[d].d)+'</p></div>';
+  h+='</div></div>';
+  h+='<div class="d-sec"><div class="lbl">Checklist</div><h2>质量<em>检查</em></h2><ul class="chk">';
+  for(var c=0;c<w.checklist.length;c++)h+='<li>'+esc(w.checklist[c])+'</li>';
+  h+='</ul></div>';
+  h+='<div class="d-sec"><div class="lbl">Pitfalls</div><h2>常见<em>误区</em></h2>';
+  for(var p=0;p<w.pitfalls.length;p++)h+='<div class="pit"><h4>'+esc(w.pitfalls[p].t)+'</h4><p>'+esc(w.pitfalls[p].d)+'</p></div>';
+  h+='</div>';
+  h+='<div class="d-sec"><div class="lbl">Tools & Resources</div><h2>工具与<em>资源</em></h2><div class="two-col"><div><div class="t-lbl">工具</div><div class="chips">';
+  for(var t=0;t<w.tools.length;t++)h+='<span class="chip">'+esc(w.tools[t])+'</span>';
+  h+='</div></div><div><div class="t-lbl">延伸阅读</div><div class="chips">';
+  for(var r=0;r<w.resources.length;r++)h+='<span class="chip">'+esc(w.resources[r])+'</span>';
+  h+='</div></div></div></div>';
+  h+=pNav(prev,next,'#/workflow','返回工作流索引')+'</div>';
+  $app.innerHTML=h;
+}
+
+function renderCmpIndex(){
+  setNav('components');
+  var h='<div class="page">'+crumb([{text:'首页',href:'#/'},{text:'材料组件'}]);
+  h+='<div class="idx-hero"><div class="eyebrow">Component Library</div><h1>十二个<em>基础材料组件</em></h1><p class="lead">业务分析岗位的「标准件」。掌握组件比掌握工具重要。</p></div><div class="idx-grid">';
+  for(var i=0;i<CMP.length;i++)h+='<div class="card" onclick="location.hash=\'#/components/'+CMP[i].id+'\'"><div class="tag">'+CMP[i].code+'</div><h3>'+esc(CMP[i].name)+'</h3><p>'+esc(sub(CMP[i].def,70))+'</p><div class="foot"><span class="meta">'+esc(CMP[i].en)+'</span><span class="idx">'+num(CMP[i].id)+' / 12</span></div></div>';
+  h+='</div></div>';$app.innerHTML=h;
+}
+
+function renderCmpDetail(id){
+  setNav('components');
+  var c=null;for(var i=0;i<CMP.length;i++)if(CMP[i].id===id)c=CMP[i];
+  if(!c)return renderCmpIndex();
+  var prev=id>1?{href:'#/components/'+(id-1),label:CMP[id-2].name}:null,
+      next=id<12?{href:'#/components/'+(id+1),label:CMP[id].name}:null;
+  var h='<div class="page page-narrow">'+crumb([{text:'首页',href:'#/'},{text:'材料组件',href:'#/components'},{text:c.name}]);
+  h+='<div class="d-head"><div class="code">'+esc(c.code)+'</div><h1>'+esc(c.name)+'</h1><div class="en">'+esc(c.en)+'</div><p class="lead">'+esc(c.def)+'</p></div>';
+  h+='<div class="d-sec"><div class="lbl">When</div><h2>使用<em>时机</em></h2><p>'+esc(c.when)+'</p></div>';
+  h+='<div class="d-sec"><div class="lbl">Structure</div><h2>标准<em>结构</em></h2><div class="m-list">';
+  for(var s=0;s<c.structure.length;s++)h+='<div class="m-item"><h4><span>'+num(s+1)+'</span>'+esc(c.structure[s].n)+'</h4><p>'+esc(c.structure[s].d)+'</p></div>';
+  h+='</div></div>';
+  h+='<div class="d-sec"><div class="lbl">Guidelines</div><h2>编写<em>要点</em></h2><div class="m-list">';
+  for(var t=0;t<c.tips.length;t++)h+='<div class="m-item"><h4><span>'+num(t+1)+'</span>'+esc(c.tips[t].t)+'</h4><p>'+esc(c.tips[t].d)+'</p></div>';
+  h+='</div></div>';
+  h+='<div class="d-sec"><div class="lbl">Quality</div><h2>质量<em>标准</em></h2><ul class="chk">';
+  for(var q=0;q<c.quality.length;q++)h+='<li>'+esc(c.quality[q])+'</li>';
+  h+='</ul></div>';
+  h+='<div class="d-sec"><div class="lbl">Mistakes</div><h2>常见<em>问题</em></h2>';
+  for(var m=0;m<c.mistakes.length;m++)h+='<div class="pit"><h4>'+esc(c.mistakes[m].t)+'</h4><p>'+esc(c.mistakes[m].d)+'</p></div>';
+  h+='</div>';
+  h+='<div class="d-sec"><div class="lbl">Example</div><h2>示例<em>片段</em></h2><div class="exam">'+esc(c.example)+'</div></div>';
+  h+='<div class="d-sec"><div class="lbl">Related</div><h2>关联<em>组件与工具</em></h2><div class="t-lbl">关联组件</div><div class="chips">';
+  for(var r=0;r<c.related.length;r++)h+='<span class="chip">'+esc(c.related[r])+'</span>';
+  h+='</div><div class="t-lbl" style="margin-top:16px">推荐工具</div><div class="chips">';
+  for(var tl=0;tl<c.tools.length;tl++)h+='<span class="chip">'+esc(c.tools[tl])+'</span>';
+  h+='</div></div>';
+  h+=pNav(prev,next,'#/components','返回组件索引')+'</div>';
+  $app.innerHTML=h;
+}
+
+function renderSupplyIndex(){
+  setNav('supply');
+  var keys=Object.keys(SUPPLY);
+  var h='<div class="page">'+crumb([{text:'首页',href:'#/'},{text:'补给站'}]);
+  h+='<div class="idx-hero"><div class="eyebrow">Supply Stations</div><h1>40+ 个<em>专业补给站</em></h1><p class="lead">按缺口类型分类的精选资源。</p></div><div class="idx-grid">';
+  for(var i=0;i<keys.length;i++){var s=SUPPLY[keys[i]];h+='<div class="card" onclick="location.hash=\'#/supply/'+keys[i]+'\'"><div class="tag">'+esc(s.en)+'</div><h3>'+esc(s.name)+'</h3><p>'+esc(sub(s.desc,60))+'</p><div class="foot"><span class="meta">'+s.items.length+' 个资源</span><span class="idx">'+keys[i]+'</span></div></div>';}
+  h+='</div></div>';$app.innerHTML=h;
+}
+
+function renderSupplyCat(cat){
+  setNav('supply');
+  var s=SUPPLY[cat];if(!s)return renderSupplyIndex();
+  var keys=Object.keys(SUPPLY),idx=keys.indexOf(cat),
+      prev=idx>0?{href:'#/supply/'+keys[idx-1],label:SUPPLY[keys[idx-1]].name}:null,
+      next=idx<keys.length-1?{href:'#/supply/'+keys[idx+1],label:SUPPLY[keys[idx+1]].name}:null;
+  var h='<div class="page page-narrow">'+crumb([{text:'首页',href:'#/'},{text:'补给站',href:'#/supply'},{text:s.name}]);
+  h+='<div class="d-head"><div class="code">'+esc(s.en)+'</div><h1>'+esc(s.name)+'</h1><p class="lead">'+esc(s.desc)+'</p></div><div class="res-l">';
+  for(var i=0;i<s.items.length;i++)h+='<div class="res-i"><div><h4>'+esc(s.items[i].n)+'</h4><p>'+esc(s.items[i].d)+'</p><div class="use">'+esc(s.items[i].u)+'</div></div><a class="go" href="'+s.items[i].url+'" target="_blank" rel="noopener">前往 \u2192</a></div>';
+  h+='</div>'+pNav(prev,next,'#/supply','返回补给站索引')+'</div>';
+  $app.innerHTML=h;
+}
+
+function renderMatrix(){
+  setNav('matrix');
+  var rows=[
+    ['识别立项','Step 01','为什么？值得做？','SMART 目标|可行性|业务案例','Notion / 语雀','Statista · 艾瑞 · BABOK',1],
+    ['干系人','Step 02','谁参与？如何推进？','登记册|RACI|权力-利益矩阵','Miro / 飞书','Bridging the Gap · PMI-PBA',2],
+    ['需求获取','Step 03','用户真正需要什么？','访谈纪要|需求清单|获取报告','飞书 / Google Docs','Modern Analyst',3],
+    ['分析建模','Step 04','如何准确表达？','BPMN|INVEST|MoSCoW','draw.io / Lucidchart','BPMN.org · 《软件需求》',4],
+    ['确认基线','Step 05','基线版本？变更管控？','SRS|RTM|CR','Confluence / Smartsheet','Smartsheet · 《七步BA》',5],
+    ['方案评估','Step 06','怎么做更划算？','CBA/ROI|NFR|原型','Figma / Balsamiq','CB Insights',6],
+    ['实施验收','Step 07','做出来对不对？','GWT|UAT|缺陷','Jira / Confluence','BA Times',7],
+    ['效果评估','Step 08','价值实现了吗？','KPI|北极星|复盘','Tableau / Datawrapper','Kaggle · QuestMobile',8]
+  ];
+  var h='<div class="page">'+crumb([{text:'首页',href:'#/'},{text:'速查矩阵'}]);
+  h+='<div class="idx-hero"><div class="eyebrow">Reference Matrix</div><h1>速查矩阵：<em>阶段 \u00d7 交付物 \u00d7 工具 \u00d7 补给站</em></h1><p class="lead">点击任意行跳转到工作流详情。</p></div>';
+  h+='<div class="tw"><table><thead><tr><th>阶段</th><th>核心问题</th><th>关键交付物</th><th>起步工具</th><th>推荐补给站</th></tr></thead><tbody>';
+  for(var i=0;i<rows.length;i++){
+    var ch=rows[i][3].split('|'),chh='';for(var j=0;j<ch.length;j++)chh+='<span class="chip">'+esc(ch[j])+'</span>';
+    h+='<tr onclick="location.hash=\'#/workflow/'+rows[i][6]+'\'" style="cursor:pointer"><td class="stg">'+esc(rows[i][0])+'<span>'+rows[i][1]+'</span></td><td>'+esc(rows[i][2])+'</td><td>'+chh+'</td><td><span class="tool">'+esc(rows[i][4])+'</span></td><td>'+esc(rows[i][5])+'</td></tr>';
+  }
+  h+='</tbody></table></div><p style="color:var(--ink-3);font-size:12px;margin-top:12px">点击任意行跳转到对应工作流详情。</p></div>';
+  $app.innerHTML=h;
+}
+
+function renderRoadmap(){
+  setNav('roadmap');
+  var h='<div class="page">'+crumb([{text:'首页',href:'#/'},{text:'补给路线'}]);
+  h+='<div class="idx-hero"><div class="eyebrow">90-Day Route</div><h1>一条<em>90 天补给路线</em></h1><p class="lead">每周 5-6 小时，从建骨架到实战闭环。</p></div><div class="road-g">';
+  var steps=[['Week 01-03','建知识骨架','通读 BABOK 与《七步》，掌握术语与框架。','输出 \u00b7 知识思维导图'],['Week 04-06','练组件手感','手写 BRD、SRS、RTM、UAT。绘制 BPMN。','输出 \u00b7 四个组件样本'],['Week 07-09','补数据判断力','Kaggle EDA + 5 份行业报告拆解。','输出 \u00b7 分析报告'],['Week 10-12','实战闭环','真实业务问题走完八阶段。','输出 \u00b7 案例作品集']];
+  for(var i=0;i<steps.length;i++)h+='<div class="card"><div class="tag">'+steps[i][0]+'</div><h3>'+esc(steps[i][1])+'</h3><p>'+esc(steps[i][2])+'</p><div class="foot"><span class="meta">'+esc(steps[i][3])+'</span><span class="idx">'+num(i+1)+' / 04</span></div></div>';
+  h+='</div><div class="divider"></div><div class="idx-hero"><div class="eyebrow">Glossary</div><h1>常用<em>术语表</em></h1></div><div class="two-col"><div>';
+  var gl=[['SMART','Specific、Measurable、Achievable、Relevant、Time-bound'],['INVEST','Independent、Negotiable、Valuable、Estimable、Small、Testable'],['MoSCoW','Must / Should / Could / Won\u2019t have'],['Given-When-Then','GWT 验收标准格式']];
+  var gr=[['CBA / ROI / NPV','成本效益分析、投资回报率、净现值'],['RTM','需求追踪矩阵，双向可追溯'],['UAT','用户验收测试，业务方执行'],['NFR','非功能需求，性能/安全/可用性等']];
+  for(var a=0;a<gl.length;a++)h+='<div class="m-item"><h4>'+esc(gl[a][0])+'</h4><p>'+esc(gl[a][1])+'</p></div>';
+  h+='</div><div>';
+  for(var b=0;b<gr.length;b++)h+='<div class="m-item"><h4>'+esc(gr[b][0])+'</h4><p>'+esc(gr[b][1])+'</p></div>';
+  h+='</div></div></div>';
+  $app.innerHTML=h;
+}
+
+function render404(){
+  setNav(null);
+  $app.innerHTML='<div class="page"><div class="idx-hero" style="text-align:center;padding:120px 0"><div class="eyebrow">404</div><h1>页面<em>未找到</em></h1><p class="lead" style="margin:16px auto"><a onclick="location.hash=\'#/\'" style="color:var(--accent);cursor:pointer">返回首页</a></p></div></div>';
+}
+
+/* ========== ROUTER ========== */
+function router(){
+  var hash=location.hash||'#/';
+  window.scrollTo(0,0);
+  try{
+    if(hash==='#/'||hash==='#')return renderHome();
+    if(hash==='#/workflow')return renderWFIndex();
+    if(hash==='#/components')return renderCmpIndex();
+    if(hash==='#/supply')return renderSupplyIndex();
+    if(hash==='#/matrix')return renderMatrix();
+    if(hash==='#/roadmap')return renderRoadmap();
+    var m;
+    if((m=hash.match(/^#\/workflow\/(\d+)$/)))return renderWFDetail(parseInt(m[1],10));
+    if((m=hash.match(/^#\/components\/(\d+)$/)))return renderCmpDetail(parseInt(m[1],10));
+    if((m=hash.match(/^#\/supply\/([a-z]+)$/)))return renderSupplyCat(m[1]);
+    return render404();
+  }catch(err){console.error('Router error:',err);return render404();}
+}
+window.addEventListener('hashchange',router);
+router();
+</script>
+</body>
+</html>

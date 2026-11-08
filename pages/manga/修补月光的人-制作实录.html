@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>示范全案 ·《修补月光的人》漫画制作流程实录</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e1117;
+  --bg-2:#131822;
+  --panel:#19202b;
+  --panel-2:#202836;
+  --line:rgba(180,200,228,.13);
+  --line-2:rgba(180,200,228,.26);
+  --text:#e6eaf2;
+  --muted:#7d8899;
+  --amber:#e9a13b;
+  --amber-deep:#b9711c;
+  --moon:#9dc4e8;
+  --red:#c9482f;
+  --paper:#f6f1e6;
+  --ink:#141210;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:"Noto Sans SC",sans-serif;font-weight:300;line-height:1.8;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:9998;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(rgba(180,200,228,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(180,200,228,.035) 1px,transparent 1px);
+  background-size:52px 52px;
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='280' height='280' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:var(--amber);color:#0e1117}
+
+.mono{font-family:"DM Mono",monospace;letter-spacing:.15em;text-transform:uppercase;font-size:.67rem}
+.num{font-family:"Bebas Neue",sans-serif;line-height:.82;letter-spacing:.015em}
+.serif{font-family:"Noto Serif SC",serif}
+.wrap{max-width:1280px;margin:0 auto;padding:0 42px}
+a{color:inherit;text-decoration:none}
+
+/* ---------------- NAV ---------------- */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:900;
+  background:rgba(14,17,23,.78);backdrop-filter:blur(16px) saturate(1.4);
+  border-bottom:1px solid var(--line);
+}
+.nav{max-width:1280px;margin:0 auto;padding:0 42px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:22px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .mark{
+  width:26px;height:26px;border:1px solid var(--amber);color:var(--amber);
+  display:grid;place-items:center;font-family:"Noto Serif SC",serif;font-weight:900;font-size:.82rem;
+}
+.brand b{font-family:"Noto Serif SC",serif;font-weight:900;font-size:.93rem;letter-spacing:.11em}
+.nav ul{display:flex;gap:22px;list-style:none}
+.nav ul a{position:relative;padding:4px 0;color:var(--muted);font-size:.83rem;transition:color .25s}
+.nav ul a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1.5px;background:var(--amber);transition:width .32s cubic-bezier(.2,.8,.2,1)}
+.nav ul a:hover{color:var(--text)}
+.nav ul a:hover::after{width:100%}
+.progress{position:absolute;bottom:-1px;left:0;height:2px;background:var(--amber);width:0}
+
+/* ---------------- HERO ---------------- */
+.hero{padding:132px 0 60px;position:relative;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:1.28fr .72fr;gap:56px;align-items:center}
+.kicker{display:flex;align-items:center;gap:13px;color:var(--amber);margin-bottom:22px}
+.kicker .rule{width:58px;height:1px;background:var(--amber)}
+.hero h1{
+  font-family:"Noto Serif SC",serif;font-weight:900;
+  font-size:clamp(2.7rem,7vw,5.6rem);line-height:1.02;letter-spacing:-.015em;
+}
+.hero h1 em{font-style:normal;color:var(--amber)}
+.hero .jp-title{
+  font-family:"Ma Shan Zheng",cursive;font-size:clamp(1.6rem,3.2vw,2.5rem);
+  color:var(--moon);opacity:.72;margin-top:10px;letter-spacing:.08em;
+}
+.hero .logline{
+  margin-top:26px;padding:22px 26px;background:var(--panel);border-left:3px solid var(--amber);
+  font-family:"Noto Serif SC",serif;font-size:1.08rem;line-height:2.05;color:var(--text);
+}
+.hero .logline .lbl{display:block;margin-bottom:8px;color:var(--amber)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{
+  padding:7px 14px;border:1px solid var(--line-2);font-family:"DM Mono",monospace;
+  font-size:.66rem;letter-spacing:.12em;color:var(--muted);
+}
+.chip.on{background:var(--amber);color:#12151c;border-color:var(--amber)}
+
+/* 封面 */
+.cover-wrap{position:relative}
+.cover-frame{
+  position:relative;aspect-ratio:42/58;border:1px solid var(--line-2);
+  background:#0a1020;overflow:hidden;
+  box-shadow:0 44px 90px -40px rgba(0,0,0,.85);
+}
+.cover-frame svg{display:block;width:100%;height:100%}
+.cover-tag{
+  position:absolute;left:-12px;top:26px;background:var(--amber);color:#12151c;
+  padding:6px 14px;font-family:"DM Mono",monospace;font-size:.62rem;letter-spacing:.18em;z-index:3;
+}
+.cover-cap{
+  margin-top:14px;display:flex;justify-content:space-between;
+  font-family:"DM Mono",monospace;font-size:.63rem;letter-spacing:.14em;color:var(--muted);
+}
+
+/* ---------------- SECTION ---------------- */
+.sec{padding:96px 0;position:relative}
+.sec-head{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start;margin-bottom:52px}
+.sec-head .idx{
+  font-family:"Bebas Neue",sans-serif;font-size:5rem;line-height:.78;
+  color:transparent;-webkit-text-stroke:1.3px var(--amber);
+}
+.sec-head h2{font-family:"Noto Serif SC",serif;font-weight:900;font-size:clamp(1.8rem,3.2vw,2.72rem);line-height:1.22}
+.sec-head p{margin-top:13px;max-width:640px;color:var(--muted);font-size:.95rem;line-height:1.95}
+.eyebrow{color:var(--amber);margin-bottom:12px;display:block}
+
+/* 卡片基元 */
+.card{background:var(--panel);border:1px solid var(--line);padding:28px 28px 26px}
+.card h3{font-family:"Noto Serif SC",serif;font-size:1.16rem;font-weight:700;letter-spacing:.04em;margin-bottom:12px}
+.card h4{
+  font-family:"DM Mono",monospace;font-size:.66rem;letter-spacing:.19em;
+  color:var(--amber);margin:22px 0 11px;display:flex;align-items:center;gap:11px;
+}
+.card h4::after{content:"";flex:1;height:1px;background:var(--line)}
+.card ul{list-style:none;display:grid;gap:8px}
+.card li{font-size:.9rem;color:#b7c0ce;line-height:1.82;padding-left:18px;position:relative}
+.card li::before{content:"";position:absolute;left:0;top:.72em;width:7px;height:1.5px;background:var(--amber)}
+
+/* ---------------- 剧本 ---------------- */
+.three-act{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);margin-bottom:34px}
+.act{background:var(--panel);padding:26px 24px}
+.act .num{font-size:2.7rem;color:var(--amber);opacity:.9}
+.act h4{font-family:"Noto Serif SC",serif;font-size:1.08rem;font-weight:700;margin:8px 0 10px}
+.act p{font-size:.86rem;color:#a9b3c2;line-height:1.92}
+
+.beat-table{width:100%;border-collapse:collapse;font-size:.87rem}
+.beat-table th{
+  text-align:left;font-family:"DM Mono",monospace;font-size:.63rem;letter-spacing:.17em;
+  color:var(--amber);padding:12px 14px;border-bottom:1px solid var(--line-2);font-weight:400;
+}
+.beat-table td{padding:14px;border-bottom:1px solid var(--line);color:#b7c0ce;vertical-align:top;line-height:1.8}
+.beat-table tr:hover td{background:var(--panel-2)}
+.beat-table .pg{font-family:"Bebas Neue",sans-serif;font-size:1.6rem;color:var(--amber);line-height:1;width:1%}
+.beat-table .hook{color:var(--moon);font-size:.82rem}
+
+/* ---------------- 人设 ---------------- */
+.cast{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.char{background:var(--panel);border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column}
+.char .art{aspect-ratio:1/1.08;position:relative;border-bottom:1px solid var(--line);overflow:hidden}
+.char .art svg{width:100%;height:100%;display:block}
+.char .body{padding:22px 22px 24px;flex:1;display:flex;flex-direction:column}
+.char .role{color:var(--amber);margin-bottom:7px}
+.char h3{font-family:"Noto Serif SC",serif;font-size:1.32rem;font-weight:900;letter-spacing:.05em}
+.char .age{color:var(--muted);font-size:.79rem;margin-top:3px}
+.char .desc{margin-top:13px;font-size:.86rem;color:#aab4c3;line-height:1.92;flex:1}
+.swatches{display:flex;gap:0;margin-top:16px;border:1px solid var(--line)}
+.sw{flex:1;height:30px;position:relative}
+.sw span{
+  position:absolute;bottom:-19px;left:0;right:0;text-align:center;
+  font-family:"DM Mono",monospace;font-size:.52rem;letter-spacing:.06em;color:var(--muted);
+}
+.char .swatches{margin-bottom:22px}
+.faces{display:flex;gap:7px;margin-top:16px;flex-wrap:wrap}
+.face{
+  padding:5px 11px;border:1px solid var(--line-2);font-family:"DM Mono",monospace;
+  font-size:.62rem;letter-spacing:.11em;color:var(--muted);
+}
+
+/* ---------------- 分镜 ---------------- */
+.thumb-row{display:grid;grid-template-columns:repeat(8,1fr);gap:16px;margin-bottom:16px}
+.thumb{position:relative}
+.thumb .sheet{
+  aspect-ratio:256/362;background:var(--paper);border:1px solid var(--line-2);
+  display:grid;gap:3px;padding:5px;
+}
+.thumb .sheet i{display:block;background:#c9c2b4}
+.thumb .sheet i.t1{background:#e2dccd}
+.thumb .sheet i.t2{background:#8c8577}
+.thumb .sheet i.t3{background:#211f1c}
+.thumb .sheet i.t4{background:#f4efe3}
+.thumb .meta{margin-top:10px}
+.thumb .meta .p{font-family:"Bebas Neue",sans-serif;font-size:1.55rem;color:var(--amber);line-height:.9}
+.thumb .meta .t{font-family:"DM Mono",monospace;font-size:.58rem;letter-spacing:.11em;color:var(--muted);margin-top:2px}
+
+.name-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:34px;align-items:start;margin-top:42px}
+.name-sheet{background:var(--paper);padding:18px;border:1px solid var(--line-2)}
+.name-sheet .inner{display:grid;gap:8px;aspect-ratio:256/362}
+.np{border:2px solid var(--ink);position:relative;overflow:hidden;background:#f9f5ec}
+.np .lbl{
+  position:absolute;top:6px;left:7px;font-family:"DM Mono",monospace;font-size:.58rem;
+  letter-spacing:.11em;color:#8a8272;
+}
+.np .cam{
+  position:absolute;bottom:6px;left:7px;right:7px;font-family:"DM Mono",monospace;
+  font-size:.55rem;letter-spacing:.08em;color:#3c372f;
+}
+.np.rough{background:
+  repeating-linear-gradient(45deg,rgba(20,18,16,.07) 0 2px,transparent 2px 6px),#f9f5ec}
+.name-sheet .ph{
+  display:grid;gap:8px;aspect-ratio:256/362;
+  grid-template-areas:"a a" "b c" "d d" "e e";
+  grid-template-rows:.85fr 1.1fr .8fr 1.3fr;
+}
+.annot{display:grid;gap:14px}
+.annot .row{display:grid;grid-template-columns:78px 1fr;gap:18px;align-items:start;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.annot .row .k{font-family:"DM Mono",monospace;font-size:.62rem;letter-spacing:.15em;color:var(--amber);padding-top:3px}
+.annot .row .v{font-size:.89rem;color:#b3bdcb;line-height:1.88}
+.hook{
+  margin-top:22px;padding:18px 22px;background:linear-gradient(90deg,rgba(233,161,59,.14),transparent);
+  border-left:3px solid var(--amber);
+}
+.hook b{font-family:"Noto Serif SC",serif;display:block;margin-bottom:5px}
+.hook span{font-size:.87rem;color:#b3bdcb;line-height:1.88}
+
+/* ---------------- 线稿规范 ---------------- */
+.ink-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.line-demo{background:var(--paper);padding:26px;display:grid;gap:18px}
+.line-demo .item{display:flex;align-items:center;gap:16px}
+.line-demo .sw-line{width:96px;flex-shrink:0}
+.line-demo .info b{font-family:"Noto Serif SC",serif;font-size:.94rem;display:block}
+.line-demo .info span{font-family:"DM Mono",monospace;font-size:.62rem;letter-spacing:.11em;color:#7d7566}
+
+/* ---------------- 灰度 ---------------- */
+.tone-bars{display:grid;gap:12px;margin-top:8px}
+.tone-row{display:grid;grid-template-columns:52px 1fr 74px;gap:16px;align-items:center}
+.tone-row .p{font-family:"Bebas Neue",sans-serif;font-size:1.55rem;color:var(--amber);line-height:1}
+.tone-row .bar{height:26px;display:flex;overflow:hidden;border:1px solid var(--line-2)}
+.tone-row .bar i{height:100%;display:block}
+.tone-row .bar .b{background:#0c1017}
+.tone-row .bar .dg{background:#4a5464}
+.tone-row .bar .lg{background:#9aa5b5}
+.tone-row .bar .w{background:#e9e2d4}
+.tone-row .n{font-family:"DM Mono",monospace;font-size:.62rem;letter-spacing:.09em;color:var(--muted);text-align:right}
+.legend{display:flex;flex-wrap:wrap;gap:18px;margin-top:20px}
+.legend span{display:flex;align-items:center;gap:8px;font-family:"DM Mono",monospace;font-size:.63rem;letter-spacing:.11em;color:var(--muted)}
+.legend i{width:16px;height:16px;display:block;border:1px solid var(--line-2)}
+
+.tone-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.tone-card{background:var(--panel);border:1px solid var(--line);padding:0;overflow:hidden}
+.tone-card .sw{height:112px;border-bottom:1px solid var(--line)}
+.tone-card .t{padding:18px 20px 20px}
+.tone-card h4{font-family:"Noto Serif SC",serif;font-size:1rem;font-weight:700;margin-bottom:7px}
+.tone-card p{font-size:.82rem;color:#a3adbb;line-height:1.85}
+
+/* ---------------- 文字与输出 ---------------- */
+.two-col{display:grid;grid-template-columns:1.15fr .85fr;gap:30px;align-items:start}
+.type-table{width:100%;border-collapse:collapse}
+.type-table th{
+  text-align:left;font-family:"DM Mono",monospace;font-size:.62rem;letter-spacing:.17em;
+  color:var(--amber);padding:11px 12px;border-bottom:1px solid var(--line-2);font-weight:400;
+}
+.type-table td{padding:13px 12px;border-bottom:1px solid var(--line);color:#b3bdcb;font-size:.87rem;vertical-align:middle}
+.type-table tr:hover td{background:var(--panel-2)}
+.spec-list{display:grid;gap:0}
+.spec-list .r{display:grid;grid-template-columns:118px 1fr;gap:16px;padding:13px 0;border-bottom:1px solid var(--line)}
+.spec-list .k{font-family:"DM Mono",monospace;font-size:.63rem;letter-spacing:.13em;color:var(--amber);padding-top:3px}
+.spec-list .v{font-size:.88rem;color:#b3bdcb;line-height:1.8}
+
+.bubbles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:26px}
+.bub{background:var(--panel);border:1px solid var(--line);padding:22px;text-align:center}
+.bub .demo{height:112px;display:grid;place-items:center}
+.bub h5{font-family:"Noto Serif SC",serif;font-size:.98rem;font-weight:700;margin-top:12px}
+.bub p{font-size:.79rem;color:#a3adbb;line-height:1.82;margin-top:6px}
+
+/* ---------------- 成品页 ---------------- */
+.finale{background:linear-gradient(180deg,#0e1117,#141a25 40%,#0e1117)}
+.page-wrap{position:relative;max-width:720px;margin:0 auto}
+.page-label{
+  display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;
+  font-family:"DM Mono",monospace;font-size:.65rem;letter-spacing:.15em;color:var(--muted);
+}
+.page{
+  background:var(--paper);padding:16px;display:grid;gap:10px;
+  box-shadow:0 50px 110px -40px rgba(0,0,0,.9);
+  grid-template-areas:"p1 p1" "p2 p3" "p4 p4" "p5 p5";
+  grid-template-rows:.72fr .95fr .72fr 1.25fr;
+  aspect-ratio:256/362;
+}
+.pnl{position:relative;overflow:hidden;border:2.5px solid var(--ink);background:#fff}
+.pnl svg{width:100%;height:100%;display:block}
+.p1{grid-area:p1}.p2{grid-area:p2}.p3{grid-area:p3}.p4{grid-area:p4}.p5{grid-area:p5}
+
+.bubble{
+  position:absolute;background:#fff;border:2.2px solid var(--ink);
+  padding:8px 13px;font-family:"Noto Sans SC",sans-serif;font-weight:500;
+  color:var(--ink);font-size:.76rem;line-height:1.5;text-align:center;z-index:5;
+}
+.bubble::after{
+  content:"";position:absolute;width:0;height:0;border-style:solid;
+}
+.bub-circle{border-radius:50%/48%}
+.bub-circle::after{
+  border-width:11px 8px 0 0;border-color:var(--ink) transparent transparent transparent;
+  bottom:-13px;left:38%;transform:rotate(14deg);
+}
+.bub-box{
+  background:#f6f1e6;border-radius:2px;
+}
+.sfx{
+  position:absolute;font-family:"Ma Shan Zheng",cursive;color:var(--ink);
+  z-index:5;line-height:1;
+}
+.page .foot{
+  position:absolute;left:16px;right:16px;bottom:5px;display:flex;justify-content:space-between;
+  font-family:"DM Mono",monospace;font-size:.56rem;letter-spacing:.16em;color:#9b9282;
+}
+
+/* 分镜→成品对比 */
+.compare{display:grid;grid-template-columns:.62fr 1.38fr;gap:34px;align-items:start}
+.rough-sheet{background:var(--paper);padding:14px;display:grid;gap:8px;aspect-ratio:256/362;
+  grid-template-areas:"p1 p1" "p2 p3" "p4 p4" "p5 p5";
+  grid-template-rows:.72fr .95fr .72fr 1.25fr;}
+.rough-sheet .rp{
+  border:2px dashed #b4ab99;position:relative;overflow:hidden;
+  background:repeating-linear-gradient(45deg,rgba(20,18,16,.06) 0 3px,transparent 3px 8px);
+}
+.rough-sheet .rp b{
+  position:absolute;top:5px;left:7px;font-family:"DM Mono",monospace;font-size:.55rem;
+  letter-spacing:.11em;color:#8f8674;font-weight:400;
+}
+.rough-sheet .rp em{
+  position:absolute;bottom:5px;left:7px;right:7px;font-style:normal;
+  font-family:"DM Mono",monospace;font-size:.52rem;letter-spacing:.07em;color:#6d6555;
+}
+
+/* ---------------- 素材调用 ---------------- */
+.use-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line)}
+.use{background:var(--panel);padding:24px 26px;display:grid;grid-template-columns:44px 1fr;gap:18px;align-items:start}
+.use .n{font-family:"Bebas Neue",sans-serif;font-size:2.15rem;color:var(--amber);line-height:.9}
+.use h4{font-family:"Noto Serif SC",serif;font-size:1.02rem;font-weight:700;letter-spacing:.04em}
+.use .tools{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.use .tools a{
+  font-family:"DM Mono",monospace;font-size:.61rem;letter-spacing:.09em;
+  padding:5px 11px;border:1px solid var(--line-2);color:var(--muted);transition:.22s;
+}
+.use .tools a:hover{background:var(--amber);color:#12151c;border-color:var(--amber)}
+.use p{font-size:.84rem;color:#a3adbb;line-height:1.85;margin-top:9px}
+
+/* ---------------- 时间表 ---------------- */
+.schedule{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
+.sch{background:var(--panel);padding:26px 22px}
+.sch .d{font-family:"Bebas Neue",sans-serif;font-size:2.05rem;color:var(--amber);line-height:.9}
+.sch h4{font-family:"Noto Serif SC",serif;font-size:1.02rem;font-weight:700;margin:7px 0 12px;letter-spacing:.03em}
+.sch ol{list-style:none;display:grid;gap:9px;counter-reset:s}
+.sch li{
+  font-size:.82rem;color:#a8b2c1;line-height:1.8;padding-left:26px;position:relative;counter-increment:s;
+}
+.sch li::before{
+  content:counter(s,decimal-leading-zero);position:absolute;left:0;top:.14em;
+  font-family:"DM Mono",monospace;font-size:.61rem;letter-spacing:.07em;color:var(--amber);
+}
+
+/* ---------------- FOOTER ---------------- */
+footer{
+  border-top:1px solid var(--line);padding:74px 0 42px;
+  background:radial-gradient(ellipse at 20% 0%,rgba(233,161,59,.09),transparent 60%),var(--bg);
+}
+.foot-top{display:grid;grid-template-columns:1.3fr 1fr;gap:48px;align-items:start}
+.foot-top h3{font-family:"Noto Serif SC",serif;font-size:clamp(1.7rem,3.1vw,2.55rem);font-weight:900;line-height:1.36}
+.foot-top h3 em{font-style:normal;color:var(--amber)}
+.foot-note{color:var(--muted);font-size:.87rem;line-height:2.08}
+.foot-bar{
+  margin-top:52px;padding-top:20px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  font-family:"DM Mono",monospace;font-size:.64rem;letter-spacing:.15em;color:#5c6575;
+}
+
+/* ---------------- 动效 ---------------- */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .78s cubic-bezier(.2,.8,.2,1),transform .78s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.float{animation:floaty 7s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
+
+/* ---------------- 响应式 ---------------- */
+@media(max-width:1120px){
+  .hero-grid,.name-grid,.two-col,.compare,.foot-top{grid-template-columns:1fr}
+  .cast,.three-act,.ink-grid,.schedule{grid-template-columns:repeat(2,1fr)}
+  .tone-grid{grid-template-columns:repeat(2,1fr)}
+  .thumb-row{grid-template-columns:repeat(4,1fr)}
+  .use-grid{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .wrap{padding:0 22px}
+  .nav{padding:0 22px}
+  .nav ul{display:none}
+  .hero{padding:108px 0 42px}
+  .sec{padding:66px 0}
+  .sec-head{grid-template-columns:1fr;gap:10px}
+  .sec-head .idx{font-size:3.4rem}
+  .cast,.three-act,.ink-grid,.schedule,.tone-grid,.thumb-row,.bubbles{grid-template-columns:1fr}
+  .beat-table .hd{display:none}
+  .beat-table td{display:block;border:none;padding:6px 0}
+  .beat-table tr{display:block;padding:16px 0;border-bottom:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="brand">
+      <div class="mark">案</div>
+      <b>示范全案 ·《修补月光的人》</b>
+    </div>
+    <ul>
+      <li><a href="#story">剧本</a></li>
+      <li><a href="#cast">人设</a></li>
+      <li><a href="#name">分镜</a></li>
+      <li><a href="#ink">线稿</a></li>
+      <li><a href="#tone">灰度</a></li>
+      <li><a href="#type">文字</a></li>
+      <li><a href="#final">成品</a></li>
+      <li><a href="#assets">素材调用</a></li>
+    </ul>
+    <div class="progress" id="progress"></div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="kicker">
+          <span class="rule"></span>
+          <span class="mono">Production Bible / 八页短篇示范实录</span>
+        </div>
+        <h1>把一个故事，<br>完整地<em>走完</em>六道工序。</h1>
+        <div class="jp-title">月光を繕う人</div>
+
+        <div class="logline">
+          <span class="lbl mono">LOGLINE · 一句话梗概</span>
+          在月光会碎掉的城市里，靠修补月光为生的老人，接到一片有温度的碎月——上面封存的，是十年前女儿留给他的最后一句话。
+        </div>
+
+        <div class="chips">
+          <span class="chip on">短篇页漫 · 8P</span>
+          <span class="chip">治愈 / 奇幻</span>
+          <span class="chip">黑白 + 单色网点</span>
+          <span class="chip">B5 · 256×182mm</span>
+          <span class="chip">全年龄</span>
+          <span class="chip">预计工时 22 天</span>
+        </div>
+      </div>
+
+      <div class="cover-wrap float">
+        <div class="cover-tag">COVER CONCEPT</div>
+        <div class="cover-frame">
+          <svg viewBox="0 0 420 580" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#080d1a"/>
+                <stop offset="52%" stop-color="#15233c"/>
+                <stop offset="100%" stop-color="#2c3d57"/>
+              </linearGradient>
+              <radialGradient id="mg" cx=".5" cy=".5" r=".5">
+                <stop offset="0%" stop-color="#eaf3ff" stop-opacity=".95"/>
+                <stop offset="42%" stop-color="#bcd8f4" stop-opacity=".42"/>
+                <stop offset="100%" stop-color="#bcd8f4" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="lg" cx=".5" cy=".5" r=".5">
+                <stop offset="0%" stop-color="#ffd9a0" stop-opacity=".95"/>
+                <stop offset="100%" stop-color="#ffd9a0" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="420" height="580" fill="url(#sky)"/>
+            <g fill="#dce9f8" opacity=".62">
+              <circle cx="330" cy="52" r="1.5"/><circle cx="372" cy="96" r="1.1"/>
+              <circle cx="286" cy="34" r="1.3"/><circle cx="246" cy="76" r="1"/>
+              <circle cx="392" cy="150" r="1.4"/><circle cx="356" cy="196" r="1"/>
+              <circle cx="60" cy="62" r="1.2"/><circle cx="96" cy="112" r="1"/>
+              <circle cx="26" cy="168" r="1.3"/><circle cx="200" cy="34" r="1"/>
+              <circle cx="308" cy="238" r="1.1"/><circle cx="382" cy="286" r="1.2"/>
+            </g>
+            <circle cx="148" cy="152" r="132" fill="url(#mg)"/>
+            <circle cx="148" cy="152" r="62" fill="#e9f2fc"/>
+            <path d="M148 90 L161 150 L136 180 L155 214" stroke="#1c2b45" stroke-width="3.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M161 150 L198 133" stroke="#1c2b45" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <path d="M136 180 L104 196" stroke="#1c2b45" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <path d="M256 250 l10 17 -4 13 -13 -5 -6 -15 z" fill="#eaf3ff" opacity=".92"/>
+            <path d="M0 580 V436 H32 V400 H60 V448 H94 V374 H126 V432 H164 V354 H194 V426 H230 V388 H260 V440 H298 V368 H330 V430 H366 V400 H420 V580 Z" fill="#050a13"/>
+            <g fill="#e8b566" opacity=".8">
+              <rect x="44" y="416" width="7" height="10"/><rect x="72" y="462" width="7" height="10"/>
+              <rect x="106" y="392" width="7" height="10"/><rect x="140" y="448" width="7" height="10"/>
+              <rect x="176" y="372" width="7" height="10"/><rect x="206" y="442" width="7" height="10"/>
+              <rect x="244" y="404" width="7" height="10"/><rect x="312" y="386" width="7" height="10"/>
+              <rect x="344" y="444" width="7" height="10"/><rect x="382" y="416" width="7" height="10"/>
+            </g>
+            <path d="M194 354 V322 h30 v32" fill="#050a13"/>
+            <path d="M188 322 h42" stroke="#050a13" stroke-width="5"/>
+            <circle cx="286" cy="486" r="50" fill="url(#lg)"/>
+            <g fill="#03070d">
+              <circle cx="286" cy="428" r="15"/>
+              <path d="M268 446 q18 -8 36 0 l8 62 q-26 10 -52 0 z"/>
+              <path d="M272 508 l-4 42 h11 l5 -42z"/>
+              <path d="M298 508 l4 42 h11 l-6 -42z"/>
+              <path d="M304 456 q16 8 18 26" stroke="#03070d" stroke-width="8" fill="none" stroke-linecap="round"/>
+            </g>
+            <path d="M272 440 q14 8 28 0 l-2 14 q-12 6 -24 0 z" fill="#c9482f"/>
+            <rect x="278" y="472" width="19" height="25" rx="3" fill="#ffcf8a" stroke="#03070d" stroke-width="2.4"/>
+            <path d="M278 472 q9 -12 19 0" stroke="#03070d" stroke-width="2.4" fill="none"/>
+          </svg>
+        </div>
+        <div class="cover-cap">
+          <span>封面概念稿 · 单色 + 一点红</span>
+          <span>V1.2</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 01 剧本 ============ -->
+<section class="sec" id="story">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="idx">01</div>
+      <div>
+        <span class="eyebrow mono">Stage 01 — Story / 策划 · 剧本</span>
+        <h2>先让故事自己站得住，再动手画。</h2>
+        <p>这一阶段的产出是「大纲 + 分页节拍 + 文字台本」。检验标准很简单：不看画面，只读文字，能不能被打动。</p>
+      </div>
+    </div>
+
+    <div class="three-act reveal">
+      <div class="act">
+        <div class="num">01</div>
+        <h4>起 · 建立世界</h4>
+        <p>P1 用一整页立住设定：月光会碎，人们用网兜去接。老人的职业、性格、孤独感，在没有一句台词的情况下全部交代清楚。</p>
+      </div>
+      <div class="act">
+        <div class="num">02</div>
+        <h4>承 · 一次拒绝</h4>
+        <p>P2–P5 女孩上门，老人拒绝、僵持、回忆、破例。冲突不是"能不能修"，而是"敢不敢再看一眼"。中段必须有情绪下坠。</p>
+      </div>
+      <div class="act">
+        <div class="num">03</div>
+        <h4>转合 · 不复原的选择</h4>
+        <p>P6–P8 修补不是高潮，放弃复原才是。他把碎月做成一盏灯——主题在这一刻落地：有些光，不必回到天上。</p>
+      </div>
+    </div>
+
+    <div class="card reveal">
+      <h3>分页节拍表（Page Beats）</h3>
+      <h4>目标 / 情绪 / 翻页钩子</h4>
+      <div style="overflow-x:auto">
+      <table class="beat-table">
+        <thead>
+          <tr>
+            <th class="hd">PAGE</th>
+            <th class="hd">事件</th>
+            <th class="hd">情绪曲线</th>
+            <th class="hd">翻页钩子（Page-turn hook）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="pg">01</td>
+            <td>夜空裂开，月光像玻璃一样坠落；城市居民张网去接。补月铺内景，老人独自工作。</td>
+            <td>静 → 好奇</td>
+            <td class="hook">末格：敲门声。老人的手停住。</td>
+          </tr>
+          <tr>
+            <td class="pg">02</td>
+            <td>门口站着抱铁盒的女孩。她摊开手心，一片有温度的碎月。老人：「不修私人的。」</td>
+            <td>紧张 → 拒绝</td>
+            <td class="hook">末格：女孩把手收回怀里，坐在门槛上不走。</td>
+          </tr>
+          <tr>
+            <td class="pg">03</td>
+            <td>深夜，女孩仍坐着。老人从窗内望出去，碎月里浮现画面——一间病房的窗帘。</td>
+            <td>僵持 → 不安</td>
+            <td class="hook">末格：老人的瞳孔放大，圆眼镜反光。</td>
+          </tr>
+          <tr>
+            <td class="pg">04</td>
+            <td>回忆：十年前病房，女儿把最后一片月光塞进他手里。「爸，帮我留着。」</td>
+            <td>下沉 → 疼</td>
+            <td class="hook">末格：回到现在，老人的手在发抖。</td>
+          </tr>
+          <tr>
+            <td class="pg">05</td>
+            <td>老人起身，打开多年未动的工具箱，拧亮台灯。「今晚……破个例。」</td>
+            <td>转折 → 蓄力</td>
+            <td class="hook">末格：灯光亮起的瞬间，画面全白。</td>
+          </tr>
+          <tr>
+            <td class="pg">06</td>
+            <td>修补过程。碎片拼合，画面浮现：女儿的笑。老人手抖，停住。</td>
+            <td>高潮 → 屏息</td>
+            <td class="hook">末格：他没有把它拼回月亮，而是拿起了提灯。</td>
+          </tr>
+          <tr>
+            <td class="pg">07</td>
+            <td>碎月被嵌进旧提灯。灯亮起。老人第一次露出笑。</td>
+            <td>释放 → 温暖</td>
+            <td class="hook">末格：提灯被递到一双小手里。</td>
+          </tr>
+          <tr>
+            <td class="pg">08</td>
+            <td>女孩提灯走进小巷。远处的城市里，第一次有人停下脚步抬头看天。</td>
+            <td>余韵 → 希望</td>
+            <td class="hook">无钩子。留白收尾，静止一拍。</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+
+      <h4>文字台本节选 · 第 6 页（高潮页）</h4>
+      <ul>
+        <li><b>格1</b>（全宽·俯视）：工作台。台灯光锥切开黑暗，工具散落，中央的碎月发出低亮度的光。无台词。停留 3 秒。</li>
+        <li><b>格2</b>（半页·左）：老人侧脸特写。圆眼镜反光遮住眼睛，嘴唇微张。气泡：「……原来是妳。」</li>
+        <li><b>格3</b>（半页·右）：碎月中浮现的画面（回忆框）：病房窗帘，一只手伸向窗外。旁白：无。让画面自己说话。</li>
+        <li><b>格4</b>（全宽·中）：老人背影，双手拢在胸前，光从指缝间漏出。拟声词：「嗡——」细小、持续。</li>
+        <li><b>格5</b>（大格·底）：提灯亮起，老人站在窗边，脸朝外。旁白框：「有些光，不必回到天上。」</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 人设 ============ -->
+<section class="sec" id="cast" style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="idx">02</div>
+      <div>
+        <span class="eyebrow mono">Stage 02 — Design / 人设 · 世界观</span>
+        <h2>角色要有可辨识的剪影，和"演戏"的余地。</h2>
+        <p>本作的配色纪律极其严格：整部作品只有一个饱和色——红色围巾。它是情绪指示器，只在最后一页扩散。</p>
+      </div>
+    </div>
+
+    <div class="cast">
+      <!-- 陆光年 -->
+      <div class="char reveal">
+        <div class="art">
+          <svg viewBox="0 0 300 324" preserveAspectRatio="xMidYMid slice">
+            <rect width="300" height="324" fill="#212a37"/>
+            <rect y="238" width="300" height="86" fill="#1a222d"/>
+            <circle cx="222" cy="86" r="52" fill="#2c3745"/>
+            <rect x="0" y="0" width="300" height="324" fill="url(#dotsA)"/>
+            <defs>
+              <pattern id="dotsA" width="7" height="7" patternUnits="userSpaceOnUse">
+                <circle cx="3.5" cy="3.5" r="1" fill="#ffffff" opacity=".05"/>
+              </pattern>
+            </defs>
+            <!-- 灯光锥 -->
+            <path d="M118 20 L182 20 L232 240 L68 240 Z" fill="#e9a13b" opacity=".1"/>
+            <!-- 人物剪影 -->
+            <g fill="#0f151d">
+              <ellipse cx="150" cy="252" rx="72" ry="12" opacity=".5"/>
+              <path d="M108 250 q4 -76 20 -104 q10 -18 22 -20 q12 2 22 20 q16 28 20 104 z"/>
+              <circle cx="150" cy="104" r="27"/>
+              <path d="M112 96 q10 -30 38 -30 q28 0 38 30 q-8 -6 -38 -6 q-30 0 -38 6z"/>
+              <path d="M108 92 q42 -16 84 0 l4 8 q-46 -14 -92 0z"/>
+              <rect x="132" y="126" width="36" height="10" rx="5"/>
+            </g>
+            <!-- 围裙口袋 -->
+            <g stroke="#e9a13b" stroke-width="1.6" fill="none" opacity=".75">
+              <rect x="118" y="192" width="20" height="18" rx="2"/>
+              <rect x="162" y="192" width="20" height="18" rx="2"/>
+              <rect x="140" y="222" width="20" height="16" rx="2"/>
+            </g>
+            <!-- 眼镜反光 -->
+            <circle cx="138" cy="104" r="11" fill="none" stroke="#e9a13b" stroke-width="2.2"/>
+            <circle cx="164" cy="104" r="11" fill="none" stroke="#e9a13b" stroke-width="2.2"/>
+            <path d="M149 104 h4" stroke="#e9a13b" stroke-width="2.2"/>
+            <path d="M133 99 l6 -5 M159 99 l6 -5" stroke="#ffe6bd" stroke-width="2.6" stroke-linecap="round"/>
+            <!-- 顶针 -->
+            <circle cx="196" cy="228" r="7" fill="#e9a13b" opacity=".85"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="role mono">主角 · 月光修补匠</div>
+          <h3>陆光年</h3>
+          <div class="age">68 岁 · 男性 · 沉默寡言</div>
+          <div class="desc">
+            驼背但手极稳。宽檐帽、多口袋围裙、右手中指永远戴着顶针，圆框眼镜挂在鼻尖上——镜片反光是他的"情绪开关"，遮住眼睛时代表他在回避。手比嘴快，全篇台词不超过 20 句。
+          </div>
+          <div class="faces">
+            <span class="face">专注</span><span class="face">皱眉</span>
+            <span class="face">惊讶</span><span class="face">释然</span><span class="face">温柔</span>
+          </div>
+          <div class="swatches">
+            <div class="sw" style="background:#1c2735"><span>围裙</span></div>
+            <div class="sw" style="background:#e9a13b"><span>台灯</span></div>
+            <div class="sw" style="background:#c9c3b6"><span>发</span></div>
+            <div class="sw" style="background:#0f151d"><span>剪影</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 小萤 -->
+      <div class="char reveal">
+        <div class="art">
+          <svg viewBox="0 0 300 324" preserveAspectRatio="xMidYMid slice">
+            <rect width="300" height="324" fill="#242c38"/>
+            <rect y="246" width="300" height="78" fill="#1b222c"/>
+            <circle cx="80" cy="72" r="40" fill="#2f3947"/>
+            <rect width="300" height="324" fill="url(#dotsB)"/>
+            <defs>
+              <pattern id="dotsB" width="7" height="7" patternUnits="userSpaceOnUse">
+                <circle cx="3.5" cy="3.5" r="1" fill="#ffffff" opacity=".05"/>
+              </pattern>
+            </defs>
+            <!-- 手提灯 -->
+            <circle cx="214" cy="196" r="46" fill="#e9a13b" opacity=".16"/>
+            <!-- 人物 -->
+            <g fill="#0f151d">
+              <ellipse cx="146" cy="262" rx="52" ry="10" opacity=".5"/>
+              <path d="M116 258 q0 -70 12 -96 q8 -16 18 -18 q10 2 18 18 q12 26 12 96 z"/>
+              <circle cx="146" cy="118" r="25"/>
+              <path d="M121 116 q3 -32 25 -32 q22 0 25 32 q-10 -12 -25 -12 q-15 0 -25 12z"/>
+              <path d="M126 246 l-3 22 h12 l4 -22z"/>
+              <path d="M162 246 l3 22 h12 l-5 -22z"/>
+              <path d="M122 268 h22 v8 h-26z"/>
+              <path d="M158 268 h22 v8 h-26z"/>
+            </g>
+            <!-- 大外套袖口 -->
+            <g stroke="#e9a13b" stroke-width="1.5" fill="none" opacity=".7">
+              <path d="M112 172 q-8 26 -6 44"/>
+              <path d="M180 172 q10 20 22 28"/>
+            </g>
+            <!-- 红围巾 -->
+            <path d="M126 142 q20 10 40 0 l-3 18 q-17 8 -34 0z" fill="#c9482f"/>
+            <path d="M158 152 l10 44 -10 4 -8 -44z" fill="#c9482f"/>
+            <!-- 铁皮盒 -->
+            <rect x="176" y="188" width="34" height="26" rx="3" fill="#0a0f16" stroke="#e9a13b" stroke-width="1.8"/>
+            <!-- 提灯 -->
+            <rect x="206" y="182" width="18" height="24" rx="3" fill="#ffcf8a" stroke="#0f151d" stroke-width="2.2"/>
+            <path d="M206 182 q9 -12 18 0" stroke="#0f151d" stroke-width="2.2" fill="none"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="role mono">来访者 · 引子</div>
+          <h3>小萤</h3>
+          <div class="age">8 岁 · 女孩 · 话少而执着</div>
+          <div class="desc">
+            齐耳短发，穿着大三号的外套（袖子卷了三折），光脚塞在雨靴里。抱着一个生锈的铁皮饼干盒——那是她全部的行李。红色围巾是全片唯一的饱和色，她走到哪里，哪里就有温度。
+          </div>
+          <div class="faces">
+            <span class="face">面无表情</span><span class="face">固执</span>
+            <span class="face">害怕</span><span class="face">笑</span>
+          </div>
+          <div class="swatches">
+            <div class="sw" style="background:#c9482f"><span>围巾</span></div>
+            <div class="sw" style="background:#2b3441"><span>外套</span></div>
+            <div class="sw" style="background:#ffcf8a"><span>提灯</span></div>
+            <div class="sw" style="background:#6e6455"><span>铁盒</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 陆遥 -->
+      <div class="char reveal">
+        <div class="art">
+          <svg viewBox="0 0 300 324" preserveAspectRatio="xMidYMid slice">
+            <rect width="300" height="324" fill="#20272f"/>
+            <rect width="300" height="324" fill="url(#dotsC)"/>
+            <defs>
+              <pattern id="dotsC" width="6" height="6" patternUnits="userSpaceOnUse">
+                <circle cx="3" cy="3" r="1.15" fill="#ffffff" opacity=".07"/>
+              </pattern>
+            </defs>
+            <!-- 窗帘 -->
+            <g fill="#161c23">
+              <path d="M0 0 h86 q-14 90 4 180 q10 62 -6 144 h-84z"/>
+              <path d="M300 0 h-78 q12 92 -2 176 q-10 66 6 148 h74z"/>
+            </g>
+            <g stroke="#3a4552" stroke-width="1.4" fill="none" opacity=".8">
+              <path d="M22 0 q-8 120 6 324"/><path d="M52 0 q-6 130 2 324"/>
+              <path d="M248 0 q8 120 -6 324"/><path d="M276 0 q6 130 -2 324"/>
+            </g>
+            <!-- 光 -->
+            <path d="M86 0 h128 v324 h-128z" fill="#9dc4e8" opacity=".14"/>
+            <!-- 背影 -->
+            <g fill="#0d1218">
+              <path d="M112 324 q2 -110 22 -140 q12 -18 20 -18 q8 0 20 18 q20 30 22 140z"/>
+              <circle cx="154" cy="152" r="26"/>
+              <path d="M128 152 q2 -30 26 -30 q24 0 26 30 q-12 -14 -26 -14 q-14 0 -26 14z"/>
+            </g>
+            <!-- 伸出的手 -->
+            <path d="M182 216 q22 -8 38 -22 l6 10 q-18 18 -42 26z" fill="#0d1218"/>
+            <circle cx="230" cy="196" r="7" fill="#0d1218"/>
+            <!-- 碎月光点 -->
+            <path d="M232 172 l6 11 -2 8 -8 -3 -4 -9z" fill="#eaf3ff" opacity=".9"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="role mono">回忆中出现 · 情感内核</div>
+          <h3>陆遥</h3>
+          <div class="age">22 岁（回忆时） · 女儿</div>
+          <div class="desc">
+            只在 P4 与 P6 的回忆框中出现，且永远以局部呈现：一只手、一段背影、病号服的一角、帘子后面的一次笑。绝不给正面全景——克制才是力量。她是全篇的"看不见的主角"。
+          </div>
+          <div class="faces">
+            <span class="face">背影</span><span class="face">手</span>
+            <span class="face">帘后的笑</span>
+          </div>
+          <div class="swatches">
+            <div class="sw" style="background:#9dc4e8"><span>月光</span></div>
+            <div class="sw" style="background:#d8d3c6"><span>病号服</span></div>
+            <div class="sw" style="background:#2a3340"><span>窗帘</span></div>
+            <div class="sw" style="background:#0d1218"><span>剪影</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card reveal" style="margin-top:22px">
+      <h3>场景设定 · 三个必须立住的空间</h3>
+      <h4>空间即情绪</h4>
+      <ul>
+        <li><b>补月铺</b>：临街老铺，玻璃柜里按年月码放着碎月光，满墙工具，一盏永远亮着的台灯。暖色调、密集、充满细节——是"记忆的仓库"。</li>
+        <li><b>门槛</b>：内外的分界线。全篇最关键的调度位置：女孩坐在门槛上，老人在门内，两人隔着一条光的边界对峙了整整两页。</li>
+        <li><b>夜空</b>：巨大的裂纹像碎掉的瓷，冷蓝、辽阔、破碎。与室内的暖黄形成全篇唯一的冷暖对比。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 分镜 ============ -->
+<section class="sec" id="name">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="idx">03</div>
+      <div>
+        <span class="eyebrow mono">Stage 03 — Name / 分镜</span>
+        <h2>八页的节奏，在这一步全部定型。</h2>
+        <p>先看整本的页面结构缩略图，再拆开最关键的一张：第 6 页（高潮页）。分镜画得多潦草都没关系，但信息必须准。</p>
+      </div>
+    </div>
+
+    <!-- 缩略图 -->
+    <div class="thumb-row reveal">
+      <div class="thumb"><div class="sheet" style="grid-template-areas:'a a a' 'b b c' 'd d d';grid-template-rows:1fr 1.3fr .85fr">
+        <i class="t3" style="grid-area:a"></i><i class="t2" style="grid-area:b"></i><i class="t1" style="grid-area:c"></i><i class="t2" style="grid-area:d"></i>
+      </div><div class="meta"><div class="p">P1</div><div class="t">建立 · 3格</div></div></div>
+
+      <div class="thumb"><div class="sheet" style="grid-template-areas:'a b' 'c c' 'd e';grid-template-rows:1.15fr .95fr 1.2fr">
+        <i class="t2" style="grid-area:a"></i><i class="t1" style="grid-area:b"></i><i class="t3" style="grid-area:c"></i><i class="t1" style="grid-area:d"></i><i class="t2" style="grid-area:e"></i>
+      </div><div class="meta"><div class="p">P2</div><div class="t">拒绝 · 5格</div></div></div>
+
+      <div class="thumb"><div class="sheet" style="grid-template-areas:'a a' 'b c';grid-template-rows:1fr 1.35fr">
+        <i class="t2" style="grid-area:a"></i><i class="t1" style="grid-area:b"></i><i class="t3" style="grid-area:c"></i>
+      </div><div class="meta"><div class="p">P3</div><div class="t">僵持 · 3格</div></div></div>
+
+      <div class="thumb"><div class="sheet" style="grid-template-areas:'a a' 'b c' 'd d';grid-template-rows:1.3fr 1fr .85fr">
+        <i class="t4" style="grid-area:a"></i><i class="t2" style="grid-area:b"></i><i class="t1" style="grid-area:c"></i><i class="t3" style="grid-area:d"></i>
+      </div><div class="meta"><div class="p">P4</div><div class="t">回忆 · 4格</div></div></div>
+
+      <div class="thumb"><div class="sheet" style="grid-template-areas:'a b' 'c c' 'd e';grid-template-rows:1fr .9fr 1.15fr">
+        <i class="t1" style="grid-area:a"></i><i class="t2" style="grid-area:b"></i><i class="t3" style="grid-area:c"></i><i class="t1" style="grid-area:d"></i><i class="t4" style="grid-area:e"></i>
+      </div><div class="meta"><div class="p">P5</div><div class="t">破例 · 5格</div></div></div>
+
+      <div class="thumb"><div class="sheet" style="grid-template-areas:'a a' 'b c' 'd d' 'e e';grid-template-rows:.8fr 1fr .75fr 1.3fr">
+        <i class="t2" style="grid-area:a"></i><i class="t1" style="grid-area:b"></i><i class="t4" style="grid-area:c"></i><i class="t3" style="grid-area:d"></i><i class="t2" style="grid-area:e"></i>
+      </div><div class="meta"><div class="p">P6</div><div class="t">高潮 · 5格</div></div></div>
+
+      <div class="thumb"><div class="sheet" style="grid-template-areas:'a a' 'b c' 'd d';grid-template-rows:1fr 1.1fr 1fr">
+        <i class="t2" style="grid-area:a"></i><i class="t1" style="grid-area:b"></i><i class="t4" style="grid-area:c"></i><i class="t3" style="grid-area:d"></i>
+      </div><div class="meta"><div class="p">P7</div><div class="t">释放 · 4格</div></div></div>
+
+      <div class="thumb"><div class="sheet" style="grid-template-areas:'a a' 'b b' 'c d';grid-template-rows:1.1fr 1.3fr .9fr">
+        <i class="t2" style="grid-area:a"></i><i class="t3" style="grid-area:b"></i><i class="t1" style="grid-area:c"></i><i class="t2" style="grid-area:d"></i>
+      </div><div class="meta"><div class="p">P8</div><div class="t">余韵 · 4格</div></div></div>
+    </div>
+    <div class="mono" style="color:var(--muted);margin-bottom:44px">灰阶缩略图 · 黑 / 深灰 / 浅灰 / 留白 — 用来检查整本的灰度节奏是否有起伏</div>
+
+    <!-- 第6页 分镜草稿 + 注释 -->
+    <div class="name-grid">
+      <div class="reveal">
+        <div class="name-sheet">
+          <div class="ph">
+            <div class="np rough" style="grid-area:a">
+              <span class="lbl">P6 · G1</span>
+              <span class="cam">俯视全景 · 工作台 / 光锥切入 / 无台词</span>
+            </div>
+            <div class="np rough" style="grid-area:b">
+              <span class="lbl">G2</span>
+              <span class="cam">特写 · 侧脸<br>气泡×1</span>
+            </div>
+            <div class="np rough" style="grid-area:c">
+              <span class="lbl">G3</span>
+              <span class="cam">回忆框<br>帘 / 手</span>
+            </div>
+            <div class="np rough" style="grid-area:d">
+              <span class="lbl">G4</span>
+              <span class="cam">中景 · 背影逆光<br>拟声词「嗡——」</span>
+            </div>
+            <div class="np rough" style="grid-area:e">
+              <span class="lbl">G5</span>
+              <span class="cam">大格 · 窗边<br>旁白框×1 / 停留最久</span>
+            </div>
+          </div>
+        </div>
+        <div class="mono" style="color:var(--muted);margin-top:12px">ネーム草稿 · 名称分镜（等比 B5）</div>
+      </div>
+
+      <div class="annot reveal">
+        <div class="row"><div class="k">页面结构</div><div class="v">5 格，视线动线呈 <b>Z 字</b>：俯视 → 左（脸）→ 右（回忆）→ 中（背影）→ 底（大格）。最后一格占页面 34%，是全篇停留时间最长的一格。</div></div>
+        <div class="row"><div class="k">镜头语言</div><div class="v">G1 交代空间 → G2/G3 双线并置（现实 vs 回忆）→ G4 中景制造距离感 → G5 远景收束。<b>不使用仰角</b>：全篇保持平视与俯视，让读者像旁观者一样靠近。</div></div>
+        <div class="row"><div class="k">信息密度</div><div class="v">G1 密度最高（工具、碎月、光锥），G3 密度最低（回忆必须干净），G5 中等。密度有起伏，页面才呼吸。</div></div>
+        <div class="row"><div class="k">气泡排布</div><div class="v">G2 的气泡放在左上角，让读者先看眼睛再读台词；G5 的旁白框压在右下角留白处，与提灯形成对角线平衡。气泡绝不压住手部。</div></div>
+        <div class="row"><div class="k">灰度预算</div><div class="v">黑 22% / 深灰 30% / 浅灰 18% / 留白 30%。全篇最亮的一格是 G5 的提灯——亮部必须留给它。</div></div>
+        <div class="row"><div class="k">翻页钩子</div><div class="v">G5 末尾：老人<b>没有</b>把碎月拼回天空，而是伸手拿起了提灯。读者必须翻到 P7 才知道他要做什么。</div></div>
+
+        <div class="hook">
+          <b>分镜自检三问</b>
+          <span>① 这一格删掉，故事还成立吗？——不成立就留，成立就删。<br>
+          ② 读者的视线会落在哪里？——如果答案是"不知道"，重排。<br>
+          ③ 读完这一页，我有没有想翻下一页的冲动？</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 线稿 ============ -->
+<section class="sec" id="ink" style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="idx">04</div>
+      <div>
+        <span class="eyebrow mono">Stage 04 — Ink / 草稿 · 线稿</span>
+        <h2>线的粗细，就是情绪的音量。</h2>
+        <p>本作是夜戏，线稿必须"稳而轻"。以下是锁定下来的三条规则，一旦定稿就不再改动。</p>
+      </div>
+    </div>
+
+    <div class="ink-grid">
+      <div class="card reveal">
+        <h3>线重分层规则</h3>
+        <div class="line-demo">
+          <div class="item">
+            <svg class="sw-line" viewBox="0 0 96 24"><path d="M2 18 C24 4 72 4 94 12" stroke="#141210" stroke-width="7" fill="none" stroke-linecap="round"/></svg>
+            <div class="info"><b>外轮廓 · 0.8mm</b><span>OUTLINE / 剪影边界</span></div>
+          </div>
+          <div class="item">
+            <svg class="sw-line" viewBox="0 0 96 24"><path d="M2 16 C26 6 70 6 94 14" stroke="#141210" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg>
+            <div class="info"><b>结构线 · 0.4mm</b><span>CONSTRUCTION / 体块转折</span></div>
+          </div>
+          <div class="item">
+            <svg class="sw-line" viewBox="0 0 96 24"><path d="M2 14 C28 8 68 8 94 13" stroke="#141210" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
+            <div class="info"><b>氛围线 · 0.2mm</b><span>ATMOSPHERE / 速度线、发丝</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>光源设定</h3>
+        <h4>主光 / 补光 / 反差</h4>
+        <ul>
+          <li><b>主光</b>：台灯，位于画面左上，暖黄，45° 切入。所有阴影以此为准。</li>
+          <li><b>补光</b>：月光，冷蓝，从窗外右上方来，只提亮轮廓边缘。</li>
+          <li><b>反差纪律</b>：老人的圆眼镜反射主光，遮眼时代表回避；反射消失（露出眼睛）只在 P7 出现一次。</li>
+          <li><b>手部</b>：全篇特写 4 次（P2 掌心、P4 传递、P6 拼合、P7 递灯），需要专项参考。</li>
+        </ul>
+      </div>
+
+      <div class="card reveal">
+        <h3>勾线流程</h3>
+        <h4>从草稿到清稿</h4>
+        <ul>
+          <li>① 分镜放大 200%，定人体与透视（3D 人偶打底）</li>
+          <li>② 铅笔层：只定结构，不画细节</li>
+          <li>③ 勾线层：先外轮廓后内部，一气呵成不回描</li>
+          <li>④ 转折处提笔留气口，避免线条"闷死"</li>
+          <li>⑤ 交叉线（袖口、腋下、颌下）加粗，体积感即刻出来</li>
+          <li>⑥ 擦除草稿，检查是否有"漏光"（该闭合的形没闭合）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 灰度 ============ -->
+<section class="sec" id="tone">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="idx">05</div>
+      <div>
+        <span class="eyebrow mono">Stage 05 — Tonal / 背景 · 网点 · 上色</span>
+        <h2>黑白漫画靠灰度讲空间与光。</h2>
+        <p>先给整本做"灰度预算"，再决定每一页用几号线的网点。下表是八页的黑白灰留白配比——注意 P4 与 P5 的明暗反转。</p>
+      </div>
+    </div>
+
+    <div class="card reveal">
+      <h3>全篇灰度预算表</h3>
+      <h4>Black / Dark / Light / White</h4>
+      <div class="tone-bars">
+        <div class="tone-row"><div class="p">P1</div><div class="bar"><i class="b" style="width:18%"></i><i class="dg" style="width:26%"></i><i class="lg" style="width:22%"></i><i class="w" style="width:34%"></i></div><div class="n">静谧</div></div>
+        <div class="tone-row"><div class="p">P2</div><div class="bar"><i class="b" style="width:22%"></i><i class="dg" style="width:28%"></i><i class="lg" style="width:20%"></i><i class="w" style="width:30%"></i></div><div class="n">对峙</div></div>
+        <div class="tone-row"><div class="p">P3</div><div class="bar"><i class="b" style="width:30%"></i><i class="dg" style="width:32%"></i><i class="lg" style="width:18%"></i><i class="w" style="width:20%"></i></div><div class="n">压抑</div></div>
+        <div class="tone-row"><div class="p">P4</div><div class="bar"><i class="b" style="width:12%"></i><i class="dg" style="width:18%"></i><i class="lg" style="width:24%"></i><i class="w" style="width:46%"></i></div><div class="n">回忆·亮</div></div>
+        <div class="tone-row"><div class="p">P5</div><div class="bar"><i class="b" style="width:26%"></i><i class="dg" style="width:24%"></i><i class="lg" style="width:16%"></i><i class="w" style="width:34%"></i></div><div class="n">转折</div></div>
+        <div class="tone-row"><div class="p">P6</div><div class="bar"><i class="b" style="width:22%"></i><i class="dg" style="width:30%"></i><i class="lg" style="width:18%"></i><i class="w" style="width:30%"></i></div><div class="n">高潮</div></div>
+        <div class="tone-row"><div class="p">P7</div><div class="bar"><i class="b" style="width:16%"></i><i class="dg" style="width:22%"></i><i class="lg" style="width:20%"></i><i class="w" style="width:42%"></i></div><div class="n">释放</div></div>
+        <div class="tone-row"><div class="p">P8</div><div class="bar"><i class="b" style="width:10%"></i><i class="dg" style="width:16%"></i><i class="lg" style="width:22%"></i><i class="w" style="width:52%"></i></div><div class="n">余韵·最亮</div></div>
+      </div>
+      <div class="legend">
+        <span><i class="b" style="background:#0c1017"></i>黑 · 实地/最暗</span>
+        <span><i class="dg" style="background:#4a5464"></i>深灰 · 40–60线网点</span>
+        <span><i class="lg" style="background:#9aa5b5"></i>浅灰 · 10–20线网点</span>
+        <span><i class="w" style="background:#e9e2d4"></i>留白 · 高光/空气</span>
+      </div>
+    </div>
+
+    <div class="tone-grid reveal" style="margin-top:22px">
+      <div class="tone-card">
+        <div class="sw tone" style="background:#e9e2d4"></div>
+        <div class="t">
+          <h4>G10 · 10% 网点</h4>
+          <p>用于夜空与空气感。几乎看不见，但能压住大面积白，避免"纸片感"。P1 的天空整片使用。</p>
+        </div>
+      </div>
+      <div class="tone-card">
+        <div class="sw" style="background:
+          radial-gradient(#8c8577 22%,transparent 23%) 0 0/8px 8px,#e9e2d4"></div>
+        <div class="t">
+          <h4>G30 · 30% 网点</h4>
+          <p>墙面、桌面、衣物的中间调。本作使用量最大（约占全篇 30%），是画面的"底盘"。</p>
+        </div>
+      </div>
+      <div class="tone-card">
+        <div class="sw" style="background:
+          radial-gradient(#211f1c 32%,transparent 33%) 0 0/7px 7px,#e9e2d4"></div>
+        <div class="t">
+          <h4>G60 · 60% 网点</h4>
+          <p>阴影与暗部。贴在物体背光面，与实地黑衔接。P3 整页加重使用，制造压抑。</p>
+        </div>
+      </div>
+      <div class="tone-card">
+        <div class="sw" style="background:
+          repeating-linear-gradient(78deg,#211f1c 0 1.5px,transparent 1.5px 6px),#e9e2d4"></div>
+        <div class="t">
+          <h4>速度线 · 集中线</h4>
+          <p>只在 P5 末格与 P6 G5 使用，全篇不超过 3 次。稀有，才有冲击力。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 文字 ============ -->
+<section class="sec" id="type" style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="idx">06</div>
+      <div>
+        <span class="eyebrow mono">Stage 06 — Type / 文字 · 输出</span>
+        <h2>字也是画面。气泡也是演出。</h2>
+        <p>本作台词极少，所以每一个字的字体、位置、气泡形状都承担着叙事重量。</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card reveal">
+        <h3>字体方案</h3>
+        <h4>用途 / 字体 / 说明</h4>
+        <table class="type-table">
+          <thead>
+            <tr><th>用途</th><th>字体</th><th>规格</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>标题</td><td style="font-family:'Ma Shan Zheng',cursive;font-size:1.15rem">修补月光的人</td><td>32pt · 字距 +8%</td><td>手写笔触，呼应"修补"的手工感</td></tr>
+            <tr><td>对白</td><td style="font-weight:500">不修私人的。</td><td>9pt · 行距 1.5</td><td>Noto Sans SC Medium，圆润不抢画面</td></tr>
+            <tr><td>旁白</td><td style="font-family:'Noto Serif SC',serif">有些光，不必回到天上。</td><td>8.5pt · 行距 1.8</td><td>衬线体，与对白明确区分，读感更"远"</td></tr>
+            <tr><td>拟声词</td><td style="font-family:'Ma Shan Zheng',cursive;font-size:1.25rem">嗡 ——</td><td>26pt · 描边 1.5pt</td><td>全篇仅 4 处，手写体，可变形压扁</td></tr>
+            <tr><td>音效字</td><td style="font-family:'Ma Shan Zheng',cursive;font-size:1.15rem">叮</td><td>22pt · 白字黑边</td><td>仅 P7 灯亮时使用一次</td></tr>
+          </tbody>
+        </table>
+
+        <div class="bubbles">
+          <div class="bub">
+            <div class="demo">
+              <svg width="120" height="86" viewBox="0 0 120 86">
+                <ellipse cx="58" cy="38" rx="52" ry="30" fill="none" stroke="#e6eaf2" stroke-width="2"/>
+                <path d="M40 64 l-8 18 22 -12" fill="none" stroke="#e6eaf2" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h5>圆形气泡</h5>
+            <p>平静陈述。占全篇 70%。</p>
+          </div>
+          <div class="bub">
+            <div class="demo">
+              <svg width="120" height="86" viewBox="0 0 120 86">
+                <path d="M20 30 L34 22 L30 34 L46 26 L44 38 L62 28 L60 40 L78 30 L76 42 L92 34 L88 46 L102 42 L96 54 L20 58 Z"
+                      fill="none" stroke="#e6eaf2" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M34 58 l-10 18 20 -10" fill="none" stroke="#e6eaf2" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h5>锯齿气泡</h5>
+            <p>拒绝、动摇。仅 P2 使用一次。</p>
+          </div>
+          <div class="bub">
+            <div class="demo">
+              <svg width="120" height="86" viewBox="0 0 120 86">
+                <path d="M28 44 q-6 -22 16 -26 q4 -18 26 -14 q20 -8 28 8 q18 2 12 22 q8 18 -12 22 q-6 16 -26 10 q-18 8 -28 -6 q-18 -2 -16 -16z"
+                      fill="none" stroke="#e6eaf2" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h5>云形回忆框</h5>
+            <p>闪回专用，带 1pt 虚线内描边。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3>输出与印刷参数</h3>
+        <h4>交付规格</h4>
+        <div class="spec-list">
+          <div class="r"><div class="k">原稿尺寸</div><div class="v">B5（256 × 182mm）· 出血 3mm · 内侧安全区 12mm</div></div>
+          <div class="r"><div class="k">线稿分辨率</div><div class="v">1200dpi（二值）或 600dpi（灰度）· TIFF</div></div>
+          <div class="r"><div class="k">网点处理</div><div class="v">线数 60lpi · 角度 45° · 导出前务必"合并网点图层"</div></div>
+          <div class="r"><div class="k">印刷色彩</div><div class="v">单黑 K100 + 专色红（P8 围巾）· 色彩配置 Japan Color 2001 Coated</div></div>
+          <div class="r"><div class="k">条漫版</div><div class="v">宽度 1200px · 单格间距 24px · 分割点放在钩子之后</div></div>
+          <div class="r"><div class="k">字层</div><div class="v">所有文字转曲或栅格化后交付，避免印厂缺字体</div></div>
+          <div class="r"><div class="k">文件命名</div><div class="v">P06_line_v3.tif / P06_tone_v2.tif / P06_type_v1.tif — 版本分开存</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 成品页 ============ -->
+<section class="sec finale" id="final">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="idx">07</div>
+      <div>
+        <span class="eyebrow mono">Stage 07 — Finale / 成品页示意</span>
+        <h2>第 6 页 · 从分镜草稿到成稿</h2>
+        <p>左是ネーム草稿，右是完成度示意（清稿 + 网点 + 气泡 + 拟声词）。同一套结构，差别全在线条、灰度和文字。</p>
+      </div>
+    </div>
+
+    <div class="compare">
+      <!-- 草稿 -->
+      <div class="reveal">
+        <div class="rough-sheet">
+          <div class="rp" style="grid-area:p1"><b>G1 俯视</b><em>工作台 / 光锥 / 无台词</em></div>
+          <div class="rp" style="grid-area:p2"><b>G2 特写</b><em>侧脸 + 气泡</em></div>
+          <div class="rp" style="grid-area:p3"><b>G3 回忆框</b><em>帘 / 手</em></div>
+          <div class="rp" style="grid-area:p4"><b>G4 背影</b><em>拟声词「嗡——」</em></div>
+          <div class="rp" style="grid-area:p5"><b>G5 大格</b><em>提灯 / 旁白框 / 停留最久</em></div>
+        </div>
+        <div class="mono" style="color:var(--muted);margin-top:12px">ネーム / 分镜草稿</div>
+      </div>
+
+      <!-- 成品 -->
+      <div class="reveal">
+        <div class="page-wrap">
+          <div class="page-label">
+            <span>FINISHED PAGE · P06</span>
+            <span>B5 · 60LPI · K100</span>
+          </div>
+          <div class="page">
+
+            <!-- G1 -->
+            <div class="pnl p1">
+              <svg viewBox="0 0 600 210" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <pattern id="tn20" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="3.5" cy="3.5" r="1.25" fill="#141210"/></pattern>
+                  <pattern id="tn45" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.75" fill="#141210"/></pattern>
+                  <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(38)"><rect width="1.6" height="6" fill="#141210"/></pattern>
+                </defs>
+                <rect width="600" height="210" fill="url(#tn20)"/>
+                <!-- 桌面 -->
+                <path d="M0 210 L120 96 H480 L600 210 Z" fill="#fff"/>
+                <path d="M0 210 L120 96 H480 L600 210 Z" fill="none" stroke="#141210" stroke-width="3"/>
+                <!-- 光锥 -->
+                <path d="M232 -10 L368 -10 L470 200 L130 200 Z" fill="#fff"/>
+                <path d="M232 -10 L368 -10 L470 200 L130 200 Z" fill="none" stroke="#141210" stroke-width="1.2" stroke-dasharray="5 6" opacity=".55"/>
+                <!-- 桌沿阴影 -->
+                <path d="M0 210 L120 96 H480 L600 210" fill="none" stroke="#141210" stroke-width="4"/>
+                <!-- 工具 -->
+                <g stroke="#141210" stroke-width="3" fill="#fff">
+                  <rect x="152" y="128" width="72" height="9" rx="4" transform="rotate(-14 152 128)"/>
+                  <rect x="372" y="132" width="86" height="8" rx="4" transform="rotate(11 372 132)"/>
+                  <rect x="200" y="168" width="58" height="14" rx="3" transform="rotate(-6 200 168)"/>
+                  <path d="M414 176 l40 -22 8 12 -40 22z"/>
+                  <circle cx="168" cy="176" r="12"/>
+                </g>
+                <g fill="#141210">
+                  <rect x="152" y="128" width="26" height="9" rx="4" transform="rotate(-14 152 128)"/>
+                  <rect x="372" y="132" width="22" height="8" rx="4" transform="rotate(11 372 132)"/>
+                </g>
+                <!-- 碎月 -->
+                <path d="M272 92 L318 76 L346 110 L322 148 L280 142 L258 112 Z" fill="#fff" stroke="#141210" stroke-width="3.2" stroke-linejoin="round"/>
+                <path d="M318 76 L312 112 L258 112 M312 112 L322 148 M312 112 L346 110" stroke="#141210" stroke-width="2" fill="none"/>
+                <!-- 放射光 -->
+                <g stroke="#141210" stroke-width="1.6" opacity=".85">
+                  <path d="M302 62 L302 30"/><path d="M258 72 L238 46"/><path d="M348 78 L372 52"/>
+                  <path d="M246 122 L214 132"/><path d="M356 130 L388 146"/><path d="M302 158 L302 190"/>
+                </g>
+                <circle cx="302" cy="112" r="60" fill="none" stroke="#141210" stroke-width="1" stroke-dasharray="3 7" opacity=".5"/>
+              </svg>
+              <div class="bubble bub-box" style="top:11px;left:14px;font-family:'DM Mono',monospace;font-size:.56rem;letter-spacing:.14em;padding:5px 10px">
+                NIGHT 03 : 12 — 补月铺
+              </div>
+            </div>
+
+            <!-- G2 -->
+            <div class="pnl p2">
+              <svg viewBox="0 0 300 270" preserveAspectRatio="xMidYMid slice">
+                <rect width="300" height="270" fill="url(#tn20)"/>
+                <!-- 脸部剪影 -->
+                <path d="M62 270 q-8 -140 30 -192 q22 -30 62 -30 q54 0 74 44 q16 36 12 178 z" fill="#fff" stroke="#141210" stroke-width="3.2" stroke-linejoin="round"/>
+                <!-- 帽子 -->
+                <path d="M46 92 q28 -34 78 -34 q52 0 80 36 q-24 -12 -80 -12 q-56 0 -78 10z" fill="#141210"/>
+                <path d="M40 92 q84 -22 168 2 l4 12 q-88 -22 -176 0z" fill="#141210"/>
+                <!-- 侧脸轮廓 -->
+                <path d="M186 118 q22 22 16 52 q-4 20 -22 32" fill="none" stroke="#141210" stroke-width="3.2" stroke-linecap="round"/>
+                <!-- 眼镜 -->
+                <circle cx="146" cy="146" r="27" fill="#fff" stroke="#141210" stroke-width="3.4"/>
+                <circle cx="206" cy="150" r="24" fill="#fff" stroke="#141210" stroke-width="3.4"/>
+                <path d="M173 148 h10" stroke="#141210" stroke-width="3.4"/>
+                <!-- 镜片反光 -->
+                <path d="M130 132 l18 -12 M196 138 l16 -12" stroke="#141210" stroke-width="5" stroke-linecap="round"/>
+                <!-- 眼（藏在反光后，只留一笔） -->
+                <path d="M138 154 q8 6 16 0" stroke="#141210" stroke-width="2" fill="none"/>
+                <!-- 嘴 -->
+                <path d="M172 200 q12 6 24 -2" stroke="#141210" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+                <!-- 衣领 -->
+                <path d="M96 270 q10 -46 34 -58 M212 270 q-6 -44 -22 -56" stroke="#141210" stroke-width="3" fill="none"/>
+                <path d="M96 270 q22 -20 60 -22 q40 2 58 22" fill="url(#hatch)" opacity=".55"/>
+              </svg>
+              <div class="bubble bub-circle" style="top:12px;left:12px;max-width:118px">……<br>原来是妳。</div>
+            </div>
+
+            <!-- G3 -->
+            <div class="pnl p3">
+              <svg viewBox="0 0 300 270" preserveAspectRatio="xMidYMid slice">
+                <rect width="300" height="270" fill="url(#tn20)"/>
+                <!-- 回忆框（云形/波浪） -->
+                <path d="M32 138 q-10 -30 18 -40 q2 -32 36 -30 q16 -26 46 -14 q26 -20 48 4 q34 -8 40 26 q24 12 12 42 q14 26 -14 38 q-4 28 -38 22 q-18 22 -46 8 q-26 16 -46 -6 q-32 6 -38 -22 q-26 -8 -18 -28z"
+                      fill="#fff" stroke="#141210" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M46 138 q-8 -24 15 -32 q2 -26 30 -25 q13 -21 38 -11 q21 -16 39 3 q28 -6 33 21 q20 10 10 34 q11 21 -12 31 q-3 22 -31 18 q-15 17 -37 6 q-21 13 -37 -5 q-26 5 -31 -18 q-21 -6 -15 -22z"
+                      fill="none" stroke="#141210" stroke-width="1.2" stroke-dasharray="4 5"/>
+                <!-- 窗帘 -->
+                <g fill="url(#tn45)" stroke="#141210" stroke-width="2">
+                  <path d="M62 168 q6 -50 20 -66 q-8 34 -4 74z"/>
+                  <path d="M88 108 q4 34 2 66"/>
+                  <path d="M212 106 q-6 36 -2 68"/>
+                  <path d="M238 168 q-6 -50 -20 -66 q8 34 4 74z"/>
+                </g>
+                <!-- 病床 -->
+                <g stroke="#141210" stroke-width="3" fill="#fff">
+                  <path d="M104 176 h92 v20 h-92z"/>
+                  <path d="M104 196 v18 M196 196 v18"/>
+                </g>
+                <!-- 手 -->
+                <g stroke="#141210" stroke-width="3" fill="#fff">
+                  <path d="M132 142 q16 -18 34 -12 q10 4 8 16 q-2 12 -16 16 q-18 4 -26 -8z"/>
+                  <path d="M144 132 l6 -18 M158 130 l4 -20 M170 134 l8 -16" stroke-linecap="round"/>
+                </g>
+                <!-- 碎月 -->
+                <path d="M154 88 l12 -6 6 12 -6 10 -12 -4z" fill="#fff" stroke="#141210" stroke-width="2.2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <!-- G4 -->
+            <div class="pnl p4">
+              <svg viewBox="0 0 600 180" preserveAspectRatio="xMidYMid slice">
+                <rect width="600" height="180" fill="url(#tn45)"/>
+                <!-- 背影 -->
+                <g fill="#141210">
+                  <path d="M222 180 q4 -84 22 -108 q12 -16 26 -16 q14 0 26 16 q18 24 22 108z"/>
+                  <circle cx="270" cy="52" r="24"/>
+                  <path d="M240 46 q30 -22 60 0 l2 8 q-32 -18 -64 0z"/>
+                </g>
+                <!-- 手臂合拢 -->
+                <path d="M236 118 q34 26 68 0 l10 22 q-44 32 -88 0z" fill="#141210"/>
+                <!-- 指缝漏光 -->
+                <g stroke="#fff" stroke-width="3" stroke-linecap="round">
+                  <path d="M252 132 l-12 26"/><path d="M268 138 l-6 30"/><path d="M284 138 l6 30"/><path d="M300 132 l14 26"/>
+                </g>
+                <path d="M244 126 q26 22 52 0 l4 10 q-30 26 -60 0z" fill="#fff"/>
+                <!-- 光晕 -->
+                <g stroke="#fff" stroke-width="1.8" opacity=".8">
+                  <path d="M270 96 v-42"/><path d="M228 108 l-32 -30"/><path d="M312 108 l32 -30"/>
+                  <path d="M212 148 l-42 8"/><path d="M328 148 l42 8"/>
+                </g>
+                <circle cx="270" cy="132" r="62" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="4 8" opacity=".65"/>
+                <!-- 地面 -->
+                <path d="M0 180 h600" stroke="#141210" stroke-width="4"/>
+              </svg>
+              <div class="sfx" style="top:16px;left:26px;font-size:1.62rem;transform:rotate(-6deg)">嗡</div>
+              <div class="sfx" style="top:38px;left:74px;font-size:1.05rem;letter-spacing:.22em;opacity:.72">————</div>
+            </div>
+
+            <!-- G5 -->
+            <div class="pnl p5">
+              <svg viewBox="0 0 600 320" preserveAspectRatio="xMidYMid slice">
+                <rect width="600" height="320" fill="url(#tn20)"/>
+                <!-- 窗框 -->
+                <g fill="#fff" stroke="#141210" stroke-width="3.4">
+                  <rect x="330" y="34" width="220" height="220"/>
+                  <path d="M440 34 v220 M330 144 h220" stroke-width="3"/>
+                </g>
+                <!-- 夜空裂纹 -->
+                <g stroke="#141210" stroke-width="2" fill="none" opacity=".8">
+                  <path d="M352 62 l22 26 -12 22 18 24"/>
+                  <path d="M500 78 l-18 22 12 18 -14 22"/>
+                  <path d="M440 34 l14 22 -8 16"/>
+                </g>
+                <path d="M330 34 h220 v220 h-220z" fill="url(#tn45)" opacity=".5"/>
+                <!-- 人物剪影 -->
+                <g fill="#141210">
+                  <path d="M118 320 q2 -156 30 -198 q16 -26 38 -26 q22 0 38 26 q28 42 30 198z"/>
+                  <circle cx="186" cy="82" r="32"/>
+                  <path d="M148 72 q38 -32 76 0 l3 10 q-40 -24 -82 0z"/>
+                  <path d="M226 178 q34 8 44 40" stroke="#141210" stroke-width="15" fill="none" stroke-linecap="round"/>
+                </g>
+                <!-- 提灯 -->
+                <g>
+                  <circle cx="286" cy="232" r="98" fill="#fff" opacity=".28"/>
+                  <circle cx="286" cy="232" r="72" fill="#fff" opacity=".55"/>
+                  <rect x="264" y="204" width="44" height="54" rx="5" fill="#fff" stroke="#141210" stroke-width="3.4"/>
+                  <path d="M264 204 q22 -28 44 0" stroke="#141210" stroke-width="3.4" fill="none"/>
+                  <path d="M264 231 h44" stroke="#141210" stroke-width="2.4"/>
+                  <!-- 光线 -->
+                  <g stroke="#141210" stroke-width="1.7" opacity=".9">
+                    <path d="M286 176 v-42"/><path d="M232 190 l-30 -28"/><path d="M340 190 l30 -28"/>
+                    <path d="M212 246 l-42 6"/><path d="M360 246 l42 6"/><path d="M232 292 l-30 26"/><path d="M340 292 l30 26"/>
+                  </g>
+                  <circle cx="286" cy="232" r="86" fill="none" stroke="#141210" stroke-width="1.1" stroke-dasharray="3 8" opacity=".55"/>
+                </g>
+                <!-- 地面 -->
+                <path d="M0 320 h600" stroke="#141210" stroke-width="4.5"/>
+                <path d="M180 320 q106 -22 212 0" stroke="#141210" stroke-width="1.6" fill="none" opacity=".5"/>
+              </svg>
+              <div class="bubble bub-box" style="right:16px;bottom:16px;max-width:184px;font-family:'Noto Serif SC',serif;font-size:.76rem;line-height:1.85;text-align:left;padding:11px 14px">
+                有些光，<br>不必回到天上。
+              </div>
+            </div>
+
+            <div class="foot">
+              <span>修补月光的人 · 06</span>
+              <span>P06 / 08</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 08 素材调用 ============ -->
+<section class="sec" id="assets">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="idx">08</div>
+      <div>
+        <span class="eyebrow mono">Stage 08 — Assets / 素材调用清单</span>
+        <h2>这份全案，每一环都借了力。</h2>
+        <p>示范的重点不是"全靠原创硬画"，而是<b>知道去哪借</b>。下表是本作实际会调用的素材来源，对应上一版素材地图的分类。</p>
+      </div>
+    </div>
+
+    <div class="use-grid">
+      <div class="use reveal">
+        <div class="n">01</div>
+        <div>
+          <h4>剧本与结构 · 拉片拆解</h4>
+          <p>用电影截帧库研究"门槛对峙"该怎么取景、冷暖对比怎么在黑白里表达。</p>
+          <div class="tools">
+            <a href="https://film-grab.com" target="_blank" rel="noopener">FILMGRAB</a>
+            <a href="https://shot.cafe" target="_blank" rel="noopener">SHOT.CAFE</a>
+            <a href="https://www.moviestillsdb.com" target="_blank" rel="noopener">MovieStillsDB</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="use reveal">
+        <div class="n">02</div>
+        <div>
+          <h4>人设 · 人体与手部</h4>
+          <p>老人的驼背体块、女孩的儿童比例、4 次手部特写——全部靠 3D 人偶摆姿 + 解剖参考解决。</p>
+          <div class="tools">
+            <a href="https://www.posemaniacs.com" target="_blank" rel="noopener">PoseManiacs</a>
+            <a href="https://line-of-action.com" target="_blank" rel="noopener">Line of Action</a>
+            <a href="https://quickposes.com/en" target="_blank" rel="noopener">QuickPoses</a>
+            <a href="https://terawell.net/terawell/" target="_blank" rel="noopener">DesignDoll</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="use reveal">
+        <div class="n">03</div>
+        <div>
+          <h4>分镜 · 构图参考</h4>
+          <p>P6 的 Z 字动线、G5 的留白比例，参考了电影宽银幕构图与动画截帧的分格习惯。</p>
+          <div class="tools">
+            <a href="https://shotdeck.com" target="_blank" rel="noopener">ShotDeck</a>
+            <a href="https://animationscreencaps.com" target="_blank" rel="noopener">AnimationScreencaps</a>
+            <a href="https://characterdesignreferences.com" target="_blank" rel="noopener">CDR</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="use reveal">
+        <div class="n">04</div>
+        <div>
+          <h4>线稿 · 笔刷与工具</h4>
+          <p>三档线重固定使用同一套勾线笔刷，笔压曲线按"外粗内细"调好后不再更改。</p>
+          <div class="tools">
+            <a href="https://assets.clip-studio.com" target="_blank" rel="noopener">CSP ASSETS</a>
+            <a href="https://gumroad.com" target="_blank" rel="noopener">Gumroad</a>
+            <a href="https://www.clipstudio.net" target="_blank" rel="noopener">Clip Studio Paint</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="use reveal">
+        <div class="n">05</div>
+        <div>
+          <h4>背景与网点 · 材质</h4>
+          <p>工作台木纹、墙面做旧、玻璃反光用 CC0 贴图打底；网点用 CSP 内置 + 纹理包叠加。</p>
+          <div class="tools">
+            <a href="https://polyhaven.com" target="_blank" rel="noopener">Poly Haven</a>
+            <a href="https://ambientcg.com" target="_blank" rel="noopener">ambientCG</a>
+            <a href="https://www.truegrittexturesupply.com" target="_blank" rel="noopener">True Grit</a>
+            <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="use reveal">
+        <div class="n">06</div>
+        <div>
+          <h4>文字 · 字体与输出</h4>
+          <p>标题与拟声词用手写体，对白用无衬线，旁白用衬线——三类字体全部核对过商用授权。</p>
+          <div class="tools">
+            <a href="https://maoken.com" target="_blank" rel="noopener">猫啃网</a>
+            <a href="https://fonts.google.com" target="_blank" rel="noopener">Google Fonts</a>
+            <a href="https://www.100font.com" target="_blank" rel="noopener">100font</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 时间表 ============ -->
+<section class="sec" style="background:var(--bg-2);padding-top:0">
+  <div class="wrap">
+    <div class="card reveal" style="margin-top:22px">
+      <h3>22 天执行排期</h3>
+      <h4>一个人画完八页的现实节奏</h4>
+      <div class="schedule" style="margin-top:8px;background:transparent;gap:1px">
+        <div class="sch">
+          <div class="d">D1–D4</div>
+          <h4>企划与设定</h4>
+          <ol>
+            <li>写完大纲与八页节拍表</li>
+            <li>三个人设定稿 + 场景设定</li>
+            <li>建立素材库与参考画板</li>
+            <li>锁死配色纪律（只有一个红）</li>
+          </ol>
+        </div>
+        <div class="sch">
+          <div class="d">D5–D10</div>
+          <h4>分镜与线稿</h4>
+          <ol>
+            <li>八页ネーム，先粗后精</li>
+            <li>自己读三遍，删掉 20% 格子</li>
+            <li>放大草稿 → 铅笔层</li>
+            <li>勾线（每天稳定推进 1.5 页）</li>
+          </ol>
+        </div>
+        <div class="sch">
+          <div class="d">D11–D17</div>
+          <h4>网点与背景</h4>
+          <ol>
+            <li>背景打底（3D + 贴图）</li>
+            <li>灰度预算表逐页对照执行</li>
+            <li>网点粘贴 + 效果线</li>
+            <li>拟声词与效果字绘制</li>
+          </ol>
+        </div>
+        <div class="sch">
+          <div class="d">D18–D22</div>
+          <h4>文字与输出</h4>
+          <ol>
+            <li>对白排版与气泡整形</li>
+            <li>统一检查：光源、线重、灰度</li>
+            <li>打印测试（缩到 60% 仍要读得懂）</li>
+            <li>导出交付 + 条漫版切图</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <h3>流程能给你<em>秩序</em>，<br>但真正让一页立起来的，<br>是你敢不敢让角色<em>沉默</em>三格。</h3>
+      <div class="foot-note">
+        这份全案的所有设定、分页与台词均为示范原创，可作为你的练习模板自由改写。<br>
+        建议的使用方式：把故事换成你自己的，但把<b>流程、表格与自检问题</b>原样保留下来走一遍——第一次完整走完，比画十张漂亮的单页更有价值。<br><br>
+        素材站点的授权政策可能随时调整，商用前请以各官网最新条款为准。
+      </div>
+    </div>
+    <div class="foot-bar">
+      <span>PRODUCTION BIBLE · 月光を繕う人</span>
+      <span>08 PAGES / 06 STAGES / 22 DAYS</span>
+      <span>A DEMONSTRATION FOR SELF-TAUGHT CREATORS</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* 滚动显现 */
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach((en,i)=>{
+    if(en.isIntersecting){
+      setTimeout(()=>en.target.classList.add('in'), i*70);
+      io.unobserve(en.target);
+    }
+  });
+},{threshold:.1, rootMargin:'0px 0px -7% 0px'});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* 顶部进度条 */
+const progress = document.getElementById('progress');
+window.addEventListener('scroll',()=>{
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  progress.style.width = (window.scrollY / h * 100) + '%';
+},{passive:true});
+</script>
+</body>
+</html>

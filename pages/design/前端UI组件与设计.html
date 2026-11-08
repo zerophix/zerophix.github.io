@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UI 组件设计手册 · 素材与工序</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f2ece1;
+    --paper2:#eae2d1;
+    --paper3:#e3d9c4;
+    --ink:#17140f;
+    --ink-soft:#4c4337;
+    --muted:#8b7f6b;
+    --rule:#cfc2ab;
+    --vermilion:#e0472a;
+    --vermilion-deep:#b53517;
+    --blue:#23417e;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'Noto Sans SC',sans-serif;
+    --disp:'Archivo Black','Noto Sans SC',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{margin:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font:400 15px/1.85 var(--sans);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* 纸张颗粒 */
+  body::before{
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:200;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity:.13; mix-blend-mode:multiply;
+  }
+  ::selection{background:var(--vermilion); color:var(--paper)}
+  a{color:inherit}
+
+  /* ================= 侧栏索引 ================= */
+  .rail{
+    position:fixed; left:0; top:0; bottom:0; width:212px; z-index:60;
+    display:flex; flex-direction:column; padding:26px 20px;
+    background:var(--paper2); border-right:1px solid var(--rule);
+  }
+  .rail-brand{display:flex; align-items:center; gap:10px; text-decoration:none}
+  .rail-mark{
+    width:38px; height:38px; flex:0 0 auto;
+    background:var(--vermilion); color:var(--paper);
+    display:grid; place-items:center;
+    font:900 17px/1 var(--disp); letter-spacing:-.02em;
+  }
+  .rail-brand b{
+    display:block; font:600 9.5px/1.5 var(--mono);
+    letter-spacing:.22em; text-transform:uppercase; color:var(--ink);
+  }
+  .rail-brand i{
+    display:block; font-style:normal; font:400 8.5px/1.5 var(--mono);
+    letter-spacing:.18em; color:var(--muted);
+  }
+  .rail-nav{margin-top:42px; display:flex; flex-direction:column; gap:1px}
+  .rail-nav a{
+    display:flex; align-items:baseline; gap:11px;
+    text-decoration:none; padding:9px 10px; border-radius:3px;
+    font:500 12.5px var(--sans); color:var(--ink-soft);
+    border-left:2px solid transparent;
+    transition:background .18s, color .18s, border-color .18s;
+  }
+  .rail-nav a b{font:600 10px var(--mono); color:var(--muted); letter-spacing:.08em}
+  .rail-nav a:hover{background:rgba(224,71,42,.08); color:var(--ink)}
+  .rail-nav a.active{color:var(--vermilion-deep); border-left-color:var(--vermilion); background:rgba(224,71,42,.1); font-weight:700}
+  .rail-nav a.active b{color:var(--vermilion)}
+  .rail-foot{
+    margin-top:auto; font:500 8.5px/1.8 var(--mono);
+    letter-spacing:.22em; text-transform:uppercase; color:var(--muted);
+  }
+  .rail-foot span{display:block; color:var(--vermilion-deep)}
+
+  .shell{margin-left:212px}
+  .wrap{max-width:1060px; margin:0 auto; padding:0 40px}
+
+  /* ================= 封面 ================= */
+  .cover{position:relative; padding:64px 0 52px; overflow:hidden}
+  .cover .wrap{position:relative}
+  /* 套准角标 */
+  .crop{position:absolute; width:22px; height:22px; border:1.5px solid var(--vermilion); opacity:.85}
+  .crop.tl{top:18px; left:18px; border-right:0; border-bottom:0}
+  .crop.tr{top:18px; right:18px; border-left:0; border-bottom:0}
+  .crop.bl{bottom:18px; left:18px; border-right:0; border-top:0}
+  .crop.br{bottom:18px; right:18px; border-left:0; border-top:0}
+
+  .kicker{
+    display:flex; align-items:center; gap:12px;
+    font:500 10px var(--mono); letter-spacing:.32em; text-transform:uppercase; color:var(--vermilion-deep);
+  }
+  .kicker::after{content:''; flex:1; height:1px; background:var(--rule)}
+  .cover h1{
+    margin:26px 0 0; font-family:var(--disp); font-weight:900;
+    font-size:clamp(3.4rem, 11.5vw, 8.6rem); line-height:.92;
+    letter-spacing:-.015em; text-transform:uppercase;
+  }
+  .cover h1 .cn{
+    display:block; font-family:var(--sans); font-weight:900;
+    letter-spacing:.02em; font-size:.56em; line-height:1.12; margin-bottom:.12em;
+  }
+  .cover h1 .out{
+    color:transparent; -webkit-text-stroke:1.6px var(--ink); text-stroke:1.6px var(--ink);
+  }
+  .cover h1 .hl{color:var(--vermilion)}
+  .cover-lead{
+    display:grid; grid-template-columns:1.25fr 1fr; gap:44px;
+    margin-top:38px; align-items:start;
+  }
+  .cover-lead p{margin:0; font-size:16px; line-height:2; color:var(--ink-soft); max-width:46ch}
+  .cover-lead p b{color:var(--ink)}
+  .halftone-box{
+    padding:22px; border:1.5px solid var(--ink); position:relative;
+    background:
+      radial-gradient(circle at 1.4px 1.4px, rgba(23,20,15,.5) 1.1px, transparent 1.4px);
+    background-size:8px 8px; background-color:var(--paper2);
+  }
+  .halftone-box .stamp{
+    position:absolute; top:-13px; right:16px;
+    background:var(--vermilion); color:var(--paper);
+    font:600 9px var(--mono); letter-spacing:.24em; padding:4px 10px;
+  }
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:2px; background:var(--ink); border:1.5px solid var(--ink)}
+  .stat{background:var(--paper2); padding:16px 12px; text-align:center}
+  .stat b{display:block; font-family:var(--disp); font-size:30px; line-height:1; color:var(--vermilion-deep)}
+  .stat span{display:block; margin-top:7px; font:500 9px var(--mono); letter-spacing:.2em; color:var(--ink-soft)}
+  .cover-cta{display:flex; gap:12px; flex-wrap:wrap; margin-top:34px}
+  .btn{
+    display:inline-flex; align-items:center; gap:9px; text-decoration:none;
+    padding:13px 22px; border:1.5px solid var(--ink);
+    font:600 11px var(--mono); letter-spacing:.16em; text-transform:uppercase;
+    transition:transform .16s, background .16s, color .16s, box-shadow .16s;
+  }
+  .btn.solid{background:var(--vermilion); border-color:var(--vermilion); color:var(--paper); box-shadow:4px 4px 0 var(--ink)}
+  .btn.solid:hover{transform:translate(-2px,-2px); box-shadow:6px 6px 0 var(--ink)}
+  .btn.ghost:hover{background:var(--ink); color:var(--paper); transform:translate(-2px,-2px); box-shadow:4px 4px 0 var(--vermilion)}
+
+  /* ================= 章节 ================= */
+  .chapter{padding:76px 0 26px; position:relative; scroll-margin-top:20px}
+  .chapter + .chapter{border-top:1.5px solid var(--ink)}
+  .ch-head{display:grid; grid-template-columns:auto 1fr; gap:30px; align-items:end; margin-bottom:46px}
+  .ch-num{
+    font-family:var(--disp); font-size:clamp(4.6rem,11vw,8.6rem); line-height:.78;
+    color:transparent; -webkit-text-stroke:1.6px var(--ink); text-stroke:1.6px var(--ink);
+    margin-left:-.05em;
+  }
+  .ch-head h2{
+    margin:10px 0 0; font-family:var(--sans); font-weight:900;
+    font-size:clamp(1.7rem,3.6vw,2.55rem); line-height:1.28; letter-spacing:.015em;
+  }
+  .ch-head .ch-desc{margin:14px 0 0; color:var(--ink-soft); max-width:58ch; font-size:14.5px}
+  .ch-kicker{
+    display:flex; align-items:center; gap:12px;
+    font:500 10px var(--mono); letter-spacing:.3em; text-transform:uppercase; color:var(--vermilion-deep);
+  }
+  .ch-kicker::after{content:''; width:52px; height:1.5px; background:var(--vermilion)}
+
+  /* 流水线条 */
+  .pipeline{
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+    padding:14px 16px; margin-bottom:34px;
+    border:1.5px dashed var(--rule); background:var(--paper2);
+  }
+  .pipeline span{
+    font:500 10px var(--mono); letter-spacing:.12em; color:var(--ink-soft);
+    padding:3px 9px; border:1px solid var(--rule); background:var(--paper); white-space:nowrap;
+  }
+  .pipeline i{font-style:normal; color:var(--vermilion); font-weight:700}
+
+  /* 工序步骤 */
+  .step{
+    display:grid; grid-template-columns:96px 1fr; gap:26px;
+    padding:28px 0; border-top:1px solid var(--rule); position:relative;
+  }
+  .step:last-child{border-bottom:1px solid var(--rule)}
+  .step-no{
+    font-family:var(--disp); font-size:44px; line-height:1; color:var(--paper);
+    -webkit-text-stroke:1.3px var(--vermilion-deep); text-stroke:1.3px var(--vermilion-deep);
+  }
+  .step h3{margin:0; font-size:18px; font-weight:900; letter-spacing:.02em}
+  .step h3 small{
+    font:500 10px var(--mono); letter-spacing:.22em; color:var(--muted);
+    margin-left:10px; text-transform:uppercase;
+  }
+  .step p{margin:10px 0 0; color:var(--ink-soft); font-size:14px; max-width:62ch}
+  .step-meta{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  .chip{
+    font:500 10px var(--mono); letter-spacing:.1em; padding:4px 10px;
+    border:1px solid var(--rule); background:var(--paper2); color:var(--ink-soft);
+  }
+  .chip b{color:var(--ink); font-weight:600}
+  .chip.warn{border-color:var(--vermilion); background:rgba(224,71,42,.09); color:var(--vermilion-deep)}
+  .chip.warn b{color:var(--vermilion-deep)}
+
+  /* ================= 组件族 ================= */
+  .fam-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:2px; background:var(--ink); border:1.5px solid var(--ink)}
+  .fam{background:var(--paper); padding:22px 20px 18px; display:flex; flex-direction:column; min-height:100%}
+  .fam-no{font:600 10px var(--mono); letter-spacing:.22em; color:var(--vermilion-deep)}
+  .fam h3{margin:12px 0 2px; font-size:17px; font-weight:900; letter-spacing:.03em}
+  .fam h3 small{display:block; font:500 9px var(--mono); letter-spacing:.26em; color:var(--muted); margin-top:5px}
+  .fam ul{margin:14px 0 0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:6px}
+  .fam li{
+    font:400 11px var(--mono); letter-spacing:.03em; padding:3px 8px;
+    background:var(--paper2); border:1px solid var(--rule); color:var(--ink-soft);
+  }
+  .fam .point{
+    margin-top:auto; padding-top:16px; font-size:12px; line-height:1.8; color:var(--muted);
+    border-top:1px dashed var(--rule); margin-top:18px;
+  }
+  .fam .point b{color:var(--vermilion-deep); font-weight:600}
+
+  /* ================= 资源目录 ================= */
+  .res-grid{display:grid; grid-template-columns:1fr 1fr; gap:22px}
+  .res{border:1.5px solid var(--ink); background:var(--paper); display:flex; flex-direction:column}
+  .res-head{
+    display:flex; align-items:baseline; gap:12px; padding:16px 18px 13px;
+    border-bottom:1.5px solid var(--ink);
+    background:
+      radial-gradient(circle at 1.2px 1.2px, rgba(23,20,15,.32) 1px, transparent 1.25px);
+    background-size:7px 7px; background-color:var(--paper2);
+  }
+  .res-no{font:600 10px var(--mono); letter-spacing:.18em; color:var(--vermilion-deep)}
+  .res-head h3{margin:0; font-size:16px; font-weight:900; letter-spacing:.03em}
+  .res-head h3 small{font:500 9px var(--mono); letter-spacing:.24em; color:var(--muted); margin-left:8px}
+  .res-note{padding:11px 18px; font-size:11.5px; color:var(--muted); border-bottom:1px dashed var(--rule)}
+  .dir-row{
+    display:grid; grid-template-columns:132px 1fr; gap:14px;
+    padding:11px 18px; border-bottom:1px dotted var(--rule); position:relative;
+    transition:background .16s;
+  }
+  .dir-row:last-child{border-bottom:0}
+  .dir-row:hover{background:var(--paper2)}
+  .dir-row:hover::before{content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--vermilion)}
+  .dir-name{font:600 12px/1.7 var(--mono); letter-spacing:.02em; color:var(--ink)}
+  .dir-desc{font-size:11.5px; line-height:1.75; color:var(--ink-soft)}
+  .tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:5px}
+  .tag{
+    font:500 8.5px var(--mono); letter-spacing:.14em; padding:2px 6px;
+    border:1px solid var(--rule); color:var(--muted); text-transform:uppercase;
+  }
+  .tag.free{border-color:rgba(35,65,126,.5); color:var(--blue)}
+  .tag.pay{border-color:rgba(224,71,42,.5); color:var(--vermilion-deep)}
+  .tag.cn{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+
+  /* ================= 材料包 ================= */
+  .kit{display:grid; grid-template-columns:repeat(2,1fr); gap:22px}
+  .kit-col{border:1.5px solid var(--ink); background:var(--paper); padding:20px 20px 16px}
+  .kit-col h3{margin:0 0 4px; font-size:15px; font-weight:900; letter-spacing:.04em}
+  .kit-col h3 small{font:500 9px var(--mono); letter-spacing:.24em; color:var(--muted); margin-left:8px}
+  .kit-col ul{margin:14px 0 0; padding:0; list-style:none}
+  .kit-col li{
+    display:flex; gap:11px; align-items:flex-start;
+    padding:9px 0; border-bottom:1px dotted var(--rule); font-size:12.5px; line-height:1.8; color:var(--ink-soft);
+  }
+  .kit-col li:last-child{border-bottom:0}
+  .box{
+    flex:0 0 auto; width:13px; height:13px; margin-top:5px;
+    border:1.5px solid var(--ink); background:var(--paper2); position:relative;
+  }
+  .kit-col li.key .box{background:var(--vermilion); border-color:var(--vermilion)}
+  .kit-col li.key .box::after{
+    content:''; position:absolute; left:3px; top:0px; width:4px; height:8px;
+    border:solid var(--paper); border-width:0 1.7px 1.7px 0; transform:rotate(42deg);
+  }
+  .kit-col li.key{color:var(--ink); font-weight:500}
+
+  /* ================= 避坑 ================= */
+  .pit{border-top:1.5px solid var(--ink); border-bottom:1.5px solid var(--ink); background:var(--paper2)}
+  .pit ul{margin:0; padding:0; list-style:none; display:grid; grid-template-columns:1fr 1fr}
+  .pit li{
+    display:flex; gap:13px; align-items:flex-start;
+    padding:17px 20px; border-bottom:1px dotted var(--rule); border-right:1px dotted var(--rule);
+    font-size:13px; line-height:1.85; color:var(--ink-soft);
+  }
+  .pit li .x{
+    flex:0 0 auto; width:18px; height:18px; margin-top:4px;
+    border:1.5px solid var(--vermilion); color:var(--vermilion);
+    display:grid; place-items:center; font:700 10px/1 var(--mono);
+  }
+  .pit li b{color:var(--ink)}
+
+  /* ================= 页脚 ================= */
+  .colophon{
+    margin-top:70px; padding:34px 0 46px; border-top:1.5px solid var(--ink);
+    background:var(--paper2);
+  }
+  .colophon .wrap{display:flex; flex-wrap:wrap; gap:22px; justify-content:space-between; align-items:flex-end}
+  .colophon b{font-family:var(--disp); font-size:15px; letter-spacing:.02em}
+  .colophon p{margin:8px 0 0; font-size:11px; line-height:2; color:var(--muted); max-width:56ch}
+  .colophon .stamp2{
+    font:500 9px var(--mono); letter-spacing:.26em; text-transform:uppercase;
+    color:var(--vermilion-deep); border:1.5px solid var(--vermilion); padding:8px 13px;
+  }
+
+  /* ================= 动效 ================= */
+  .rv{opacity:0; transform:translateY(22px); transition:opacity .75s cubic-bezier(.2,.7,.25,1), transform .75s cubic-bezier(.2,.7,.25,1)}
+  .rv.in{opacity:1; transform:none}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .cover .kicker,.cover h1,.cover-lead,.cover-cta{animation:fadeUp .85s cubic-bezier(.2,.7,.25,1) both}
+  .cover h1{animation-delay:.08s}
+  .cover-lead{animation-delay:.18s}
+  .cover-cta{animation-delay:.26s}
+
+  /* ================= 响应式 ================= */
+  @media (max-width:1120px){
+    .rail{
+      position:sticky; top:0; left:auto; bottom:auto; width:100%; height:auto;
+      flex-direction:row; align-items:center; gap:16px;
+      padding:11px 16px; border-right:0; border-bottom:1.5px solid var(--ink); overflow-x:auto;
+    }
+    .rail-nav{margin-top:0; flex-direction:row; gap:2px}
+    .rail-nav a{border-left:0; border-bottom:2px solid transparent; padding:7px 11px; white-space:nowrap}
+    .rail-nav a.active{border-left:0; border-bottom-color:var(--vermilion)}
+    .rail-foot{display:none}
+    .rail-brand i{display:none}
+    .shell{margin-left:0}
+    .chapter{scroll-margin-top:74px}
+  }
+  @media (max-width:860px){
+    .wrap{padding:0 20px}
+    .cover-lead{grid-template-columns:1fr; gap:26px}
+    .fam-grid{grid-template-columns:1fr 1fr}
+    .res-grid{grid-template-columns:1fr}
+    .kit{grid-template-columns:1fr}
+    .pit ul{grid-template-columns:1fr}
+    .pit li{border-right:0}
+    .ch-head{grid-template-columns:1fr; gap:8px}
+    .ch-num{font-size:4.2rem}
+    .step{grid-template-columns:56px 1fr; gap:16px}
+    .step-no{font-size:30px}
+  }
+  @media (max-width:560px){
+    .fam-grid{grid-template-columns:1fr}
+    .stats{grid-template-columns:1fr}
+    .dir-row{grid-template-columns:1fr; gap:4px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important; transition:none !important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<aside class="rail">
+  <a class="rail-brand" href="#top">
+    <div class="rail-mark">UI</div>
+    <div>
+      <b>Field Manual</b>
+      <i>素材 · 工序 · 组件</i>
+    </div>
+  </a>
+  <nav class="rail-nav">
+    <a href="#ch1"><b>01</b>工作流</a>
+    <a href="#ch2"><b>02</b>组件清单</a>
+    <a href="#ch3"><b>03</b>素材资源</a>
+    <a href="#ch4"><b>04</b>材料包</a>
+    <a href="#ch5"><b>05</b>避坑清单</a>
+  </nav>
+  <div class="rail-foot">
+    Edition 2026.1
+    <span>Printed on paper</span>
+  </div>
+</aside>
+
+<div class="shell">
+
+<!-- ============ 封面 ============ -->
+<header class="cover" id="top">
+  <div class="crop tl"></div><div class="crop tr"></div>
+  <div class="crop bl"></div><div class="crop br"></div>
+  <div class="wrap">
+    <div class="kicker">Field Manual · No.01 &nbsp;/&nbsp; 前端 UI 组件设计</div>
+    <h1>
+      <span class="cn">UI 组件设计</span>
+      <span class="out">Field</span> <span class="hl">Manual</span>
+    </h1>
+    <div class="cover-lead">
+      <p>把前端 UI 组件设计拆成 <b>八道工序</b>、<b>九大组件族</b> 与 <b>十二类素材源</b>。基础薄弱不可怕，缺一张索引才可怕——哪一步该产出什么、缺素材去哪找、组件要覆盖哪些状态，翻到对应页码即可。</p>
+      <div class="halftone-box">
+        <div class="stamp">Contents</div>
+        <div class="stats">
+          <div class="stat"><b>08</b><span>道工序</span></div>
+          <div class="stat"><b>09</b><span>大组件族</span></div>
+          <div class="stat"><b>12</b><span>类素材源</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cover-cta">
+      <a class="btn solid" href="#ch1">从工序开始 →</a>
+      <a class="btn ghost" href="#ch3">直接找素材 →</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ 01 工作流 ============ -->
+<section class="chapter" id="ch1">
+  <div class="ch-head rv">
+    <div class="ch-num">01</div>
+    <div>
+      <div class="ch-kicker">Workflow · 八道工序</div>
+      <h2>从「有一个想法」到「可以交付」<br>中间要走的完整流水线</h2>
+      <p class="ch-desc">每道工序都有明确产出物。跳过任何一道，问题都会在后面的工序里加倍奉还——最常见的是跳过「定问题」和「建系统」。</p>
+    </div>
+  </div>
+
+  <div class="pipeline rv">
+    <span>01 定问题</span><i>→</i><span>02 收灵感</span><i>→</i><span>03 搭骨架</span><i>→</i>
+    <span>04 画线框</span><i>→</i><span>05 建系统</span><i>→</i><span>06 出视觉</span><i>→</i>
+    <span>07 加交互</span><i>→</i><span>08 走查交付</span>
+  </div>
+
+  <div class="rv">
+    <div class="step">
+      <div class="step-no">01</div>
+      <div>
+        <h3>定问题 <small>Define</small></h3>
+        <p>明确用户是谁、在什么场景用、怎样算成功，把目标写成一句话。这一步决定后面所有取舍的标准。</p>
+        <div class="step-meta">
+          <span class="chip">产出 · <b>目标卡 / 用户画像</b></span>
+          <span class="chip">工具 · <b>纸笔 / 文档</b></span>
+          <span class="chip warn">坑 · <b>没定目标就打开画布</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-no">02</div>
+      <div>
+        <h3>收灵感 <small>Reference</small></h3>
+        <p>建情绪板，拆解 3 个同类产品的「结构与流程」，而不是截几张好看的图。收藏时标注好它哪里值得抄。</p>
+        <div class="step-meta">
+          <span class="chip">产出 · <b>情绪板 / 参考清单</b></span>
+          <span class="chip">工具 · <b>Behance · Mobbin · Pinterest</b></span>
+          <span class="chip warn">坑 · <b>只收集好看的，忘了好用的</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-no">03</div>
+      <div>
+        <h3>搭骨架 <small>Structure</small></h3>
+        <p>画站点地图与用户流程，穷举页面清单与状态清单（默认 / 加载 / 空 / 错误 / 成功 / 权限）。先结构，后像素。</p>
+        <div class="step-meta">
+          <span class="chip">产出 · <b>信息架构 / 流程图</b></span>
+          <span class="chip">工具 · <b>FigJam · Whimsical</b></span>
+          <span class="chip warn">坑 · <b>漏掉空态、错误态、权限态</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-no">04</div>
+      <div>
+        <h3>画线框 <small>Wireframe</small></h3>
+        <p>低保真排布信息层级，用真实文案占位而不是 Lorem ipsum——文案长度会直接决定排版是否成立。</p>
+        <div class="step-meta">
+          <span class="chip">产出 · <b>低保真线框稿</b></span>
+          <span class="chip">工具 · <b>Figma · 纸笔</b></span>
+          <span class="chip warn">坑 · <b>线框阶段就上色，问题混在一起</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-no">05</div>
+      <div>
+        <h3>建系统 <small>System</small></h3>
+        <p>定义设计 Token：色板与语义色、字阶、间距刻度、圆角、阴影、动效曲线；再把组件按状态矩阵做一遍规范。</p>
+        <div class="step-meta">
+          <span class="chip">产出 · <b>Style Tile / Token 表</b></span>
+          <span class="chip">工具 · <b>Figma Variables</b></span>
+          <span class="chip warn">坑 · <b>同一种按钮画了五遍五个样</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-no">06</div>
+      <div>
+        <h3>出视觉 <small>Interface</small></h3>
+        <p>高保真页面，覆盖全部状态与断点。用真实数据排版：超长文本、空值、极端数字都得排得下。</p>
+        <div class="step-meta">
+          <span class="chip">产出 · <b>高保真设计稿</b></span>
+          <span class="chip">工具 · <b>Figma</b></span>
+          <span class="chip warn">坑 · <b>用完美假数据排版，上线即崩</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-no">07</div>
+      <div>
+        <h3>加交互 <small>Prototype</small></h3>
+        <p>原型走通主流程，动效统一曲线与时长（如 180ms / 320ms 两档）。动效为「解释状态变化」存在，不为炫技。</p>
+        <div class="step-meta">
+          <span class="chip">产出 · <b>可点原型 / 动效规范</b></span>
+          <span class="chip">工具 · <b>Figma 原型 · Rive · ProtoPie</b></span>
+          <span class="chip warn">坑 · <b>动效时长随手写，节奏混乱</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-no">08</div>
+      <div>
+        <h3>走查交付 <small>Handoff</small></h3>
+        <p>无障碍与响应式走查，输出标注链接、切图、Token JSON；开发完成后按清单核对还原度，记录差异。</p>
+        <div class="step-meta">
+          <span class="chip">产出 · <b>走查清单 / 交付包</b></span>
+          <span class="chip">工具 · <b>Stark · axe · Dev Mode</b></span>
+          <span class="chip warn">坑 · <b>只验理想路径；口头交付不落文档</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 组件清单 ============ -->
+<section class="chapter" id="ch2">
+  <div class="ch-head rv">
+    <div class="ch-num">02</div>
+    <div>
+      <div class="ch-kicker">Components · 九大组件族</div>
+      <h2>一个界面拆到底<br>就是这九族零件</h2>
+      <p class="ch-desc">把它当成自检清单：每族里的条目，你的设计稿覆盖了几个？每族末尾的一句话是该族的设计要点。</p>
+    </div>
+  </div>
+
+  <div class="fam-grid rv">
+    <div class="fam">
+      <div class="fam-no">FAMILY 01</div>
+      <h3>导航<small>Navigation</small></h3>
+      <ul>
+        <li>顶栏</li><li>标签页</li><li>侧栏</li><li>面包屑</li><li>分页</li>
+        <li>步骤条</li><li>返回</li><li>锚点</li><li>命令面板</li>
+      </ul>
+      <div class="point"><b>要点：</b>用户随时能回答"我在哪、能去哪、怎么回"；任何页面三次点击内可达。</div>
+    </div>
+    <div class="fam">
+      <div class="fam-no">FAMILY 02</div>
+      <h3>按钮<small>Actions</small></h3>
+      <ul>
+        <li>主按钮</li><li>次按钮</li><li>幽灵按钮</li><li>危险按钮</li>
+        <li>图标按钮</li><li>按钮组</li><li>拆分按钮</li><li>加载态</li><li>禁用态</li>
+      </ul>
+      <div class="point"><b>要点：</b>一页只留一个主按钮；危险操作与主操作物理隔开，避免误触。</div>
+    </div>
+    <div class="fam">
+      <div class="fam-no">FAMILY 03</div>
+      <h3>表单<small>Forms</small></h3>
+      <ul>
+        <li>输入框</li><li>文本域</li><li>下拉</li><li>多选</li><li>级联</li>
+        <li>单选</li><li>开关</li><li>滑块</li><li>日期</li><li>文件上传</li>
+        <li>搜索框</li><li>评分</li><li>校验提示</li>
+      </ul>
+      <div class="point"><b>要点：</b>每个字段四态齐全（默认 / 聚焦 / 错误 / 禁用），标签永不被 placeholder 取代。</div>
+    </div>
+    <div class="fam">
+      <div class="fam-no">FAMILY 04</div>
+      <h3>数据展示<small>Data</small></h3>
+      <ul>
+        <li>表格</li><li>列表</li><li>卡片</li><li>徽章</li><li>标签</li>
+        <li>进度</li><li>统计数字</li><li>时间线</li><li>树</li><li>骨架屏</li><li>空状态</li>
+      </ul>
+      <div class="point"><b>要点：</b>假数据骗人——用真实长文本、极端值、空值来检验排版与截断策略。</div>
+    </div>
+    <div class="fam">
+      <div class="fam-no">FAMILY 05</div>
+      <h3>反馈<small>Feedback</small></h3>
+      <ul>
+        <li>Toast</li><li>Alert</li><li>对话框</li><li>抽屉</li>
+        <li>气泡卡</li><li>Tooltip</li><li>全局进度</li><li>结果页</li><li>撤销提示</li>
+      </ul>
+      <div class="point"><b>要点：</b>错误信息要说"怎么办"，不要只说"出错了"；反馈必须出现在用户视线附近。</div>
+    </div>
+    <div class="fam">
+      <div class="fam-no">FAMILY 06</div>
+      <h3>图表<small>Charts</small></h3>
+      <ul>
+        <li>折线</li><li>柱状</li><li>饼 / 环</li><li>面积</li>
+        <li>散点</li><li>仪表盘</li><li>迷你图</li><li>漏斗</li><li>地图</li>
+      </ul>
+      <div class="point"><b>要点：</b>一图一结论：先想清楚要用户看到什么，再选图形；坐标轴与图例不能缺席。</div>
+    </div>
+    <div class="fam">
+      <div class="fam-no">FAMILY 07</div>
+      <h3>多媒体<small>Media</small></h3>
+      <ul>
+        <li>灯箱</li><li>轮播</li><li>视频</li><li>音频播放器</li>
+        <li>波形</li><li>头像</li><li>封面</li><li>画廊</li>
+      </ul>
+      <div class="point"><b>要点：</b>占位 / 加载 / 失败三态齐全；控制条必须可键盘操作、可暂停。</div>
+    </div>
+    <div class="fam">
+      <div class="fam-no">FAMILY 08</div>
+      <h3>布局<small>Layout</small></h3>
+      <ul>
+        <li>栅格</li><li>分栏</li><li>粘性</li><li>折叠面板</li>
+        <li>瀑布流</li><li>分隔线</li><li>滚动容器</li><li>断点</li>
+      </ul>
+      <div class="point"><b>要点：</b>间距用 4 / 8 的倍数成体系；至少设计移动、平板、桌面三个断点。</div>
+    </div>
+    <div class="fam">
+      <div class="fam-no">FAMILY 09</div>
+      <h3>业务模式<small>Patterns</small></h3>
+      <ul>
+        <li>上传队列</li><li>筛选器</li><li>搜索结果</li><li>详情页</li>
+        <li>新手引导</li><li>评论</li><li>聊天</li><li>工单</li><li>拖拽排序</li>
+      </ul>
+      <div class="point"><b>要点：</b>拆解成熟产品的真实流程再改造，比凭空发明一套交互可靠得多。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 素材资源 ============ -->
+<section class="chapter" id="ch3">
+  <div class="ch-head rv">
+    <div class="ch-num">03</div>
+    <div>
+      <div class="ch-kicker">Resources · 十二类素材源</div>
+      <h2>缺什么补什么<br>近百个精选站点目录</h2>
+      <p class="ch-desc">标签说明：<span class="tag free">免费</span> 可零成本使用 · <span class="tag pay">订阅/付费</span> 商业授权需付费 · <span class="tag cn">国内</span> 中文友好。使用前务必核对各站最新授权条款。</p>
+    </div>
+  </div>
+
+  <div class="res-grid">
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.1</span><h3>字体<small>Type</small></h3></div>
+      <div class="res-note">先定品牌中文与西文各一款，再备一款等宽体给数据。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Google Fonts</div><div><div class="dir-desc">免费可商用的网页字体首选，含完整 CJK 家族。<div class="tags"><span class="tag free">免费</span><span class="tag">可商用</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Fontshare</div><div><div class="dir-desc">ITF 出品的整套免费字体，西文质量极高。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Adobe Fonts</div><div><div class="dir-desc">订阅制，西文精品最全，网页嵌入授权省心。<div class="tags"><span class="tag pay">订阅</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">100font</div><div><div class="dir-desc">专门收录可免费商用的中日文字体。<div class="tags"><span class="tag free">免费</span><span class="tag cn">国内</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">猫啃网</div><div><div class="dir-desc">中文字体授权资讯与免费商用下载导航。<div class="tags"><span class="tag free">免费</span><span class="tag cn">国内</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">思源 / 普惠体 / MiSans</div><div><div class="dir-desc">开源与厂商免费商用的中文基础字库，覆盖正文与标题。<div class="tags"><span class="tag free">免费</span><span class="tag">可商用</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">得意黑 / 霞鹜文楷</div><div><div class="dir-desc">GitHub 上的高人气开源中文字体，标题与长文皆宜。<div class="tags"><span class="tag free">开源</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">TypeWolf · Font Pair</div><div><div class="dir-desc">字体搭配案例与配对速查，解决"配哪款"。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.2</span><h3>图标<small>Icons</small></h3></div>
+      <div class="res-note">一个产品只用一套线性图标，粗细与圆角保持统一。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Iconify</div><div><div class="dir-desc">二十万+图标聚合搜索，一套 API 调用全部主流库。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Lucide</div><div><div class="dir-desc">线性图标标杆，Feather 的活跃续作。<div class="tags"><span class="tag free">开源</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Phosphor</div><div><div class="dir-desc">六档粗细可调，同一风格覆盖各种密度。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Tabler Icons</div><div><div class="dir-desc">5000+ 开源图标，自带 React / Vue 组件。<div class="tags"><span class="tag free">开源</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Heroicons</div><div><div class="dir-desc">Tailwind 团队出品，描面双版本。<div class="tags"><span class="tag free">开源</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Remix / IconPark / Iconfont</div><div><div class="dir-desc">国产三大图标库，中文场景图标更贴。<div class="tags"><span class="tag free">免费</span><span class="tag cn">国内</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">SVG Repo · Material Symbols</div><div><div class="dir-desc">海量 SVG 聚合与可变字重官方图标。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.3</span><h3>插画<small>Illustration</small></h3></div>
+      <div class="res-note">空状态、引导页、落地页的插画来源，注意风格成套使用。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">unDraw</div><div><div class="dir-desc">单色插画可一键换主色，与品牌色天然匹配。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Storyset</div><div><div class="dir-desc">可换色、可加动画的场景插画，成套齐全。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Open Peeps · Humaaans</div><div><div class="dir-desc">拼贴式人物插画，自己组合角色与姿势。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">DrawKit · Blush</div><div><div class="dir-desc">成套插画系统与可拼装插画组件。<div class="tags"><span class="tag pay">免费+付费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Popsy · illustrations.co</div><div><div class="dir-desc">手绘风与超现实叙事插画，气质独特。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.4</span><h3>图片<small>Photo</small></h3></div>
+      <div class="res-note">大图做背景时记得压暗或加渐变，保证文字对比度。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Unsplash</div><div><div class="dir-desc">最高质量的免费摄影图库，检索体验一流。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Pexels · Pixabay</div><div><div class="dir-desc">量大稳定的免费图库，含视频素材。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">StockSnap · Burst</div><div><div class="dir-desc">补充图库，商业场景素材较多。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">千图 / 包图 / 摄图</div><div><div class="dir-desc">国内综合素材站，注意会员范围与商用授权。<div class="tags"><span class="tag pay">会员</span><span class="tag cn">国内</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">remove.bg</div><div><div class="dir-desc">一键抠图，做头像与商品图很省事。<div class="tags"><span class="tag pay">免费+付费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.5</span><h3>配色<small>Color</small></h3></div>
+      <div class="res-note">先定"主色 + 中性色 + 语义色（成功/警告/错误）"，再谈高级灰。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Coolors</div><div><div class="dir-desc">随机生成、锁定微调，最快出可用色板。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Realtime Colors</div><div><div class="dir-desc">把配色实时套在真实布局上看效果。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Happy Hues</div><div><div class="dir-desc">真实网站的成套配色示范，可整套照抄。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Khroma · Adobe Color</div><div><div class="dir-desc">AI 学习偏好配色；从图片提取色板。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Radix Colors · Tailwind 色板</div><div><div class="dir-desc">成熟的成体系色阶，直接当 Token 用。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">WebAIM 对比度检查</div><div><div class="dir-desc">校验文字对比度是否达到 WCAG 4.5:1。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.6</span><h3>纹理与背景<small>Texture</small></h3></div>
+      <div class="res-note">氛围层：噪点、图案、波形分隔，让纯色界面有"材质"。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Haikei</div><div><div class="dir-desc">生成波浪、形状、噪点等 SVG 背景。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Hero Patterns</div><div><div class="dir-desc">可换色的平铺图案库，克制耐看。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">fffuel</div><div><div class="dir-desc">渐变、噪点、图案生成器合集。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Blobmaker · Get Waves</div><div><div class="dir-desc">不规则形状与波形分隔线生成。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Transparent Textures</div><div><div class="dir-desc">透明纹理贴图，叠加在任何底色上。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.7</span><h3>动效<small>Motion</small></h3></div>
+      <div class="res-note">统一曲线与时长：入场用缓出，退出用缓入，数值成档。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">easings.net</div><div><div class="dir-desc">缓动曲线速查表，附可复制的 CSS 值。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">cubic-bezier.com</div><div><div class="dir-desc">可视化贝塞尔曲线编辑器。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Animista</div><div><div class="dir-desc">点选生成 CSS 动画，含入场与悬停。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">LottieFiles</div><div><div class="dir-desc">AE 导出的矢量动画市场，体积小。<div class="tags"><span class="tag pay">免费+付费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Rive · Hover.css</div><div><div class="dir-desc">交互动效设计工具与纯 CSS 悬停合集。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.8</span><h3>灵感与拆解<small>Inspiration</small></h3></div>
+      <div class="res-note">看的时候问三个问题：结构是什么、为什么这样做、我能改哪里。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Dribbble · Behance</div><div><div class="dir-desc">视觉灵感与作品集，看趋势最快。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Awwwards</div><div><div class="dir-desc">网页设计评奖，年度案例含金量高。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Mobbin</div><div><div class="dir-desc">数千款真实 App 的截图流，拆移动端流程首选。<div class="tags"><span class="tag pay">免费+付费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Page Flows</div><div><div class="dir-desc">真实产品的交互流程录屏，看"过程"。<div class="tags"><span class="tag pay">订阅</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Refero · Land-book</div><div><div class="dir-desc">按场景分类的真实网页截图收集。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Lapa Ninja · Godly</div><div><div class="dir-desc">落地页与建站作品精选，找首屏结构。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.9</span><h3>设计系统与规范<small>Systems</small></h3></div>
+      <div class="res-note">动手前先读一份大厂规范，理解"为什么这么定"。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Material Design 3</div><div><div class="dir-desc">Google 最完整的设计体系，含 Token 与无障碍。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Apple HIG</div><div><div class="dir-desc">iOS / macOS 设计规范，交互细节标杆。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Ant Design · TDesign</div><div><div class="dir-desc">国产企业级设计系统，文档与组件最全。<div class="tags"><span class="tag free">免费</span><span class="tag cn">国内</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Arco · Semi Design</div><div><div class="dir-desc">字节系设计系统，含设计原则与模式。<div class="tags"><span class="tag free">免费</span><span class="tag cn">国内</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Carbon · Polaris · Primer</div><div><div class="dir-desc">IBM / Shopify / GitHub 的公开设计体系。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.10</span><h3>组件库<small>UI Kits</small></h3></div>
+      <div class="res-note">设计稿组件与代码组件对照着用，还原度最高。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Figma Community</div><div><div class="dir-desc">海量免费 UI Kit、模板与插件的总仓库。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Untitled UI</div><div><div class="dir-desc">规模最大的 Figma 组件库之一，体系完整。<div class="tags"><span class="tag pay">免费+付费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">官方设计套件</div><div><div class="dir-desc">Material 3 Kit 与 Apple 官方 iOS UI Kit。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">shadcn/ui</div><div><div class="dir-desc">复制源码即得的 React 组件，可深度定制。<div class="tags"><span class="tag free">开源</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Aceternity · Magic UI</div><div><div class="dir-desc">带高级动效的组件集合，做展示页利器。<div class="tags"><span class="tag free">开源</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Radix · Headless UI</div><div><div class="dir-desc">无样式可访问组件原语，自己定义外观。<div class="tags"><span class="tag free">开源</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">daisyUI · Mantine</div><div><div class="dir-desc">Tailwind 与 React 的开箱即用组件层。<div class="tags"><span class="tag free">开源</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.11</span><h3>无障碍<small>Accessibility</small></h3></div>
+      <div class="res-note">最低标准：对比度 4.5:1、键盘可达、焦点可见、有替代文本。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">WebAIM</div><div><div class="dir-desc">网络无障碍权威指南与对比度检查器。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">WAVE · axe DevTools</div><div><div class="dir-desc">在线评估与浏览器插件自动化检测。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Stark · Colour Oracle</div><div><div class="dir-desc">设计稿内的对比度检查与色盲模拟器。<div class="tags"><span class="tag pay">免费+付费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">A11y Project Checklist</div><div><div class="dir-desc">可勾选的无障碍清单，交付前过一遍。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Inclusive Components</div><div><div class="dir-desc">组件级无障碍模式详解，讲原理的好教材。<div class="tags"><span class="tag free">免费</span></div></div></div></div>
+      </div>
+    </article>
+
+    <article class="res rv">
+      <div class="res-head"><span class="res-no">3.12</span><h3>工具与交付<small>Tools</small></h3></div>
+      <div class="res-note">画图、协作、标注、还原验收，各环节的趁手兵器。</div>
+      <div>
+        <div class="dir-row"><div class="dir-name">Figma</div><div><div class="dir-desc">设计协作的事实标准，Dev Mode 负责标注交付。<div class="tags"><span class="tag pay">免费+付费</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">即时设计 · MasterGo</div><div><div class="dir-desc">国产协作设计工具，中文生态与本地化好。<div class="tags"><span class="tag free">免费+付费</span><span class="tag cn">国内</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Pixso · 蓝湖</div><div><div class="dir-desc">协作设计与标注交付平台。<div class="tags"><span class="tag pay">免费+付费</span><span class="tag cn">国内</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Framer · ProtoPie</div><div><div class="dir-desc">高保真建站原型与复杂交互原型。<div class="tags"><span class="tag pay">订阅</span></div></div></div></div>
+        <div class="dir-row"><div class="dir-name">Zeplin · Motiff</div><div><div class="dir-desc">标注交付与 AI 辅助设计工具。<div class="tags"><span class="tag pay">订阅</span></div></div></div></div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ============ 04 材料包 ============ -->
+<section class="chapter" id="ch4">
+  <div class="ch-head rv">
+    <div class="ch-num">04</div>
+    <div>
+      <div class="ch-kicker">Kit · 开工材料包</div>
+      <h2>动手画之前<br>先把这四包材料备齐</h2>
+      <p class="ch-desc">红色勾选的六项是"没有就别开工"的硬材料，其余是让过程更顺的软材料。</p>
+    </div>
+  </div>
+
+  <div class="kit rv">
+    <div class="kit-col">
+      <h3>内容素材<small>Content</small></h3>
+      <ul>
+        <li class="key"><span class="box"></span>真实文案（拒绝 Lorem ipsum，含超长句）</li>
+        <li class="key"><span class="box"></span>真实数据（极端值、空值、小数、零）</li>
+        <li><span class="box"></span>图片与插画选型清单</li>
+        <li><span class="box"></span>图标风格定稿（线性 / 面性 / 双色）</li>
+        <li class="key"><span class="box"></span>品牌素材（Logo、品牌色、字体授权文件）</li>
+      </ul>
+    </div>
+    <div class="kit-col">
+      <h3>结构骨架<small>Structure</small></h3>
+      <ul>
+        <li class="key"><span class="box"></span>页面清单与用户流程图</li>
+        <li class="key"><span class="box"></span>状态清单（默认·加载·空·错误·成功·权限）</li>
+        <li><span class="box"></span>断点策略（移动 · 平板 · 桌面）</li>
+        <li><span class="box"></span>导航层级与返回逻辑</li>
+        <li><span class="box"></span>异常与边界场景列表</li>
+      </ul>
+    </div>
+    <div class="kit-col">
+      <h3>设计系统<small>System</small></h3>
+      <ul>
+        <li class="key"><span class="box"></span>色板 + 语义色（成功/警告/错误/信息）</li>
+        <li><span class="box"></span>字阶与行高（标题 / 正文 / 注释三档起）</li>
+        <li><span class="box"></span>间距刻度（4 或 8 的倍数）</li>
+        <li><span class="box"></span>圆角、阴影、描边规范</li>
+        <li><span class="box"></span>动效曲线与时长档位</li>
+      </ul>
+    </div>
+    <div class="kit-col">
+      <h3>交付验收<small>Handoff</small></h3>
+      <ul>
+        <li><span class="box"></span>设计 Token 导出（JSON / CSS 变量）</li>
+        <li><span class="box"></span>标注链接（Dev Mode / 蓝湖）</li>
+        <li><span class="box"></span>切图与图标源文件（SVG 优先）</li>
+        <li class="key"><span class="box"></span>无障碍目标（对比度 4.5:1、键盘可达）</li>
+        <li><span class="box"></span>还原走查清单与差异记录表</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 避坑 ============ -->
+<section class="chapter" id="ch5">
+  <div class="ch-head rv">
+    <div class="ch-num">05</div>
+    <div>
+      <div class="ch-kicker">Pitfalls · 避坑清单</div>
+      <h2>新手最常踩的<br>八个坑</h2>
+      <p class="ch-desc">每一条都对应前面某道工序的"坑"位，交付前对照着删一遍。</p>
+    </div>
+  </div>
+
+  <div class="pit rv">
+    <ul>
+      <li><span class="x">×</span><div><b>Lorem ipsum 掩盖排版问题</b>——文案一换成真实的，卡片高度就塌了。</div></li>
+      <li><span class="x">×</span><div><b>组件只画理想态</b>——等于没画。加载、空、错误、禁用、超长才是设计的主战场。</div></li>
+      <li><span class="x">×</span><div><b>圆角与间距随手定</b>——同一页面出现 5 种圆角、7 种间距，视觉立刻显乱。</div></li>
+      <li><span class="x">×</span><div><b>三种以上主字体打架</b>——显示、正文、等宽各一款，足矣。</div></li>
+      <li><span class="x">×</span><div><b>动效时长随手写</b>——没有统一曲线与档位，整个产品会显得"晃"。</div></li>
+      <li><span class="x">×</span><div><b>只在一个宽度下设计</b>——窄屏一放，表格与导航全崩；断点要提前规划。</div></li>
+      <li><span class="x">×</span><div><b>对比度不达 4.5:1</b>——浅灰小字"高级感"的代价是用户看不清。</div></li>
+      <li><span class="x">×</span><div><b>装饰比内容抢眼</b>——氛围层永远服务于信息，喧宾夺主就是失败。</div></li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer class="colophon">
+  <div class="wrap">
+    <div>
+      <b>UI 组件设计手册 · Field Manual</b>
+      <p>本手册按工序、组件、素材三层组织，用于查漏补缺而非逐页背诵。站点授权与定价随时可能调整，使用前请以官网为准。内容整理与排版：MiMo。</p>
+    </div>
+    <div class="stamp2">Edition 2026.1</div>
+  </div>
+</footer>
+
+</div><!-- /shell -->
+
+<script>
+"use strict";
+
+/* 滚动浮现 */
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  });
+}, { threshold: 0.1, rootMargin: "0px 0px -6% 0px" });
+document.querySelectorAll(".rv").forEach((el) => io.observe(el));
+
+/* 侧栏滚动高亮 */
+const railLinks = Array.from(document.querySelectorAll(".rail-nav a"));
+const sections = Array.from(document.querySelectorAll("section[id]"));
+const spy = new IntersectionObserver((entries) => {
+  entries.forEach((e) => {
+    if (e.isIntersecting) {
+      const id = "#" + e.target.id;
+      railLinks.forEach((l) => l.classList.toggle("active", l.getAttribute("href") === id));
+    }
+  });
+}, { rootMargin: "-40% 0px -55% 0px", threshold: 0 });
+sections.forEach((s) => spy.observe(s));
+</script>
+
+</body>
+</html>
